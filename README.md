@@ -1,7 +1,7 @@
 # LokulMem 🧠⚡
 
 <p align="center">
-  <img alt="LokulMem banner" src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=220&section=header&text=LokulMem&fontSize=62&fontAlignY=38&desc=Browser-native%20AI%20memory%20layer%20%E2%80%94%20zero-server%20%E2%80%94%20LLM-agnostic&descAlignY=60" />
+  <img alt="LokulMem banner" src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=220&section=header&text=LokulMem&fontSize=62&fontAlignY=38&desc=Browser-native%20AI%20memory%20layer%20%E2%80%94%20zero-server%20%E2%80%94%20LLM-agnostic&descAlignY=60&fontColor=fff" />
 </p>
 
 <p align="center">
@@ -54,7 +54,7 @@ No backend. No vendor lock-in. Works with any LLM that accepts a `messages[]` ar
 - **Memory lifecycle**: extract → store → decay/reinforce → retrieve → inspect/edit.
 - **Contradiction resolution**: temporal updates vs conflicts, preserving lineage.
 - **Token-aware injection**: uses your tokenizer (or a sensible fallback).
-- **Inspectable by design**: optional debug output explains *why* each memory was used.
+- **Inspectable by design**: optional debug output explains _why_ each memory was used.
 - **DX-first defaults**: “fetch once, cache forever” model loading.
 - **Airgap-ready**: strict local model loading via `localModelBaseUrl`.
 
@@ -73,7 +73,7 @@ pnpm add lokulmem
 ### Drop it into your chat loop
 
 ```ts
-import { LokulMem } from 'lokulmem';
+import { LokulMem } from "lokulmem";
 
 // 1) Init once
 const memory = await LokulMem.init({
@@ -123,6 +123,7 @@ LokulMem is for you if you want:
 LokulMem has three core surfaces:
 
 ### 1) `augment()` — retrieve + inject
+
 Returns a new `messages[]` array plus optional debug metadata.
 
 ```ts
@@ -136,6 +137,7 @@ const { messages, debug } = await memory.augment({
 ```
 
 ### 2) `learn()` — extract + store
+
 Extracts candidate memories from the last turn and writes them to IndexedDB.
 
 ```ts
@@ -149,17 +151,18 @@ console.log(result.contradictions);
 ```
 
 ### 3) `manage()` — list/search/edit/pin/export
+
 For UI panels and power users.
 
 ```ts
 const m = memory.manage();
 
-const items = await m.list({ status: 'active' }); // returns MemoryDTO (no embeddings)
+const items = await m.list({ status: "active" }); // returns MemoryDTO (no embeddings)
 await m.pin(items[0].id);
 
 const exported = await m.exportJSON();
 await m.clear();
-await m.importJSON(exported, { conflictStrategy: 'merge' });
+await m.importJSON(exported, { conflictStrategy: "merge" });
 ```
 
 ---
@@ -187,15 +190,15 @@ const memory = await LokulMem.init({
   workerUrl: undefined, // override if your bundler can’t resolve it
 
   // ONNX Runtime (CSP/offline)
-  onnxWasmBaseUrl: '/lokulmem/onnx/',
+  onnxWasmBaseUrl: "/lokulmem/onnx/",
   onnxWasmPaths: {
     // optional explicit mapping
     // 'ort-wasm.wasm': '/lokulmem/onnx/ort-wasm.wasm',
   },
 
   // Model loading
-  allowRemoteModels: true,           // DX default: fetch once, cache forever
-  localModelBaseUrl: undefined,      // set to enable strict airgap mode
+  allowRemoteModels: true, // DX default: fetch once, cache forever
+  localModelBaseUrl: undefined, // set to enable strict airgap mode
 
   onProgress: (p) => console.log(p),
 });
@@ -203,16 +206,16 @@ const memory = await LokulMem.init({
 
 ### Options
 
-| Option | Type | Default | Notes |
-|---|---:|---:|---|
-| `debug` | `boolean` | `false` | Adds `LokulMemDebug` from `augment()` |
-| `workerUrl` | `string` | auto | Override worker script URL |
-| `onnxWasmBaseUrl` | `string` | auto | Base URL/dir for ORT assets |
-| `onnxWasmPaths` | `Record<string,string>` | — | Explicit ORT file mapping |
-| `allowRemoteModels` | `boolean` | `true` | Fetch-once-cache-forever DX |
-| `localModelBaseUrl` | `string` | — | Airgap mode (maps to `env.localModelPath`) |
-| `tokenCounter` | `(text)=>number` | heuristic | Accurate token budgeting |
-| `onProgress` | `(stage)=>void` | — | model/storage/maintenance progress |
+| Option              |                    Type |   Default | Notes                                      |
+| ------------------- | ----------------------: | --------: | ------------------------------------------ |
+| `debug`             |               `boolean` |   `false` | Adds `LokulMemDebug` from `augment()`      |
+| `workerUrl`         |                `string` |      auto | Override worker script URL                 |
+| `onnxWasmBaseUrl`   |                `string` |      auto | Base URL/dir for ORT assets                |
+| `onnxWasmPaths`     | `Record<string,string>` |         — | Explicit ORT file mapping                  |
+| `allowRemoteModels` |               `boolean` |    `true` | Fetch-once-cache-forever DX                |
+| `localModelBaseUrl` |                `string` |         — | Airgap mode (maps to `env.localModelPath`) |
+| `tokenCounter`      |        `(text)=>number` | heuristic | Accurate token budgeting                   |
+| `onProgress`        |         `(stage)=>void` |         — | model/storage/maintenance progress         |
 
 ---
 
@@ -222,12 +225,12 @@ Default mode is **DX-first**: download the embedding model once and cache it.
 
 To run in strict airgapped mode:
 
-1) Host the model assets locally (mirroring the expected model layout)
-2) Point LokulMem at your local base URL
+1. Host the model assets locally (mirroring the expected model layout)
+2. Point LokulMem at your local base URL
 
 ```ts
 const memory = await LokulMem.init({
-  localModelBaseUrl: '/models/',
+  localModelBaseUrl: "/models/",
   // Airgap mode sets:
   // env.allowLocalModels = true
   // env.allowRemoteModels = false
@@ -262,6 +265,7 @@ sequenceDiagram
 ```
 
 ### Stores
+
 - `memories` — durable facts (with embeddings)
 - `episodes` — optional conversation segments
 - `clusters` — k-means centroids (v0.1)
@@ -290,7 +294,7 @@ This is intentionally built so you can ship a **Memory Inspector** UI.
 ```ts
 const json = await memory.manage().exportJSON();
 await memory.manage().clear();
-await memory.manage().importJSON(json, { conflictStrategy: 'merge' });
+await memory.manage().importJSON(json, { conflictStrategy: "merge" });
 ```
 
 ---
@@ -316,14 +320,17 @@ pnpm dev
 ## 🧯 Troubleshooting
 
 **Worker fails to load**
+
 - Set `workerUrl` explicitly.
 - Confirm the published package includes the worker chunk.
 
 **ONNX WASM 404 / CSP blocked**
+
 - Set `onnxWasmBaseUrl` or `onnxWasmPaths`.
 - Confirm `ort-wasm*.wasm` and `ort-wasm*.mjs` are being served.
 
 **Airgap mode can’t find model**
+
 - Confirm `localModelBaseUrl` is reachable.
 - Confirm model files exist under that path.
 
@@ -332,6 +339,7 @@ pnpm dev
 ## 🤝 Contributing
 
 PRs welcome. Please keep:
+
 - Local-first behavior by default
 - Public API DTO-only payloads
 - No silent CDN fallbacks in airgap mode
@@ -342,4 +350,3 @@ PRs welcome. Please keep:
 ## 📄 License
 
 MIT (recommended). Replace with your actual license.
-
