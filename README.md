@@ -338,15 +338,10 @@ pnpm dev
 
 ## 🤝 Contributing
 
-PRs welcome. Please keep:
-
-- Local-first behavior by default
-- Public API DTO-only payloads
-- No silent CDN fallbacks in airgap mode
-- Stable types + strict TypeScript
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, development setup, and release checks.
 
 ---
 
 ## 📄 License
 
-MIT (recommended). Replace with your actual license.
+MIT — see [LICENSE](LICENSE).
