@@ -1,0 +1,464 @@
+{
+  "project": "LokulMem",
+  "version": "0.1.9 (Production-Hardened v0.4 Spec + Exact Airgap Env Fields)",
+  "description": "Browser-native, zero-server, LLM-agnostic memory management library with full lifecycle, clustering, and contradiction resolution.",
+  "architecturalDecisions": [
+    "Embeddings are EXCLUDED from public API responses via the MemoryDTO pattern to prevent IPC serialization overhead.",
+    "JSON Export serializes Float32Arrays to Base64 to survive JSON.stringify.",
+    "Web Worker instantiates via compiled artifacts or Vite worker hooks.",
+    "Model Loading defaults to 'Fetch Once, Cache Forever' (allowRemoteModels=true) for zero-config DX.",
+    "Strict airgapped loading is supported via the `localModelBaseUrl` configuration escape hatch, explicitly mapping to `env.localModelPath`.",
+    "ONNX WASM pathing is strictly typed and normalized internally, and Transformers.js version is pinned."
+  ],
+  "tasks": [
+    {
+      "taskId": "TASK-1",
+      "title": "Project Scaffold & Core Types",
+      "description": "Set up the TypeScript project, build tooling, and define all core TS interfaces based on PRD v0.4 Schema.",
+      "dependencies": [],
+      "subtasks": [
+        {
+          "subtaskId": "TASK-1.1",
+          "title": "Initialize NPM package and Build Tooling",
+          "description": "Set up a tree-shakeable ESM package using Vite (Library Mode). Configure worker compilation strategies.",
+          "requirements": [
+            "Must output ESM bundle.",
+            "Must include TypeScript declarations (.d.ts).",
+            "Must configure Vite to output the worker as a separate consumable asset."
+          ],
+          "expectedFiles": ["package.json", "tsconfig.json", "vite.config.ts"],
+          "aiInstructions": [
+            "Strictly pin `@xenova/transformers` to an exact version (e.g., `2.16.1` or `3.0.0-alpha`) in package.json to prevent underlying ORT API drift."
+          ],
+          "acceptanceTestSnippet": "npm run build && find dist -name '*worker*.js' | grep .",
+          "definitionOfDone": [
+            "Empty build runs successfully.",
+            "Worker is compiled to a distinct file chunk found via recursive search."
+          ]
+        },
+        {
+          "subtaskId": "TASK-1.2",
+          "title": "Define Core TypeScript Interfaces (DTO Pattern)",
+          "description": "Translate the PRD's Schema into distinct internal and public types.",
+          "requirements": [
+            "Define `MemoryRecord` (Internal): `embedding` is strictly `Float32Array`.",
+            "Define `MemoryDTO` (Public API): `embedding` is omitted entirely.",
+            "Define `LokulMemOptions` including `workerUrl?: string`, `onnxWasmBaseUrl?: string`, `onnxWasmPaths?: Record<string, string>`, `allowRemoteModels?: boolean` (default true), and `localModelBaseUrl?: string`.",
+            "Define `LokulMemExport` containing version, schemaVersion, modelName, and memories (with base64 embeddings)."
+          ],
+          "expectedFiles": ["src/types.ts"],
+          "aiInstructions": [
+            "Implement utility types to easily convert Record -> DTO."
+          ],
+          "acceptanceTestSnippet": "import { MemoryRecord, MemoryDTO, LokulMemOptions } from './src/types'; const arr: Float32Array = new Float32Array(384);",
+          "definitionOfDone": [
+            "DTO pattern ensures embeddings never accidentally cross IPC.",
+            "WASM pathing and local model airgap options are explicit."
+          ]
+        }
+      ]
+    },
+    {
+      "taskId": "TASK-2",
+      "title": "Main Thread Initialization & Worker IPC",
+      "description": "Implement the `init()` sequence, robust worker mode detection, and `MessageChannel` RPC setup.",
+      "dependencies": ["TASK-1"],
+      "subtasks": [
+        {
+          "subtaskId": "TASK-2.1",
+          "title": "Worker Build & ONNX Asset Strategy (Globs)",
+          "description": "Configure the bundler to copy ALL ONNX helper assets into the dist folder using glob patterns.",
+          "requirements": [
+            "Configure Vite build (via `vite-plugin-static-copy`) to copy `ort-wasm*.wasm` and `ort-wasm*.mjs` from `node_modules/onnxruntime-web/dist/` into `dist/`."
+          ],
+          "expectedFiles": [
+            "vite.config.ts",
+            "src/worker/index.ts",
+            "src/index.ts"
+          ],
+          "aiInstructions": [
+            "Use glob patterns to catch SIMD, threaded, and standard builds automatically, plus their JS loader counterparts."
+          ],
+          "acceptanceTestSnippet": "npm run build && find dist -name 'ort-wasm*.mjs' | wc -l | grep -v 0",
+          "definitionOfDone": [
+            "Multiple ONNX WASM and MJS files are physically present in the build output."
+          ]
+        },
+        {
+          "subtaskId": "TASK-2.2",
+          "title": "Robust Worker Mode Detection & Safe Instantiation",
+          "description": "Implement `detectWorkerMode()` testing for ESM SharedWorker support.",
+          "requirements": [
+            "Call `navigator.storage.persist()` before spawning the worker.",
+            "If `options.workerUrl` provided, use it. Else import the worker using Vite's explicit `?worker` syntax or reference the compiled `.js` artifact.",
+            "Try/catch instantiation of module SharedWorker -> module Dedicated Worker -> main thread."
+          ],
+          "expectedFiles": ["src/core/init.ts"],
+          "aiInstructions": [
+            "Ensure the default instantiation path does not rely on resolving TypeScript files at runtime."
+          ],
+          "acceptanceTestSnippet": "const mode = await detectWorkerMode(); console.assert(['shared', 'dedicated', 'main-thread'].includes(mode));",
+          "definitionOfDone": [
+            "Worker instantiates correctly across environments from published distribution."
+          ]
+        },
+        {
+          "subtaskId": "TASK-2.3",
+          "title": "MessageChannel RPC Dispatcher",
+          "description": "Establish a Promise-based RPC mechanism using `MessageChannel`.",
+          "requirements": [
+            "Create a dispatcher mapping unique message IDs to Promises.",
+            "Handle continuous `onProgress` and `onEvent` streams."
+          ],
+          "expectedFiles": ["src/ipc/MainThreadRPC.ts", "src/ipc/WorkerRPC.ts"],
+          "aiInstructions": [],
+          "acceptanceTestSnippet": "const result = await rpc.call('ping', { data: 'test' }); console.assert(result === 'pong');",
+          "definitionOfDone": [
+            "Main thread can await a function executed in the worker."
+          ]
+        }
+      ]
+    },
+    {
+      "taskId": "TASK-3",
+      "title": "Storage Layer (Dexie.js)",
+      "description": "Initialize IndexedDB schema using Float32Arrays.",
+      "dependencies": ["TASK-1", "TASK-2"],
+      "subtasks": [
+        {
+          "subtaskId": "TASK-3.1",
+          "title": "Dexie in Worker Initialization & Smoke Test",
+          "description": "Verify and initialize Dexie inside the chosen Worker context.",
+          "requirements": [
+            "Initialize Dexie DB inside the worker.",
+            "Perform a basic readiness write/read to ensure IDB isn't blocked."
+          ],
+          "expectedFiles": ["src/worker/db.ts", "src/worker/index.ts"],
+          "aiInstructions": [],
+          "acceptanceTestSnippet": "const ok = await rpc.call('initDB'); console.assert(ok === true);",
+          "definitionOfDone": ["Worker successfully interacts with IndexedDB."]
+        },
+        {
+          "subtaskId": "TASK-3.2",
+          "title": "Dexie Schema Definition",
+          "description": "Define the v1 schema exactly as specified in the PRD.",
+          "requirements": [
+            "Stores: memories, episodes, edges, clusters.",
+            "Memories indexes: 'id, *types, status, clusterId, lastAccessedAt, baseStrength, validFrom, pinned, mentionCount, [status+lastAccessedAt], [status+pinned]'."
+          ],
+          "expectedFiles": ["src/worker/db.ts"],
+          "aiInstructions": [
+            "Ensure `embedding` is explicitly typed as `Float32Array`."
+          ],
+          "acceptanceTestSnippet": "const db = new LokulMemDB(); await db.open(); console.assert(db.memories !== undefined);",
+          "definitionOfDone": [
+            "Schema v1 successfully creates IndexedDB stores."
+          ]
+        }
+      ]
+    },
+    {
+      "taskId": "TASK-4",
+      "title": "Embedding Engine & Vector Search (Worker Layer)",
+      "description": "Implement Transformers.js pipeline, dual-mode loading strategies, concurrency queue, and brute-force search.",
+      "dependencies": ["TASK-3"],
+      "subtasks": [
+        {
+          "subtaskId": "TASK-4.1",
+          "title": "Transformers.js Config, DX-First Loading, & Queue",
+          "description": "Load model defaulting to Fetch-Once-Cache-Forever, with strict airgap support.",
+          "requirements": [
+            "Set `env.useBrowserCache = true`.",
+            "Set `env.allowRemoteModels = options.allowRemoteModels ?? true` (DX-First default).",
+            "**CRITICAL:** If `options.localModelBaseUrl` is provided, enable airgap mode: set `env.allowLocalModels = true`, `env.allowRemoteModels = false`, and strictly set `env.localModelPath = options.localModelBaseUrl`.",
+            "Normalize WASM paths: Set `env.backends.onnx.wasm.wasmPaths` to `options.onnxWasmPaths` or `options.onnxWasmBaseUrl`.",
+            "Implement a Promise-based concurrency queue (mutex) around `embed()`.",
+            "Implement Map-based LRU cache (1000 items)."
+          ],
+          "expectedFiles": ["src/worker/embedder.ts", "src/worker/cache.ts"],
+          "aiInstructions": [
+            "Ensure the output is cast to `Float32Array` before caching. Handle the `env.localModelPath` explicit assignment so the agent does not hallucinate the property name."
+          ],
+          "acceptanceTestSnippet": "const [v1, v2] = await Promise.all([embed('a'), embed('b')]); console.assert(v1 instanceof Float32Array);",
+          "definitionOfDone": [
+            "Model loads seamlessly for default users via CDN/Cache.",
+            "Model loads successfully from a local origin when airgap options are configured."
+          ]
+        },
+        {
+          "subtaskId": "TASK-4.2",
+          "title": "Brute-Force Vector Search Engine",
+          "description": "Implement optimized cosine similarity and in-memory search.",
+          "requirements": [
+            "Implement highly optimized cosine similarity for Float32Array.",
+            "Load active embeddings into an in-memory array cache (`[{id, vec, meta}]`)."
+          ],
+          "expectedFiles": ["src/worker/vectorIndex.ts"],
+          "aiInstructions": [
+            "Use a standard `for` loop for cosine similarity."
+          ],
+          "acceptanceTestSnippet": "const results = index.search(vecQuery, 5); console.assert(results.length <= 5);",
+          "definitionOfDone": ["Returns ranked results in < 30ms."]
+        }
+      ]
+    },
+    {
+      "taskId": "TASK-5",
+      "title": "Extraction Layer: Core Signals",
+      "description": "Implement E(s) extraction scoring pipeline.",
+      "dependencies": ["TASK-4"],
+      "subtasks": [
+        {
+          "subtaskId": "TASK-5.1",
+          "title": "Specificity NER Implementation",
+          "description": "Implement Specificity regex rules.",
+          "requirements": [
+            "Rules: Name (0.3), Place (0.25), Number (0.2), Preference (0.25), Date (0.2), Negation (0.2)."
+          ],
+          "expectedFiles": ["src/worker/extraction/specificity.ts"],
+          "aiInstructions": [],
+          "acceptanceTestSnippet": "const score = scoreSpecificity('I prefer dark mode'); console.assert(score >= 0.25);",
+          "definitionOfDone": ["Specificity returns correct semantic weights."]
+        },
+        {
+          "subtaskId": "TASK-5.2",
+          "title": "Novelty (O(log N) Routing), Recurrence & E(s)",
+          "description": "Calculate final extraction score routing Novelty directly through the retrieval backend.",
+          "requirements": [
+            "**CRITICAL:** Novelty(s) MUST be computed via `1 - top1_similarity` using `vectorIndex.search(embed(s), 1)`. Do NOT implement a separate similarity loop.",
+            "Recurrence = min(1.0, 0.2 + (0.25 * occurrences(s))).",
+            "E(s) = 0.35*novelty + 0.45*specificity + 0.20*recurrence."
+          ],
+          "expectedFiles": ["src/worker/extraction/scorer.ts"],
+          "aiInstructions": [
+            "Ensure `vectorIndex.search` is utilized for the novelty check to maintain performance scaling."
+          ],
+          "acceptanceTestSnippet": "const eScore = await calculateE('My name is Alex', index); console.assert(eScore > 0.0);",
+          "definitionOfDone": ["Scoring avoids redundant O(N) loops."]
+        }
+      ]
+    },
+    {
+      "taskId": "TASK-6",
+      "title": "Extraction Layer: Contradiction Pipeline",
+      "description": "Implement 3-stage contradiction detection.",
+      "dependencies": ["TASK-5"],
+      "subtasks": [
+        {
+          "subtaskId": "TASK-6.1",
+          "title": "Temporal Marker & Conflict Logic",
+          "description": "Detect temporal markers or typed attribute conflicts.",
+          "requirements": [
+            "Scan for 16 temporal markers -> set `validTo`/`validFrom`.",
+            "Else check typed attributes -> set `superseded`.",
+            "Emit `ContradictionEvent` via IPC (using DTO)."
+          ],
+          "expectedFiles": ["src/worker/extraction/contradiction.ts"],
+          "aiInstructions": [],
+          "acceptanceTestSnippet": "const res = detectContradiction('I used to live in Berlin, now London', oldMem); console.assert(res.resolution === 'temporal-coexistence');",
+          "definitionOfDone": [
+            "Logic correctly distinguishes temporal updates from conflicts."
+          ]
+        }
+      ]
+    },
+    {
+      "taskId": "TASK-7",
+      "title": "Storage Lifecycle",
+      "description": "Implement decay, pruning, and K-means.",
+      "dependencies": ["TASK-3", "TASK-4"],
+      "subtasks": [
+        {
+          "subtaskId": "TASK-7.1",
+          "title": "Decay, Pruning & Synchronous Clustering",
+          "description": "Implement Ebbinghaus decay, session sweep, and strictly synchronous K-means.",
+          "requirements": [
+            "Decay math: `base_strength * e^(-λ * t)`.",
+            "Sweep: Mark faded, remove from RAM cache.",
+            "K-means: Synchronous Lloyd's algorithm."
+          ],
+          "expectedFiles": [
+            "src/worker/lifecycle/decay.ts",
+            "src/worker/lifecycle/maintenance.ts",
+            "src/worker/lifecycle/clustering.ts"
+          ],
+          "aiInstructions": [
+            "Do NOT use `requestIdleCallback` or asynchronous chunking for the clustering loop in v0.1. Implement it as a standard blocking `while` loop within the worker."
+          ],
+          "acceptanceTestSnippet": "await runMaintenanceSweep(db); await runClustering(db);",
+          "definitionOfDone": [
+            "Faded memories removed.",
+            "Clusters persisted synchronously."
+          ]
+        }
+      ]
+    },
+    {
+      "taskId": "TASK-8",
+      "title": "Retrieval Layer",
+      "description": "Implement R(m, q) scoring and debugging.",
+      "dependencies": ["TASK-4", "TASK-7"],
+      "subtasks": [
+        {
+          "subtaskId": "TASK-8.1",
+          "title": "Composite Scoring & Debug Output",
+          "description": "Score memories and generate debug info.",
+          "requirements": [
+            "Calculate composite R score.",
+            "Generate `LokulMemDebug` with detailed candidates.",
+            "Format injection string."
+          ],
+          "expectedFiles": [
+            "src/worker/retrieval/scorer.ts",
+            "src/worker/retrieval/formatter.ts"
+          ],
+          "aiInstructions": [],
+          "acceptanceTestSnippet": "const { debug } = await retrieve(query, { debug: true }); console.assert(debug.candidates.length > 0);",
+          "definitionOfDone": ["Scoring is accurate.", "Budget is respected."]
+        }
+      ]
+    },
+    {
+      "taskId": "TASK-9",
+      "title": "Public API: augment() & learn()",
+      "description": "Wire core APIs.",
+      "dependencies": ["TASK-6", "TASK-8"],
+      "subtasks": [
+        {
+          "subtaskId": "TASK-9.1",
+          "title": "Implement augment & learn",
+          "description": "Connect main thread methods to worker pipelines.",
+          "requirements": [
+            "`augment()` returns messages + debug.",
+            "`learn()` returns extraction results."
+          ],
+          "expectedFiles": ["src/core/LokulMem.ts"],
+          "aiInstructions": [],
+          "acceptanceTestSnippet": "const res = await memory.augment('hi', [], { debug: true }); console.assert(res.debug !== undefined);",
+          "definitionOfDone": ["API methods functional."]
+        }
+      ]
+    },
+    {
+      "taskId": "TASK-10",
+      "title": "Public API: manage() & IPC Optimization",
+      "description": "Implement management API with efficient data transfer.",
+      "dependencies": ["TASK-3"],
+      "subtasks": [
+        {
+          "subtaskId": "TASK-10.1",
+          "title": "Query Methods via MemoryDTO",
+          "description": "Implement list/get converting records to DTOs.",
+          "requirements": [
+            "Implement `list`, `get`, `semanticSearch`, `stats`.",
+            "All results must be mapped to `MemoryDTO` (embedding removed) before crossing IPC.",
+            "Provide `includeEmbedding?: boolean` to optionally fetch standard memory records."
+          ],
+          "expectedFiles": [
+            "src/core/ManageAPI.ts",
+            "src/worker/manageHandler.ts"
+          ],
+          "aiInstructions": [],
+          "acceptanceTestSnippet": "const items = await memory.manage().list(); if(items.length > 0) console.assert(items[0].embedding === undefined);",
+          "definitionOfDone": [
+            "Manage API functional.",
+            "IPC payloads are lightweight by default."
+          ]
+        },
+        {
+          "subtaskId": "TASK-10.2",
+          "title": "Mutations, Strict RAM Cache Sync, & Event DTOs",
+          "description": "Implement mutations that keep RAM cache in sync and broadcast DTO events.",
+          "requirements": [
+            "Implement `update`, `delete`, `pin`.",
+            "**CRITICAL:** Ensure all mutations synchronously update the in-memory vector cache in the worker.",
+            "Emit cross-thread events strictly using `MemoryDTO`."
+          ],
+          "expectedFiles": [
+            "src/worker/manageHandler.ts",
+            "src/ipc/EventBus.ts"
+          ],
+          "aiInstructions": [
+            "Vector cache syncing is a primary vector for ghost data bugs. Handle index syncing inside the exact same transaction logic as the Dexie writes."
+          ],
+          "acceptanceTestSnippet": "await memory.manage().delete('id-1'); const results = await memory.manage().semanticSearch('the thing id-1 was about'); console.assert(results.every(r => r.id !== 'id-1'));",
+          "definitionOfDone": [
+            "Mutations reflect instantly in search without requiring a reload.",
+            "Events do not lag the main thread."
+          ]
+        },
+        {
+          "subtaskId": "TASK-10.3",
+          "title": "Export/Import Serialization",
+          "description": "Implement JSON export and import with Base64 arrays.",
+          "requirements": [
+            "JSON export must convert `Float32Array` to Base64 strings.",
+            "JSON import must reconstruct `Float32Array` from Base64.",
+            "Include `version`, `schemaVersion`, `modelName`, and `embeddingDims` in the export root object."
+          ],
+          "expectedFiles": ["src/core/ExportImport.ts", "src/utils/base64.ts"],
+          "aiInstructions": [
+            "Search web for 'convert ArrayBuffer to base64 typescript' for an efficient, browser-native conversion."
+          ],
+          "acceptanceTestSnippet": "const json = await memory.manage().export(); console.assert(typeof json.memories[0].embedding === 'string');",
+          "definitionOfDone": [
+            "Full round-trip capability via JSON stringification."
+          ]
+        }
+      ]
+    },
+    {
+      "taskId": "TASK-11",
+      "title": "Quality Assurance & Testing",
+      "description": "Automated tests.",
+      "dependencies": ["TASK-9", "TASK-10"],
+      "subtasks": [
+        {
+          "subtaskId": "TASK-11.1",
+          "title": "Unit & Integration Tests",
+          "description": "Test math, logic, and worker flows.",
+          "requirements": [
+            "Unit tests for pure functions.",
+            "Integration tests in browser mode.",
+            "Concurrency test: `Promise.all([embed('a'), embed('b')])`."
+          ],
+          "expectedFiles": ["tests/"],
+          "aiInstructions": [],
+          "acceptanceTestSnippet": "npm run test",
+          "definitionOfDone": ["Tests pass reliably."]
+        }
+      ]
+    },
+    {
+      "taskId": "TASK-12",
+      "title": "Documentation & Demo Workspace",
+      "description": "Developer adoption artifacts.",
+      "dependencies": ["TASK-9", "TASK-10"],
+      "subtasks": [
+        {
+          "subtaskId": "TASK-12.1",
+          "title": "React Demo App (Isolated Workspace)",
+          "description": "Build an example app in complete isolation from library dependencies.",
+          "requirements": [
+            "Initialize demo app in `examples/react-app/` with its own strictly isolated `package.json`.",
+            "Dependencies like React, Vite plugins, and UI libraries MUST NOT bleed into the root library `package.json`.",
+            "Visualize `debug` object.",
+            "Reactive list using `manage().list()`."
+          ],
+          "expectedFiles": [
+            "examples/react-app/package.json",
+            "examples/react-app/App.tsx"
+          ],
+          "aiInstructions": [
+            "Double check that the root `package.json` does not contain React after setting this up."
+          ],
+          "acceptanceTestSnippet": "cd examples/react-app && npm install && npm run dev",
+          "definitionOfDone": [
+            "Demo runs.",
+            "Library package size remains unpolluted by UI framework dependencies."
+          ]
+        }
+      ]
+    }
+  ]
+}
