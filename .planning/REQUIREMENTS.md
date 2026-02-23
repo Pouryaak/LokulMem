@@ -22,16 +22,16 @@
 
 ### Embedding Engine
 
-- [ ] **EMBED-01**: Transformers.js MiniLM-L6-v2 loads in worker context
+- [x] **EMBED-01**: Transformers.js MiniLM-L6-v2 loads in worker context
 - [ ] **EMBED-02**: LRU cache (1000 entries) for embeddings
 - [ ] **EMBED-03**: Promise-based concurrency queue prevents concurrent embedding calls
-- [ ] **EMBED-04**: Model loads from CDN with local cache (Cache API)
-- [ ] **EMBED-05**: `localModelBaseUrl` option enables airgapped/offline usage
+- [x] **EMBED-04**: Model loads from CDN with local cache (Cache API)
+- [x] **EMBED-05**: `localModelBaseUrl` option enables airgapped/offline usage
 - [x] **EMBED-06**: ONNX WASM paths configurable via options
 - [x] **EMBED-07**: ORT assets bundled into dist (glob copy ort-wasm*.wasm and ort-wasm*.mjs)
 - [x] **EMBED-08**: `workerUrl` option supported for custom worker resolution
-- [ ] **EMBED-09**: Airgap mode explicitly sets `env.allowLocalModels=true`, `env.allowRemoteModels=false`, `env.localModelPath=<localModelBaseUrl>`
-- [ ] **EMBED-10**: Airgap mode requires consumers to host model assets mirroring `Xenova/all-MiniLM-L6-v2` repository structure under `localModelBaseUrl`
+- [x] **EMBED-09**: Airgap mode explicitly sets `env.allowLocalModels=true`, `env.allowRemoteModels=false`, `env.localModelPath=<localModelBaseUrl>`
+- [x] **EMBED-10**: Airgap mode requires consumers to host model assets mirroring `Xenova/all-MiniLM-L6-v2` repository structure under `localModelBaseUrl`
 
 ### Extraction Layer
 

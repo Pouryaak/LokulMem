@@ -58,6 +58,7 @@ Plan 04-03 (Vite WASM bundling and workerUrl support) completed. Configured vite
 | Bundle size (gzipped) | < 2MB | — | Not measured |
 | Model load time | — | — | Not measured |
 | Phase 03-storage-layer P03-01 | 15 | 3 tasks | 4 files |
+| Phase 04 P01 | 45 | 5 tasks | 5 files |
 
 ### Benchmarks
 
@@ -99,6 +100,9 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 | 2026-02-23 | wasmPaths NOT defaulted to localModelBaseUrl | Avoids 404s in airgap setups with separate model/WASM paths | Implemented in 04-03 |
 | 2026-02-23 | Permissive workerUrl validation | Accepts blob:, data:, extensionless URLs for flexibility | Implemented in 04-03 |
 | 2026-02-23 | Typed ModelConfig in Protocol.ts | Type safety across WorkerConfig, InitPayload, EmbeddingConfig | Implemented in 04-03 |
+- [Phase 04]: Use @huggingface/transformers v3.x with dtype: 'q8' quantization
+- [Phase 04]: Explicit env.useBrowserCache=true for Cache API persistence
+- [Phase 04]: Airgap mode blocks all network via env.allowRemoteModels=false
 
 ### Open Questions
 
