@@ -8,7 +8,9 @@
  * Main thread: Direct execution (last resort)
  */
 
+import { WorkerClient, createMainThreadPort } from './MessagePort.js';
 import { requestPersistence } from './Persistence.js';
+import type { InitPayload, ProgressMessage } from './Protocol.js';
 import type {
   InitStage,
   PortLike,
@@ -19,57 +21,13 @@ import type {
 import type { PersistenceStatus } from './types.js';
 
 /**
- * WorkerClient for communicating with the worker via PortLike
+ * Queued message for buffering during initialization
  */
-class WorkerClient {
-  private port: PortLike;
-  private pendingRequests = new Map<
-    string,
-    {
-      resolve: (value: unknown) => void;
-      reject: (reason: Error) => void;
-      timeout: ReturnType<typeof setTimeout>;
-    }
-  >();
-
-  constructor(port: PortLike) {
-    this.port = port;
-    this.port.onmessage = this.handleMessage.bind(this);
-    this.port.onmessageerror = this.handleMessageError.bind(this);
-  }
-
-  request(type: string, payload: unknown, timeoutMs = 5000): Promise<unknown> {
-    const id = crypto.randomUUID();
-
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        this.pendingRequests.delete(id);
-        reject(new Error(`Request timeout: ${type}`));
-      }, timeoutMs);
-
-      this.pendingRequests.set(id, { resolve, reject, timeout });
-      this.port.postMessage({ id, type, payload });
-    });
-  }
-
-  private handleMessage(event: MessageEvent) {
-    const { id, payload, error } = event.data;
-    const request = this.pendingRequests.get(id);
-    if (!request) return;
-
-    clearTimeout(request.timeout);
-    this.pendingRequests.delete(id);
-
-    if (error) {
-      request.reject(new Error(error.message));
-    } else {
-      request.resolve(payload);
-    }
-  }
-
-  private handleMessageError(event: MessageEvent) {
-    console.error('Message deserialization error:', event);
-  }
+interface QueuedMessage {
+  type: string;
+  payload: unknown;
+  resolve: (value: unknown) => void;
+  reject: (reason: Error) => void;
 }
 
 /**
@@ -82,6 +40,8 @@ export class WorkerManager {
   private persistenceStatus: PersistenceStatus | null = null;
   private isReady = false;
   private client: WorkerClient | null = null;
+  private onProgressCallback: ProgressCallback | null = null;
+  private messageQueue: QueuedMessage[] = [];
 
   /**
    * Initialize the worker with fallback chain
@@ -94,21 +54,39 @@ export class WorkerManager {
     config: WorkerConfig,
     onProgress?: ProgressCallback,
   ): Promise<void> {
+    // Store progress callback for later use
+    this.onProgressCallback = onProgress ?? null;
+
     // Get port via fallback chain
     this.port = await this.doInitialize(config);
 
     // Create client for communication
     this.client = new WorkerClient(this.port);
 
-    // Set up progress handling
+    // Set up progress handling using client.onMessage
     if (onProgress) {
-      this.setupProgressHandling(onProgress);
+      this.client.onMessage((message) => {
+        if (message && typeof message === 'object' && 'type' in message) {
+          const progressMsg = message as ProgressMessage;
+          if (progressMsg.type === 'progress' && progressMsg.stage) {
+            onProgress(
+              progressMsg.stage as InitStage,
+              progressMsg.stageProgress,
+              progressMsg.overallProgress,
+              progressMsg.message,
+            );
+          }
+        }
+      });
     }
 
     // Send INIT request and wait for completion
     await this.sendInitRequest(config);
 
     this.isReady = true;
+
+    // Flush any queued messages
+    this.flushMessageQueue();
   }
 
   /**
@@ -148,9 +126,49 @@ export class WorkerManager {
   }
 
   /**
+   * Queue a message to be sent once the worker is ready
+   * If already ready, sends immediately
+   *
+   * @param type - Message type
+   * @param payload - Message payload
+   * @returns Promise that resolves with the response
+   */
+  queueMessage(type: string, payload: unknown): Promise<unknown> {
+    if (this.isReady && this.client) {
+      return this.client.request(type, payload, 5000);
+    }
+
+    // Queue the message for later
+    return new Promise((resolve, reject) => {
+      this.messageQueue.push({ type, payload, resolve, reject });
+    });
+  }
+
+  /**
+   * Flush all queued messages after initialization completes
+   */
+  private flushMessageQueue(): void {
+    if (!this.client) return;
+
+    for (const queued of this.messageQueue) {
+      this.client
+        .request(queued.type, queued.payload, 5000)
+        .then(queued.resolve)
+        .catch(queued.reject);
+    }
+
+    this.messageQueue = [];
+  }
+
+  /**
    * Terminate the worker and clean up resources
    */
   terminate(): void {
+    // Terminate client first to clean up pending requests
+    if (this.client) {
+      this.client.terminate();
+    }
+
     if (this.worker) {
       if (this.worker instanceof SharedWorker) {
         this.worker.port.close?.();
@@ -163,11 +181,20 @@ export class WorkerManager {
       this.port.close();
     }
 
+    // Reject any queued messages
+    for (const queued of this.messageQueue) {
+      queued.reject(
+        new Error('Worker terminated before message could be sent'),
+      );
+    }
+    this.messageQueue = [];
+
     this.port = null;
     this.worker = null;
     this.client = null;
     this.isReady = false;
     this.workerType = 'main-thread';
+    this.onProgressCallback = null;
   }
 
   /**
@@ -264,40 +291,10 @@ export class WorkerManager {
 
   /**
    * Private: Create a PortLike for main thread execution
-   * Placeholder - will be wired to in-memory worker handlers in Plan 03
+   * Uses createMainThreadPort from MessagePort.ts for in-memory communication
    */
   private createMainThreadPort(): PortLike {
-    // Placeholder implementation
-    // Will be connected to in-memory worker handlers in a future plan
-    return {
-      postMessage: (_data: unknown, _transfer?: Transferable[]) => {
-        console.warn('Main thread port not yet implemented');
-      },
-      onmessage: null,
-      onmessageerror: null,
-    };
-  }
-
-  /**
-   * Private: Set up progress message handling
-   */
-  private setupProgressHandling(onProgress: ProgressCallback): void {
-    if (!this.port) return;
-
-    const originalOnMessage = this.port.onmessage;
-    this.port.onmessage = (event: MessageEvent) => {
-      // Call original handler if exists
-      if (originalOnMessage) {
-        originalOnMessage.call(this.port, event);
-      }
-
-      // Handle progress messages
-      const { type, stage, stageProgress, overallProgress, message } =
-        event.data;
-      if (type === 'progress' && stage) {
-        onProgress(stage as InitStage, stageProgress, overallProgress, message);
-      }
-    };
+    return createMainThreadPort();
   }
 
   /**
@@ -308,14 +305,12 @@ export class WorkerManager {
       throw new Error('Worker client not initialized');
     }
 
-    const initPayload = {
+    const initPayload: InitPayload = {
       dbName: config.dbName,
       modelConfig: config.modelConfig,
-      persistenceStatus: this.persistenceStatus,
+      persistenceGranted: this.persistenceStatus?.persisted ?? false,
     };
 
     await this.client.request('init', initPayload, config.initTimeoutMs);
   }
 }
-
-export { WorkerClient };
