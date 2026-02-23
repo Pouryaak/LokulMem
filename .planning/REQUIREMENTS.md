@@ -18,7 +18,7 @@
 - [x] **STORAGE-01**: Dexie.js schema v1 with memories, episodes, edges, clusters stores
 - [ ] **STORAGE-02**: Memories table has all required indexes (id, types, status, clusterId, lastAccessedAt, baseStrength, validFrom, pinned, mentionCount, compound indexes)
 - [x] **STORAGE-03**: Embedding field stored as Float32Array
-- [ ] **STORAGE-04**: Schema migration chain established for future versions
+- [x] **STORAGE-04**: Schema migration chain established for future versions
 
 ### Embedding Engine
 

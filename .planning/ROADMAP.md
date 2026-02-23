@@ -169,7 +169,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete    | 2026-02-23 |
 | 2. Worker Infrastructure | 3/3 | Complete    | 2026-02-23 |
-| 3. Storage Layer | 1/3 | In Progress|  |
+| 3. Storage Layer | 2/3 | In Progress|  |
 | 4. Embedding Engine | 0/1 | Not started | - |
 | 5. Memory Store & Retrieval | 0/2 | Not started | - |
 | 6. Lifecycle & Decay | 0/1 | Not started | - |
