@@ -69,6 +69,8 @@ export const MessageType = {
   PING: 'ping',
   PONG: 'pong',
   ERROR: 'error',
+  EMBED: 'embed',
+  EMBED_BATCH: 'embed_batch',
 } as const;
 
 /**
@@ -106,4 +108,40 @@ export interface InitPayload {
   modelConfig?: ModelConfig | undefined;
   /** Custom worker URL (passed through for reference) */
   workerUrl?: string | undefined;
+}
+
+/**
+ * Payload for single text embedding request
+ */
+export interface EmbedPayload {
+  /** Text to embed */
+  text: string;
+}
+
+/**
+ * Payload for batch embedding request
+ */
+export interface EmbedBatchPayload {
+  /** Array of texts to embed */
+  texts: string[];
+}
+
+/**
+ * Response payload for single embedding request
+ */
+export interface EmbedResponsePayload {
+  /** Embedding as array of floats (serialized from Float32Array) */
+  embedding: number[];
+  /** Dimensions of the embedding */
+  dimensions: number;
+}
+
+/**
+ * Response payload for batch embedding request
+ */
+export interface EmbedBatchResponsePayload {
+  /** Array of embeddings (each as array of floats) */
+  embeddings: number[][];
+  /** Dimensions of each embedding */
+  dimensions: number;
 }
