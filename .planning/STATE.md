@@ -2,8 +2,8 @@
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
 **Current Phase:** Phase 1 (Foundation) — in progress
-**Current Plan:** 01-02 (Vite build system)
-**Status:** Plan 01-02 complete, ready for 01-03
+**Current Plan:** 01-03 (Core type definitions)
+**Status:** Plan 01-03 complete, ready for 01-04
 **Updated:** 2026-02-23
 
 ---
@@ -43,7 +43,7 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 
 ### Active Work
 
-Plan 01-02 (Vite build system) completed. Created vite.config.ts, vitest.config.ts, src/index.ts, and src/worker/index.ts with library mode configuration, dual ESM/CJS output, and worker bundling support.
+Plan 01-03 (Core type definitions) completed. Created src/types/ with MemoryDTO, API types, and event types. Created src/internal/ with MemoryInternal (includes Float32Array) and DTO conversion utilities. DTO pattern implemented: embeddings excluded from public API.
 
 ---
 
@@ -71,11 +71,13 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 | Date | Decision | Rationale | Status |
 |------|----------|-----------|--------|
 | 2026-02-23 | Brute-force search for v0.1 | O(N) acceptable until 3,000 memories; HNSW adds complexity | Pending validation |
-| 2026-02-23 | DTO pattern for IPC | Float32Arrays don't serialize well; embeddings internal-only | Pending validation |
+| 2026-02-23 | DTO pattern for IPC | Float32Arrays don't serialize well; embeddings internal-only | Implemented in 01-03 |
 | 2026-02-23 | SharedWorker primary | Multi-tab sync, model sharing across tabs | Pending validation |
 | 2026-02-23 | Transformers.js over custom ONNX | Battle-tested, caching, progressive loading | Pending validation |
 | 2026-02-23 | Dexie.js over raw IndexedDB | Active maintenance, good TypeScript support, compound indexes | Pending validation |
 | 2026-02-23 | Named exports only | Cleaner tree-shaking, explicit API surface | Implemented in 01-02 |
+| 2026-02-23 | Number timestamps for serialization | Date objects don't serialize over Worker IPC | Implemented in 01-03 |
+| 2026-02-23 | Multiple types per memory | Memories can have multiple classifications | Implemented in 01-03 |
 | 2026-02-23 | Worker import via ?worker&url | Bundler compatibility for worker instantiation | Implemented in 01-02 |
 | 2026-02-23 | Dual ESM/CJS output | Maximum compatibility across module systems | Implemented in 01-02 |
 | 2026-02-23 | happy-dom for unit tests | DOM mocking in Node.js without browser overhead | Implemented in 01-02 |
@@ -90,7 +92,7 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 
 | Risk | Mitigation | Status |
 |------|------------|--------|
-| Float32Array serialization in Workers | DTO pattern excludes embeddings from IPC | Documented |
+| Float32Array serialization in Workers | DTO pattern excludes embeddings from IPC | Mitigated in 01-03 |
 | SharedWorker port lifecycle | Always use `onmessage` or call `port.start()` | Documented |
 | IndexedDB transaction timing | Use Dexie's transaction helper for async | Documented |
 | Model loading memory exhaustion | Singleton pattern, quantized models (q8) | Documented |
@@ -103,10 +105,10 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 ## Session Continuity
 
 ### Last Action
-Completed Plan 01-02 (Vite build system) — created vite.config.ts, vitest.config.ts, src/index.ts, src/worker/index.ts
+Completed Plan 01-03 (Core type definitions) — created src/types/memory.ts, api.ts, events.ts, index.ts and src/internal/types.ts, dto.ts with DTO pattern
 
 ### Next Action
-Execute Plan 01-03 (Core type definitions) or continue with 01-01 (Project configuration)
+Execute Plan 01-04 (next foundation plan) or continue with 01-01 (Project configuration)
 
 ### Blockers
 None.
@@ -130,7 +132,7 @@ master (initial development)
 
 | Category | Total | Pending | In Progress | Complete |
 |----------|-------|---------|-------------|----------|
-| TS | 5 | 5 | 0 | 0 |
+| TS | 5 | 3 | 0 | 2 |
 | WORKER | 5 | 5 | 0 | 0 |
 | STORAGE | 4 | 4 | 0 | 0 |
 | EMBED | 10 | 10 | 0 | 0 |

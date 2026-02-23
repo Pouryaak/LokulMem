@@ -123,11 +123,11 @@
 
 ### TypeScript & Build
 
-- [ ] **TS-01**: 100% TypeScript coverage for public API
+- [x] **TS-01**: 100% TypeScript coverage for public API
 - [x] **TS-02**: Tree-shakeable ESM bundle output
 - [x] **TS-03**: Type declarations (.d.ts) generated
 - [x] **TS-04**: Worker compiled as separate chunk
-- [ ] **TS-05**: DTO pattern: embeddings excluded from public API responses
+- [x] **TS-05**: DTO pattern: embeddings excluded from public API responses
 
 ### Demo Application
 
@@ -196,7 +196,7 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TS-01..05 | Phase 1 | Pending |
+| TS-01..05 | Phase 1 | Complete |
 | WORKER-01..05 | Phase 2 | Pending |
 | STORAGE-01..04 | Phase 3 | Pending |
 | EMBED-01..10 | Phase 4 | Pending |
