@@ -2,7 +2,7 @@
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
 **Current Phase:** 04
-**Current Plan:** 1 of 3
+**Current Plan:** 2 of 3
 **Status:** In Progress
 **Updated:** 2026-02-23
 
@@ -34,7 +34,7 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 1: Foundation (Complete)
 [██████████] 100% - Phase 2: Worker Infrastructure (Complete - 5 of 5 plans)
 [██████████] 100% - Phase 3: Storage Layer (Complete - 3 of 3 plans)
-[██░░░░░░░░] 33% - Phase 4: Embedding Engine (1 of 3 plans complete)
+[████░░░░░░] 67% - Phase 4: Embedding Engine (2 of 3 plans complete)
 [░░░░░░░░░░] 0% - Phase 5: Memory Store & Retrieval (Not started)
 [░░░░░░░░░░] 0% - Phase 6: Lifecycle & Decay (Not started)
 [░░░░░░░░░░] 0% - Phase 7: Extraction & Contradiction (Not started)
@@ -43,7 +43,7 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 
 ### Active Work
 
-Plan 04-03 (Vite WASM bundling and workerUrl support) completed. Configured vite-plugin-static-copy for ORT WASM asset bundling. Implemented workerUrl option with permissive validation (accepts blob:, data:, extensionless URLs). Added onnxPaths configuration option to LokulMemConfig and ModelConfig. Created EmbeddingEngine foundation class with ONNX WASM path configuration. Updated package.json files array to include WASM patterns.
+Plan 04-02 (LRU cache and concurrency queue) completed. Created LRUCache class with Map-based O(1) operations and LRU eviction. Implemented PromiseQueue for sequential embedding calls to prevent race conditions. Integrated cache and queue into EmbeddingEngine with double-check pattern for cache hits. Added cache configuration options to LokulMemConfig (embeddingCacheSize, enableEmbeddingCache). Added EmbeddingCacheStats interface and cacheStats to LokulMemDebug. Memory warnings at 10MB/50MB thresholds.
 
 ---
 
@@ -59,6 +59,7 @@ Plan 04-03 (Vite WASM bundling and workerUrl support) completed. Configured vite
 | Model load time | — | — | Not measured |
 | Phase 03-storage-layer P03-01 | 15 | 3 tasks | 4 files |
 | Phase 04 P01 | 45 | 5 tasks | 5 files |
+| Phase 04 P02 | 45 | 5 tasks | 3 files |
 
 ### Benchmarks
 
@@ -100,6 +101,10 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 | 2026-02-23 | wasmPaths NOT defaulted to localModelBaseUrl | Avoids 404s in airgap setups with separate model/WASM paths | Implemented in 04-03 |
 | 2026-02-23 | Permissive workerUrl validation | Accepts blob:, data:, extensionless URLs for flexibility | Implemented in 04-03 |
 | 2026-02-23 | Typed ModelConfig in Protocol.ts | Type safety across WorkerConfig, InitPayload, EmbeddingConfig | Implemented in 04-03 |
+| 2026-02-23 | Map-based LRU cache | O(1) operations with insertion order for LRU eviction | Implemented in 04-02 |
+| 2026-02-23 | PromiseQueue for concurrency | Only one embedding call at a time prevents race conditions | Implemented in 04-02 |
+| 2026-02-23 | Text-based cache keys | Raw text content for exact match deduplication | Implemented in 04-02 |
+| 2026-02-23 | Parameterized embedding dims | Support different models with different dimensions | Implemented in 04-02 |
 - [Phase 04]: Use @huggingface/transformers v3.x with dtype: 'q8' quantization
 - [Phase 04]: Explicit env.useBrowserCache=true for Cache API persistence
 - [Phase 04]: Airgap mode blocks all network via env.allowRemoteModels=false
@@ -129,7 +134,7 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 ## Session Continuity
 
 ### Last Action
-Completed Plan 04-03 (Vite WASM bundling and workerUrl support) — configured vite-plugin-static-copy for ORT WASM assets, implemented workerUrl with permissive validation, added onnxPaths configuration, created EmbeddingEngine foundation
+Completed Plan 04-02 (LRU cache and concurrency queue) — created LRUCache class with Map-based O(1) operations, implemented PromiseQueue for sequential embedding calls, integrated cache and queue into EmbeddingEngine, added cache configuration to public API types
 
 ### Next Action
 Continue Phase 04: Embedding Engine - Plan 04-01 (Transformers.js integration with CDN and airgap modes)
@@ -159,7 +164,7 @@ master (initial development)
 | TS | 5 | 3 | 0 | 2 |
 | WORKER | 5 | 0 | 0 | 5 |
 | STORAGE | 4 | 0 | 0 | 4 |
-| EMBED | 10 | 7 | 0 | 3 |
+| EMBED | 10 | 5 | 0 | 5 |
 | SEARCH | 7 | 7 | 0 | 0 |
 | DECAY | 9 | 9 | 0 | 0 |
 | EXTRACT | 7 | 7 | 0 | 0 |
@@ -169,7 +174,7 @@ master (initial development)
 | MGMT | 16 | 16 | 0 | 0 |
 | EVENT | 7 | 7 | 0 | 0 |
 | DEMO | 4 | 4 | 0 | 0 |
-| **Total** | **82** | **70** | **0** | **12** |
+| **Total** | **82** | **68** | **0** | **14** |
 
 ### v2 Requirements (Deferred)
 

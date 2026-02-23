@@ -23,8 +23,8 @@
 ### Embedding Engine
 
 - [x] **EMBED-01**: Transformers.js MiniLM-L6-v2 loads in worker context
-- [ ] **EMBED-02**: LRU cache (1000 entries) for embeddings
-- [ ] **EMBED-03**: Promise-based concurrency queue prevents concurrent embedding calls
+- [x] **EMBED-02**: LRU cache (1000 entries) for embeddings
+- [x] **EMBED-03**: Promise-based concurrency queue prevents concurrent embedding calls
 - [x] **EMBED-04**: Model loads from CDN with local cache (Cache API)
 - [x] **EMBED-05**: `localModelBaseUrl` option enables airgapped/offline usage
 - [x] **EMBED-06**: ONNX WASM paths configurable via options
