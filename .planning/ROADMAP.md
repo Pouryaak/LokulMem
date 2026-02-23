@@ -88,7 +88,12 @@ Plans:
   8. `workerUrl` option supported for custom worker resolution
   9. Airgap mode explicitly sets env.allowLocalModels=true, env.allowRemoteModels=false, env.localModelPath=<localModelBaseUrl>
   10. Airgap mode requires consumers to host model assets mirroring `Xenova/all-MiniLM-L6-v2` repository structure
-**Plans:** TBD
+**Plans:** 3 plans created
+
+Plans:
+- [ ] 04-03-PLAN.md — Vite WASM bundling and workerUrl support (Wave 1 - Foundation)
+- [ ] 04-01-PLAN.md — Transformers.js integration with CDN and airgap modes (Wave 2)
+- [ ] 04-02-PLAN.md — LRU cache and concurrency queue (Wave 2)
 
 ### Phase 5: Memory Store & Retrieval
 **Goal:** Vector search retrieves relevant memories using composite scoring with token-aware dynamic K selection.
@@ -170,7 +175,7 @@ Plans:
 | 1. Foundation | 3/3 | Complete    | 2026-02-23 |
 | 2. Worker Infrastructure | 3/3 | Complete    | 2026-02-23 |
 | 3. Storage Layer | 3/3 | Complete | 2026-02-23 |
-| 4. Embedding Engine | 0/1 | Not started | - |
+| 4. Embedding Engine | 0/3 | Not started | - |
 | 5. Memory Store & Retrieval | 0/2 | Not started | - |
 | 6. Lifecycle & Decay | 0/1 | Not started | - |
 | 7. Extraction & Contradiction | 0/2 | Not started | - |
@@ -242,4 +247,4 @@ Per research/SUMMARY.md, the following phases may need deeper research during pl
 ---
 
 *Roadmap created: 2026-02-23*
-*Last updated: 2026-02-23 (Phase 3 completed)*
+*Last updated: 2026-02-23 (Phase 4 plans created)*
