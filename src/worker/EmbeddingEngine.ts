@@ -5,11 +5,13 @@
  * - ONNX Runtime WASM path configuration
  * - Model loading (CDN or airgapped)
  * - Embedding computation with LRU caching
+ * - Promise queue for concurrency control
  */
 
 import { env, pipeline } from '@huggingface/transformers';
 import type { FeatureExtractionPipeline } from '@huggingface/transformers';
 import type { ModelConfig } from '../core/Protocol.js';
+import { type CacheStats, LRUCache, PromiseQueue } from './LRUCache.js';
 
 /**
  * Configuration for the embedding engine
@@ -80,6 +82,9 @@ export class EmbeddingEngine {
   private featurePipeline: FeatureExtractionPipeline | null = null;
   private modelName = 'Xenova/all-MiniLM-L6-v2';
   private embeddingDims = 384;
+  private cache: LRUCache | null = null;
+  private queue: PromiseQueue;
+  private cacheEnabled = true;
 
   /**
    * Get the singleton instance
@@ -89,6 +94,10 @@ export class EmbeddingEngine {
       EmbeddingEngine.instance = new EmbeddingEngine();
     }
     return EmbeddingEngine.instance;
+  }
+
+  private constructor() {
+    this.queue = new PromiseQueue();
   }
 
   /**
@@ -109,6 +118,11 @@ export class EmbeddingEngine {
     this.config = this.buildConfig(config);
     this.modelName = this.config.modelName;
     this.embeddingDims = this.config.embeddingDims;
+
+    // Create LRU cache with configurable size and dims
+    const cacheSize = this.config.cacheSize ?? 1000;
+    this.cache = new LRUCache(cacheSize, this.embeddingDims);
+    this.cacheEnabled = this.config.enableCache ?? true;
 
     // Configure ONNX WASM paths if explicitly provided
     if (config?.onnxPaths) {
@@ -185,6 +199,9 @@ export class EmbeddingEngine {
   /**
    * Generate embedding for a single text
    *
+   * Uses LRU cache for deduplication and PromiseQueue to prevent
+   * concurrent embedding calls.
+   *
    * @param text - Text to embed
    * @returns Float32Array of embedding dimensions
    * @throws Error if not initialized
@@ -197,35 +214,63 @@ export class EmbeddingEngine {
       );
     }
 
-    const result = (await this.featurePipeline(text, {
-      pooling: 'mean',
-      normalize: true,
-    })) as PipelineResult;
-
-    // Extract the embedding data
-    // The pipeline returns an object with data property containing the embedding
-    const embeddingData = result.data;
-    const embedding =
-      embeddingData instanceof Float32Array
-        ? embeddingData
-        : new Float32Array(embeddingData);
-
-    // Validate dimensions
-    if (embedding.length !== this.embeddingDims) {
-      throw new DimensionMismatchError(this.embeddingDims, embedding.length);
+    // Check cache first (outside queue for speed)
+    if (this.cacheEnabled && this.cache) {
+      const cached = this.cache.get(text);
+      if (cached) return cached;
     }
 
-    return embedding;
+    // Use queue to prevent concurrent calls
+    return this.queue.add(async () => {
+      // Double-check cache after queue (another call may have populated it)
+      if (this.cacheEnabled && this.cache) {
+        const cached = this.cache.get(text);
+        if (cached) return cached;
+      }
+
+      // Compute embedding - direct pipeline call
+      // featurePipeline is checked above, safe to use
+      const pipeline = this.featurePipeline;
+      if (!pipeline) {
+        throw new Error(
+          'EmbeddingEngine not initialized. Call initialize() first.',
+        );
+      }
+      const result = (await pipeline(text, {
+        pooling: 'mean',
+        normalize: true,
+      })) as PipelineResult;
+
+      // Extract the embedding data
+      const embeddingData = result.data;
+      const embedding =
+        embeddingData instanceof Float32Array
+          ? embeddingData
+          : new Float32Array(embeddingData);
+
+      // Validate dimensions
+      if (embedding.length !== this.embeddingDims) {
+        throw new DimensionMismatchError(this.embeddingDims, embedding.length);
+      }
+
+      // Store in cache
+      if (this.cacheEnabled && this.cache) {
+        this.cache.set(text, embedding);
+      }
+
+      return embedding;
+    });
   }
 
   /**
    * Generate embeddings for multiple texts in batches
    *
-   * @param texts - Array of texts to embed
-   * @returns Array of Float32Array embeddings
-   * @throws Error if not initialized
+   * Uses cache to avoid redundant computation and internally chunks
+   * into batches of 32 items max for memory efficiency.
    *
-   * Note: Internally chunks into batches of 32 items max for memory efficiency
+   * @param texts - Array of texts to embed
+   * @returns Array of Float32Array embeddings in original order
+   * @throws Error if not initialized
    */
   async embedBatch(texts: string[]): Promise<Float32Array[]> {
     if (!this.isInitialized || !this.featurePipeline) {
@@ -234,48 +279,116 @@ export class EmbeddingEngine {
       );
     }
 
-    const MAX_BATCH_SIZE = 32;
-    const results: Float32Array[] = [];
+    return this.queue.add(async () => {
+      const results: Float32Array[] = new Array(texts.length);
+      const cacheMisses: { text: string; index: number }[] = [];
 
-    // Process in chunks of MAX_BATCH_SIZE
-    for (let i = 0; i < texts.length; i += MAX_BATCH_SIZE) {
-      const batch = texts.slice(i, i + MAX_BATCH_SIZE);
-
-      // Process batch
-      const batchResult = (await this.featurePipeline(batch, {
-        pooling: 'mean',
-        normalize: true,
-      })) as PipelineResult | PipelineResult[];
-
-      // Extract embeddings from batch result
-      // When given an array, pipeline returns array of results
-      let embeddings: Float32Array[];
-      if (Array.isArray(batchResult)) {
-        embeddings = batchResult.map((r: PipelineResult) => {
-          const data = r.data;
-          return data instanceof Float32Array ? data : new Float32Array(data);
-        });
-      } else {
-        const data = batchResult.data;
-        embeddings = [
-          data instanceof Float32Array ? data : new Float32Array(data),
-        ];
+      // Check cache for each text
+      for (let i = 0; i < texts.length; i++) {
+        const text = texts[i];
+        if (!text) continue;
+        if (this.cacheEnabled && this.cache) {
+          const cached = this.cache.get(text);
+          if (cached) {
+            results[i] = cached;
+            continue;
+          }
+        }
+        cacheMisses.push({ text, index: i });
       }
 
-      // Validate dimensions
-      for (const embedding of embeddings) {
-        if (embedding.length !== this.embeddingDims) {
-          throw new DimensionMismatchError(
-            this.embeddingDims,
-            embedding.length,
-          );
+      // If all cached, return immediately
+      if (cacheMisses.length === 0) {
+        return results;
+      }
+
+      // Process cache misses in chunks of 32
+      const MAX_BATCH_SIZE = 32;
+      // featurePipeline is checked above, safe to use
+      const pipeline = this.featurePipeline;
+      if (!pipeline) {
+        throw new Error(
+          'EmbeddingEngine not initialized. Call initialize() first.',
+        );
+      }
+      for (let i = 0; i < cacheMisses.length; i += MAX_BATCH_SIZE) {
+        const chunk = cacheMisses.slice(i, i + MAX_BATCH_SIZE);
+        const chunkTexts = chunk.map((item) => item.text);
+
+        // Compute embeddings for this chunk
+        const batchResult = (await pipeline(chunkTexts, {
+          pooling: 'mean',
+          normalize: true,
+        })) as PipelineResult | PipelineResult[];
+
+        // Extract embeddings from batch result
+        let embeddings: Float32Array[];
+        if (Array.isArray(batchResult)) {
+          embeddings = batchResult.map((r: PipelineResult) => {
+            const data = r.data;
+            return data instanceof Float32Array ? data : new Float32Array(data);
+          });
+        } else {
+          const data = batchResult.data;
+          embeddings = [
+            data instanceof Float32Array ? data : new Float32Array(data),
+          ];
+        }
+
+        // Validate dimensions and store results
+        for (let j = 0; j < chunk.length; j++) {
+          const chunkItem = chunk[j];
+          const embedding = embeddings[j];
+          if (!chunkItem || !embedding) continue;
+          if (embedding.length !== this.embeddingDims) {
+            throw new DimensionMismatchError(
+              this.embeddingDims,
+              embedding.length,
+            );
+          }
+
+          results[chunkItem.index] = embedding;
+
+          // Store in cache
+          if (this.cacheEnabled && this.cache) {
+            this.cache.set(chunkItem.text, embedding);
+          }
         }
       }
 
-      results.push(...embeddings);
+      return results;
+    });
+  }
+
+  /**
+   * Get cache statistics for debugging
+   *
+   * @returns CacheStats with hit rate, memory usage, etc.
+   * @throws Error if cache is not enabled or initialized
+   */
+  getCacheStats(): CacheStats {
+    if (!this.cache) {
+      throw new Error('Cache not initialized');
+    }
+    if (!this.cacheEnabled) {
+      throw new Error('Cache is disabled');
     }
 
-    return results;
+    const stats = this.cache.getStats();
+
+    // Log memory warnings per CONTEXT.md
+    const MB = 1024 * 1024;
+    if (stats.estimatedMemoryBytes > 50 * MB) {
+      console.warn(
+        `[LokulMem] CRITICAL: Embedding cache using ${(stats.estimatedMemoryBytes / MB).toFixed(1)}MB. Consider reducing cache size.`,
+      );
+    } else if (stats.estimatedMemoryBytes > 10 * MB) {
+      console.warn(
+        `[LokulMem] WARNING: Embedding cache using ${(stats.estimatedMemoryBytes / MB).toFixed(1)}MB.`,
+      );
+    }
+
+    return stats;
   }
 
   /**
@@ -318,6 +431,8 @@ export class EmbeddingEngine {
     this.featurePipeline = null;
     this.modelName = 'Xenova/all-MiniLM-L6-v2';
     this.embeddingDims = 384;
+    this.cache = null;
+    this.cacheEnabled = true;
     EmbeddingEngine.instance = null;
   }
 
@@ -342,3 +457,6 @@ export class EmbeddingEngine {
 export function getEmbeddingEngine(): EmbeddingEngine {
   return EmbeddingEngine.getInstance();
 }
+
+// Re-export types for convenience
+export type { CacheStats };
