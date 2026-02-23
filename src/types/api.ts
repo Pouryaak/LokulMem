@@ -20,11 +20,33 @@ export type InitStage =
 export type WorkerTypePreference = 'auto' | 'shared' | 'dedicated' | 'main';
 
 /**
+ * Embedding configuration for model initialization
+ * Passed through to the worker for model setup
+ */
+export interface EmbeddingConfig {
+  /** Model name (e.g., 'Xenova/all-MiniLM-L6-v2') */
+  modelName: string;
+  /** Base URL for local model files (airgap mode) */
+  localModelBaseUrl?: string;
+  /** Embedding dimensions (default: 384 for MiniLM-L6-v2) */
+  embeddingDims: number;
+  /** Custom ONNX Runtime WASM paths */
+  onnxPaths?: string | Record<string, string>;
+  /** Cache size for LRU embedding cache */
+  cacheSize?: number;
+  /** Enable embedding cache */
+  enableCache?: boolean;
+}
+
+/**
  * Configuration options for LokulMem instance
  */
 export interface LokulMemConfig {
   /** Database name for IndexedDB storage */
   dbName?: string;
+
+  /** Model name for embeddings (default: 'Xenova/all-MiniLM-L6-v2') */
+  modelName?: string;
 
   /** Base URL for local embedding model (e.g., http://localhost:8080) */
   localModelBaseUrl?: string;
