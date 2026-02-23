@@ -12,7 +12,7 @@
 
 - [x] **Phase 1: Foundation** - Project scaffolding, TypeScript build system, and core types (completed 2026-02-23)
 - [x] **Phase 2: Worker Infrastructure** - SharedWorker coordination with graceful fallback chain (completed 2026-02-23)
-- [ ] **Phase 3: Storage Layer** - Dexie.js schema with memories, episodes, edges, clusters stores
+- [x] **Phase 3: Storage Layer** - Dexie.js schema with memories, episodes, edges, clusters stores (completed 2026-02-23)
 - [ ] **Phase 4: Embedding Engine** - Transformers.js MiniLM with LRU cache and airgap support
 - [ ] **Phase 5: Memory Store & Retrieval** - Brute-force vector search with composite relevance scoring
 - [ ] **Phase 6: Lifecycle & Decay** - Ebbinghaus decay model with per-category lambda values
@@ -66,12 +66,12 @@ Plans:
   2. Memories table has all required indexes: id, types, status, clusterId, lastAccessedAt, baseStrength, validFrom, pinned, mentionCount, compound indexes
   3. Embedding field stores Float32Array without data corruption
   4. Schema migration chain established with version tracking for future upgrades
-**Plans:** 1/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 03-01-PLAN.md — Dexie database schema with all 4 stores and Float32Array embedding storage
-- [ ] 03-02-PLAN.md — StorageManager with error handling, migrations, and status tracking
-- [ ] 03-03-PLAN.md — MemoryRepository with CRUD operations using all compound indexes
+- [x] 03-01-PLAN.md — Dexie database schema with all 4 stores and Float32Array embedding storage
+- [x] 03-02-PLAN.md — StorageManager with error handling, migrations, and status tracking
+- [x] 03-03-PLAN.md — MemoryRepository with CRUD operations using all compound indexes
 
 ### Phase 4: Embedding Engine
 **Goal:** Transformers.js MiniLM loads in worker context with LRU caching and supports both CDN and airgapped deployments.
@@ -169,7 +169,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete    | 2026-02-23 |
 | 2. Worker Infrastructure | 3/3 | Complete    | 2026-02-23 |
-| 3. Storage Layer | 2/3 | In Progress|  |
+| 3. Storage Layer | 3/3 | Complete | 2026-02-23 |
 | 4. Embedding Engine | 0/1 | Not started | - |
 | 5. Memory Store & Retrieval | 0/2 | Not started | - |
 | 6. Lifecycle & Decay | 0/1 | Not started | - |
@@ -242,4 +242,4 @@ Per research/SUMMARY.md, the following phases may need deeper research during pl
 ---
 
 *Roadmap created: 2026-02-23*
-*Last updated: 2026-02-23 (Phase 3 plans created)*
+*Last updated: 2026-02-23 (Phase 3 completed)*
