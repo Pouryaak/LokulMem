@@ -32,6 +32,9 @@ export interface LokulMemConfig {
   /** Custom worker URL (advanced use case) */
   workerUrl?: string;
 
+  /** Custom ONNX Runtime WASM paths (advanced use case) */
+  onnxPaths?: string | Record<string, string>;
+
   /** Threshold for memory extraction (0-1, higher = more selective) */
   extractionThreshold?: number;
 
