@@ -24,3 +24,10 @@ export type {
   ContradictionCallback,
   Unsubscribe,
 } from './events.js';
+
+// Storage types (for error handling and monitoring)
+export type {
+  StorageStatus,
+  StorageError,
+  StorageErrorType,
+} from './api.js';

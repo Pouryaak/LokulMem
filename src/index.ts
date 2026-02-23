@@ -42,4 +42,8 @@ export type {
   StatsCallback,
   ContradictionCallback,
   Unsubscribe,
+  // Storage types (for error handling and monitoring)
+  StorageStatus,
+  StorageError,
+  StorageErrorType,
 } from './types/index.js';
