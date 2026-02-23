@@ -28,10 +28,13 @@
 - [ ] **EMBED-04**: Model loads from CDN with local cache (Cache API)
 - [ ] **EMBED-05**: `localModelBaseUrl` option enables airgapped/offline usage
 - [ ] **EMBED-06**: ONNX WASM paths configurable via options
+- [ ] **EMBED-07**: ORT assets bundled into dist (glob copy ort-wasm*.wasm and ort-wasm*.mjs)
+- [ ] **EMBED-08**: `workerUrl` option supported for custom worker resolution
+- [ ] **EMBED-09**: Airgap mode explicitly sets `env.allowLocalModels=true`, `env.allowRemoteModels=false`, `env.localModelPath=<localModelBaseUrl>`
 
 ### Extraction Layer
 
-- [ ] **EXTRACT-01**: Specificity NER detects names (0.3), places (0.25), numbers (0.2), preferences (0.25), dates (0.2), negations (0.2)
+- [ ] **EXTRACT-01**: Specificity NER detects: names (0.3), places (0.25), numbers (0.2), preferences (0.25), dates (0.2), negations (0.2), first-person possession (0.10); clamp sum to 1.0
 - [ ] **EXTRACT-02**: Novelty computed via `1 - top1_similarity` using vector search
 - [ ] **EXTRACT-03**: Recurrence tracked within session (cosine > 0.85)
 - [ ] **EXTRACT-04**: E(s) = 0.35×novelty + 0.45×specificity + 0.20×recurrence
@@ -41,7 +44,7 @@
 
 ### Contradiction Detection
 
-- [ ] **CONTRA-01**: Candidate match via top1_similarity > 0.80
+- [ ] **CONTRA-01**: Retrieve topK candidates (5-10) and evaluate any with similarity > 0.80; choose best typed-attribute match
 - [ ] **CONTRA-02**: Temporal markers detected (16 patterns: "used to", "previously", "no longer", etc.)
 - [ ] **CONTRA-03**: Temporal updates set validTo on existing, validFrom on new
 - [ ] **CONTRA-04**: Typed attribute conflicts mark existing as superseded
@@ -51,12 +54,13 @@
 ### Decay & Lifecycle
 
 - [ ] **DECAY-01**: Ebbinghaus decay: strength(t) = base_strength × e^(-λ × Δt_hours)
-- [ ] **DECAY-02**: Per-category λ values (identity: 0.0001, location: 0.0005, etc.)
+- [ ] **DECAY-02**: Per-category λ values: identity (0.0001), location (0.0005), profession (0.0003), preferences (0.001), project (0.005), temporal (0.02), relational (0.0004), emotional (0.01)
 - [ ] **DECAY-03**: Pinned memories have λ = 0 (no decay)
 - [ ] **DECAY-04**: Reinforcement on retrieval: base_strength + 0.3 (max 3.0)
 - [ ] **DECAY-05**: Maintenance sweep runs at session start
 - [ ] **DECAY-06**: Faded memories (strength < 0.1) marked as faded, deleted after 30 days
 - [ ] **DECAY-07**: K-means clustering runs synchronously in worker
+- [ ] **DECAY-08**: `fadedAt` timestamp field records when memory transitioned to faded status (enables 30-day deletion policy)
 
 ### Vector Search & Retrieval
 
@@ -66,6 +70,7 @@
 - [ ] **SEARCH-04**: Pinned memories get w3 = 1.0 regardless of actual strength
 - [ ] **SEARCH-05**: Token-aware dynamic K based on available context window
 - [ ] **SEARCH-06**: R > 0.3 floor for injection
+- [ ] **SEARCH-07**: Active memory embeddings loaded into in-memory cache for retrieval; cache stays in sync with mutations
 
 ### Public API - augment()
 
@@ -189,25 +194,27 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WORKER-01..05 | Phase 1 | Pending |
-| STORAGE-01..04 | Phase 1 | Pending |
-| EMBED-01..06 | Phase 2 | Pending |
-| EXTRACT-01..07 | Phase 3 | Pending |
-| CONTRA-01..06 | Phase 4 | Pending |
-| DECAY-01..07 | Phase 5 | Pending |
-| SEARCH-01..06 | Phase 6 | Pending |
-| AUG-01..07 | Phase 7 | Pending |
-| LEARN-01..05 | Phase 7 | Pending |
-| MGMT-01..16 | Phase 8 | Pending |
-| EVENT-01..07 | Phase 8 | Pending |
 | TS-01..05 | Phase 1 | Pending |
-| DEMO-01..04 | Phase 9 | Pending |
+| WORKER-01..05 | Phase 2 | Pending |
+| STORAGE-01..04 | Phase 3 | Pending |
+| EMBED-01..09 | Phase 4 | Pending |
+| SEARCH-01..07 | Phase 5 | Pending |
+| MGMT-01..09 | Phase 5 | Pending |
+| DECAY-01..08 | Phase 6 | Pending |
+| EXTRACT-01..07 | Phase 7 | Pending |
+| CONTRA-01..06 | Phase 7 | Pending |
+| AUG-01..07 | Phase 8 | Pending |
+| LEARN-01..05 | Phase 8 | Pending |
+| MGMT-10..16 | Phase 8 | Pending |
+| EVENT-01..07 | Phase 8 | Pending |
+| DEMO-01..04 | Phase 8 | Pending |
 
 **Coverage:**
-- v1 requirements: 76 total
-- Mapped to phases: 76
+- v1 requirements: 81 total
+- Mapped to phases: 81
 - Unmapped: 0 ✓
 
 ---
+
 *Requirements defined: 2026-02-23*
-*Last updated: 2026-02-23 after initial definition*
+*Last updated: 2026-02-23 after roadmap creation*

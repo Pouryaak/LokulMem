@@ -2,7 +2,7 @@
 
 ## What This Is
 
-LokulMem is a browser-native, zero-server, LLM-agnostic memory management library for AI applications. It gives any LLM — running locally via WebGPU/WebLLM, or remotely via API — the ability to remember users across conversations, extract structured knowledge from dialogue, and retrieve contextually relevant memories at inference time. Everything happens client-side: embeddings computed by quantized MiniLM in a SharedWorker, storage via IndexedDB/Dexie.js, and full lifecycle management with decay, contradiction resolution, and user inspectability.
+LokulMem is a browser-native, zero-server, LLM-agnostic memory management library for AI applications. It gives any LLM — running locally via WebGPU/WebLLM, or remotely via API — the ability to remember users across conversations, extract structured knowledge from dialogue, and retrieve contextually relevant memories at inference time. Everything happens client-side: embeddings computed by quantized MiniLM in a Worker (SharedWorker when available), with graceful fallback to Dedicated Worker or main thread; storage via IndexedDB/Dexie.js; and full lifecycle management with decay, contradiction resolution, and user inspectability.
 
 ## Core Value
 
