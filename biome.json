@@ -1,6 +1,5 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.9.0/schema.json",
-  "root": true,
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -8,7 +7,7 @@
     "defaultBranch": "main"
   },
   "files": {
-    "includes": ["src/**/*.ts", "tests/**/*.ts"],
+    "include": ["src/**/*.ts", "tests/**/*.ts"],
     "ignore": ["**/dist/**", "**/node_modules/**", "**/*.d.ts"]
   },
   "formatter": {
@@ -38,7 +37,7 @@
     "formatter": {
       "quoteStyle": "single",
       "trailingCommas": "all",
-      "semicolons": true
+      "semicolons": "always"
     }
   }
 }

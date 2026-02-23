@@ -33,7 +33,6 @@ export default defineConfig({
       // No external deps in Phase 1; will add runtime deps (dexie, @xenova/transformers) when imported
       external: [],
       output: {
-        sourcemap: true,
         globals: {},
       },
     },

@@ -120,7 +120,6 @@ playwright/.cache/
 # Vitest
 vitest.config.ts.timestamp-*
 
-# Local planning files (GSD workflow)
-.planning/
+# Local-only planning files (untracked)
 .continue/
 .claude/settings.json
