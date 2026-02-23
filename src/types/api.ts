@@ -153,7 +153,7 @@ export interface StorageError {
   timestamp: number; // Unix timestamp when error occurred
   recoveryHint?: string; // suggested recovery action
   originalError?: Error;
-  backup?: LokulMemExport; // backup data if corruption recovery succeeded
+  backup?: LokulMemExport | undefined; // backup data if corruption recovery succeeded
 }
 
 /**
