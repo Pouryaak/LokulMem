@@ -71,6 +71,26 @@ export interface LokulMemConfig {
 
   /** Progress callback during initialization */
   onProgress?: (stage: InitStage, progress: number) => void;
+
+  /** Embedding cache size (default: 1000 entries) */
+  embeddingCacheSize?: number;
+
+  /** Enable embedding cache (default: true) */
+  enableEmbeddingCache?: boolean;
+}
+
+/**
+ * Embedding cache statistics for public API
+ */
+export interface EmbeddingCacheStats {
+  /** Current number of cached entries */
+  size: number;
+  /** Maximum number of cache entries */
+  maxSize: number;
+  /** Cache hit rate (0-1) */
+  hitRate: number;
+  /** Estimated memory usage in bytes */
+  estimatedMemoryBytes: number;
 }
 
 /**
@@ -121,6 +141,14 @@ export interface LokulMemDebug {
 
   /** Total latency in milliseconds */
   latencyMs: number;
+
+  /** Cache statistics when debug mode enabled */
+  cacheStats?: {
+    hitRate: number;
+    size: number;
+    maxSize: number;
+    estimatedMemoryBytes: number;
+  };
 }
 
 /**
