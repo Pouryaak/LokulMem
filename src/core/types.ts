@@ -2,6 +2,8 @@
  * Core type definitions for worker management
  */
 
+import type { ModelConfig } from './Protocol.js';
+
 /**
  * Worker type - indicates which execution mode is active
  */
@@ -21,8 +23,8 @@ export interface WorkerConfig {
   maxRetries: number;
   /** Database name for IndexedDB storage */
   dbName: string;
-  /** Optional model configuration */
-  modelConfig?: unknown;
+  /** Model configuration */
+  modelConfig?: ModelConfig | undefined;
   /** Per-operation timeout in milliseconds (default: 5000) */
   requestTimeoutMs?: number;
 }

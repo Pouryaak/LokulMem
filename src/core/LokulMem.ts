@@ -8,6 +8,7 @@
 
 import type { InitStage, LokulMemConfig } from '../types/api.js';
 import type { WorkerClient } from './MessagePort.js';
+import type { ModelConfig } from './Protocol.js';
 import { WorkerManager } from './WorkerManager.js';
 import type { PersistenceStatus } from './types.js';
 import type { WorkerType } from './types.js';
@@ -23,6 +24,7 @@ const DEFAULT_CONFIG: {
   extractionThreshold: number;
   localModelBaseUrl?: string;
   workerUrl?: string;
+  onnxPaths?: string | Record<string, string>;
   onProgress?: (stage: InitStage, progress: number) => void;
 } = {
   dbName: 'lokulmem-default',
@@ -53,6 +55,7 @@ export class LokulMem {
     extractionThreshold: number;
     localModelBaseUrl?: string;
     workerUrl?: string;
+    onnxPaths?: string | Record<string, string>;
     onProgress?: (stage: InitStage, progress: number) => void;
   };
   private isInitialized = false;
@@ -85,6 +88,28 @@ export class LokulMem {
     if (config.onProgress !== undefined) {
       this.config.onProgress = config.onProgress;
     }
+    if (config.onnxPaths !== undefined) {
+      this.config.onnxPaths = config.onnxPaths;
+    }
+  }
+
+  /**
+   * Build ModelConfig from LokulMemConfig options
+   * Only includes properties that are explicitly set
+   */
+  private buildModelConfig(): ModelConfig | undefined {
+    const config: ModelConfig = {};
+
+    if (this.config.localModelBaseUrl !== undefined) {
+      config.localModelBaseUrl = this.config.localModelBaseUrl;
+    }
+
+    if (this.config.onnxPaths !== undefined) {
+      config.onnxPaths = this.config.onnxPaths;
+    }
+
+    // Only return config if at least one property was set
+    return Object.keys(config).length > 0 ? config : undefined;
   }
 
   /**
@@ -110,9 +135,7 @@ export class LokulMem {
           initTimeoutMs: this.config.initTimeoutMs,
           maxRetries: this.config.maxRetries,
           dbName: this.config.dbName,
-          modelConfig: this.config.localModelBaseUrl
-            ? { baseUrl: this.config.localModelBaseUrl }
-            : undefined,
+          modelConfig: this.buildModelConfig(),
         },
         this.config.onProgress,
       );

@@ -103,7 +103,7 @@ export interface InitPayload {
   /** Whether storage persistence was granted */
   persistenceGranted: boolean;
   /** Model configuration */
-  modelConfig?: ModelConfig;
+  modelConfig?: ModelConfig | undefined;
   /** Custom worker URL (passed through for reference) */
-  workerUrl?: string;
+  workerUrl?: string | undefined;
 }

@@ -204,10 +204,42 @@ export class WorkerManager {
   }
 
   /**
+   * Private: Validate workerUrl with permissive rules
+   * Accepts: relative paths, absolute URLs, blob:, data:, extensionless URLs
+   */
+  private validateWorkerUrl(url: string): void {
+    // Permissive validation - accept almost any string
+    // Only warn if it looks completely invalid
+    const looksLikeUrl =
+      url.startsWith('http://') ||
+      url.startsWith('https://') ||
+      url.startsWith('blob:') ||
+      url.startsWith('data:') ||
+      url.startsWith('/') ||
+      url.startsWith('./') ||
+      url.startsWith('../') ||
+      url.includes('/'); // extensionless URLs like /api/worker
+
+    if (
+      !looksLikeUrl &&
+      !url.endsWith('.js') &&
+      !url.endsWith('.mjs') &&
+      !url.endsWith('.ts')
+    ) {
+      console.warn(
+        `[LokulMem] workerUrl "${url}" may not be a valid URL. Expected: relative path, absolute URL, blob:, or data: URL`,
+      );
+    }
+  }
+
+  /**
    * Private: Execute the fallback chain to get a PortLike
    */
   private async doInitialize(config: WorkerConfig): Promise<PortLike> {
     const preferredType = config.workerType;
+
+    // Validate workerUrl (permissive - only warns)
+    this.validateWorkerUrl(config.workerUrl);
 
     // Try SharedWorker first
     if (preferredType === 'auto' || preferredType === 'shared') {
@@ -304,6 +336,7 @@ export class WorkerManager {
       dbName: config.dbName,
       modelConfig: config.modelConfig,
       persistenceGranted: this.persistenceStatus?.persisted ?? false,
+      workerUrl: config.workerUrl,
     };
 
     await this.client.request('init', initPayload, config.initTimeoutMs);
