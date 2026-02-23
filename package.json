@@ -35,7 +35,9 @@
   },
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "dist/*.wasm",
+    "dist/ort-wasm*.mjs"
   ],
   "scripts": {
     "build": "vite build",
