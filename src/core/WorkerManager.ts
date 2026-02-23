@@ -40,7 +40,6 @@ export class WorkerManager {
   private persistenceStatus: PersistenceStatus | null = null;
   private isReady = false;
   private client: WorkerClient | null = null;
-  private onProgressCallback: ProgressCallback | null = null;
   private messageQueue: QueuedMessage[] = [];
 
   /**
@@ -54,9 +53,6 @@ export class WorkerManager {
     config: WorkerConfig,
     onProgress?: ProgressCallback,
   ): Promise<void> {
-    // Store progress callback for later use
-    this.onProgressCallback = onProgress ?? null;
-
     // Get port via fallback chain
     this.port = await this.doInitialize(config);
 
@@ -194,7 +190,6 @@ export class WorkerManager {
     this.client = null;
     this.isReady = false;
     this.workerType = 'main-thread';
-    this.onProgressCallback = null;
   }
 
   /**

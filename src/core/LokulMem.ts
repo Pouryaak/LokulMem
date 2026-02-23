@@ -6,20 +6,24 @@
  * the base for augment/learn/manage APIs in later phases.
  */
 
-import type { LokulMemConfig, PersistenceStatus } from '../types/api.js';
+import type { InitStage, LokulMemConfig } from '../types/api.js';
 import type { WorkerClient } from './MessagePort.js';
 import { WorkerManager } from './WorkerManager.js';
+import type { PersistenceStatus } from './types.js';
 import type { WorkerType } from './types.js';
 
 /**
  * Default configuration values
  */
-const DEFAULT_CONFIG: Required<
-  Omit<LokulMemConfig, 'localModelBaseUrl' | 'workerUrl' | 'onProgress'>
-> & {
+const DEFAULT_CONFIG: {
+  dbName: string;
   workerType: 'auto' | 'shared' | 'dedicated' | 'main';
   initTimeoutMs: number;
   maxRetries: number;
+  extractionThreshold: number;
+  localModelBaseUrl?: string;
+  workerUrl?: string;
+  onProgress?: (stage: InitStage, progress: number) => void;
 } = {
   dbName: 'lokulmem-default',
   workerType: 'auto',
@@ -41,10 +45,15 @@ const DEFAULT_CONFIG: Required<
  */
 export class LokulMem {
   private workerManager: WorkerManager;
-  private config: Required<LokulMemConfig> & {
+  private config: {
+    dbName: string;
     workerType: 'auto' | 'shared' | 'dedicated' | 'main';
     initTimeoutMs: number;
     maxRetries: number;
+    extractionThreshold: number;
+    localModelBaseUrl?: string;
+    workerUrl?: string;
+    onProgress?: (stage: InitStage, progress: number) => void;
   };
   private isInitialized = false;
 
@@ -53,17 +62,29 @@ export class LokulMem {
    * @param config - Configuration options
    */
   constructor(config: LokulMemConfig = {}) {
-    // Merge with defaults
+    // Create WorkerManager instance first
+    this.workerManager = new WorkerManager();
+
+    // Merge with defaults - handle optional properties carefully for exactOptionalPropertyTypes
     this.config = {
-      ...DEFAULT_CONFIG,
-      ...config,
-      localModelBaseUrl: config.localModelBaseUrl,
-      workerUrl: config.workerUrl,
-      onProgress: config.onProgress,
+      dbName: config.dbName ?? DEFAULT_CONFIG.dbName,
+      workerType: config.workerType ?? DEFAULT_CONFIG.workerType,
+      initTimeoutMs: config.initTimeoutMs ?? DEFAULT_CONFIG.initTimeoutMs,
+      maxRetries: config.maxRetries ?? DEFAULT_CONFIG.maxRetries,
+      extractionThreshold:
+        config.extractionThreshold ?? DEFAULT_CONFIG.extractionThreshold,
     };
 
-    // Create WorkerManager instance
-    this.workerManager = new WorkerManager();
+    // Set optional properties only if defined
+    if (config.localModelBaseUrl !== undefined) {
+      this.config.localModelBaseUrl = config.localModelBaseUrl;
+    }
+    if (config.workerUrl !== undefined) {
+      this.config.workerUrl = config.workerUrl;
+    }
+    if (config.onProgress !== undefined) {
+      this.config.onProgress = config.onProgress;
+    }
   }
 
   /**

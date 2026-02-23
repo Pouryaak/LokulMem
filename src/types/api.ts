@@ -15,6 +15,11 @@ export type InitStage =
   | 'ready';
 
 /**
+ * Worker type preference for initialization
+ */
+export type WorkerTypePreference = 'auto' | 'shared' | 'dedicated' | 'main';
+
+/**
  * Configuration options for LokulMem instance
  */
 export interface LokulMemConfig {
@@ -29,6 +34,15 @@ export interface LokulMemConfig {
 
   /** Threshold for memory extraction (0-1, higher = more selective) */
   extractionThreshold?: number;
+
+  /** Worker type preference - 'auto' tries SharedWorker → DedicatedWorker → main thread */
+  workerType?: WorkerTypePreference;
+
+  /** Initialization timeout in milliseconds (default: 10000) */
+  initTimeoutMs?: number;
+
+  /** Maximum retry attempts for initialization (default: 1) */
+  maxRetries?: number;
 
   /** Progress callback during initialization */
   onProgress?: (stage: InitStage, progress: number) => void;
