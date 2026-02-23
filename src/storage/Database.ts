@@ -144,25 +144,38 @@ export class LokulDatabase extends Dexie {
   constructor() {
     super('LokulMemDB');
 
-    this.version(1).stores({
-      memories: `
-        id,
-        *types,
-        status,
-        clusterId,
-        lastAccessedAt,
-        baseStrength,
-        validFrom,
-        pinnedInt,
-        mentionCount,
-        [status+lastAccessedAt],
-        [clusterId+status],
-        [status+baseStrength]
-      `,
-      episodes: 'id, startMemoryId, endMemoryId, createdAt',
-      edges: 'id, sourceMemoryId, targetMemoryId, similarity, createdAt',
-      clusters: 'id, createdAt',
-    });
+    // Version 1: Initial schema
+    this.version(1)
+      .stores({
+        memories: `
+          id,
+          *types,
+          status,
+          clusterId,
+          lastAccessedAt,
+          baseStrength,
+          validFrom,
+          pinnedInt,
+          mentionCount,
+          [status+lastAccessedAt],
+          [clusterId+status],
+          [status+baseStrength]
+        `,
+        episodes: 'id, startMemoryId, endMemoryId, createdAt',
+        edges: 'id, sourceMemoryId, targetMemoryId, similarity, createdAt',
+        clusters: 'id, createdAt',
+      })
+      .upgrade(async () => {
+        // v1 is initial creation - no data migration needed
+        // Future versions will add upgrade logic here
+      });
+
+    // Future migrations follow this pattern:
+    // this.version(2).stores({
+    //   memories: '..., newField'
+    // }).upgrade(async (trans) => {
+    //   // Migration logic here
+    // });
   }
 
   /**
