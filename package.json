@@ -69,5 +69,8 @@
     "*.{js,ts,json,css}": [
       "biome check --write --no-errors-on-unmatched"
     ]
+  },
+  "dependencies": {
+    "dexie": "^4.3.0"
   }
 }
