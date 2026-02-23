@@ -9,7 +9,12 @@
  */
 
 import type {
+  EmbedBatchPayload,
+  EmbedBatchResponsePayload,
+  EmbedPayload,
+  EmbedResponsePayload,
   InitPayload,
+  ModelConfig,
   ProgressMessage,
   RequestMessage,
   ResponseMessage,
@@ -17,6 +22,7 @@ import type {
 import { MessageType as MessageTypeConst } from '../core/Protocol.js';
 import type { PortLike } from '../core/types.js';
 import type { InitStage } from '../types/api.js';
+import { EmbeddingEngine } from './EmbeddingEngine.js';
 
 /**
  * Order of initialization stages
@@ -39,6 +45,11 @@ const stageWeights: Record<InitStage, number> = {
   maintenance: 0.2,
   ready: 0.2,
 };
+
+/**
+ * Singleton embedding engine instance
+ */
+let embeddingEngine: EmbeddingEngine | null = null;
 
 /**
  * Calculate overall progress based on current stage and stage progress
@@ -93,6 +104,12 @@ function setupPort(port: PortLike): void {
       case MessageTypeConst.PING:
         handlePing(port, request);
         break;
+      case MessageTypeConst.EMBED:
+        await handleEmbed(port, request);
+        break;
+      case MessageTypeConst.EMBED_BATCH:
+        await handleEmbedBatch(port, request);
+        break;
       default:
         console.warn('Unknown message type:', request.type);
     }
@@ -112,6 +129,132 @@ function handlePing(port: PortLike, request: RequestMessage): void {
 }
 
 /**
+ * Handle EMBED request for single text embedding
+ */
+async function handleEmbed(
+  port: PortLike,
+  request: RequestMessage,
+): Promise<void> {
+  // Check if embedding engine is initialized
+  if (!embeddingEngine?.isReady()) {
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'NOT_INITIALIZED',
+        message: 'EmbeddingEngine not initialized. Call initialize() first.',
+        details: {
+          recoveryHint:
+            'Ensure the worker is initialized before sending EMBED requests',
+        },
+      },
+    };
+    port.postMessage(response);
+    return;
+  }
+
+  try {
+    const payload = request.payload as EmbedPayload;
+    const embedding = await embeddingEngine.embed(payload.text);
+
+    // Convert Float32Array to number[] for serialization
+    const responsePayload: EmbedResponsePayload = {
+      embedding: Array.from(embedding),
+      dimensions: embedding.length,
+    };
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.EMBED,
+      payload: responsePayload,
+    };
+    port.postMessage(response);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const recoveryHint =
+      error instanceof Error && 'recoveryHint' in error
+        ? (error as Error & { recoveryHint: string }).recoveryHint
+        : 'Check model configuration and try again';
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'EMBED_FAILED',
+        message: errorMessage,
+        details: { recoveryHint },
+      },
+    };
+    port.postMessage(response);
+  }
+}
+
+/**
+ * Handle EMBED_BATCH request for batch text embedding
+ */
+async function handleEmbedBatch(
+  port: PortLike,
+  request: RequestMessage,
+): Promise<void> {
+  // Check if embedding engine is initialized
+  if (!embeddingEngine?.isReady()) {
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'NOT_INITIALIZED',
+        message: 'EmbeddingEngine not initialized. Call initialize() first.',
+        details: {
+          recoveryHint:
+            'Ensure the worker is initialized before sending EMBED_BATCH requests',
+        },
+      },
+    };
+    port.postMessage(response);
+    return;
+  }
+
+  try {
+    const payload = request.payload as EmbedBatchPayload;
+    const embeddings = await embeddingEngine.embedBatch(payload.texts);
+
+    // Convert Float32Array[] to number[][] for serialization
+    const responsePayload: EmbedBatchResponsePayload = {
+      embeddings: embeddings.map((emb) => Array.from(emb)),
+      dimensions: embeddings.length > 0 ? (embeddings[0]?.length ?? 0) : 0,
+    };
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.EMBED_BATCH,
+      payload: responsePayload,
+    };
+    port.postMessage(response);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const recoveryHint =
+      error instanceof Error && 'recoveryHint' in error
+        ? (error as Error & { recoveryHint: string }).recoveryHint
+        : 'Check model configuration and try again';
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'EMBED_BATCH_FAILED',
+        message: errorMessage,
+        details: { recoveryHint },
+      },
+    };
+    port.postMessage(response);
+  }
+}
+
+/**
  * Handle initialization request with progress reporting through all 5 stages
  */
 async function handleInit(
@@ -124,9 +267,9 @@ async function handleInit(
     // Stage 1: Worker initialization (complete - we're running)
     reportProgress(port, 'worker', 100);
 
-    // Stage 2: Model initialization (stub for future phase)
+    // Stage 2: Model initialization
     reportProgress(port, 'model', 0);
-    await initializeModel(payload.modelConfig);
+    await initializeModel(port, payload.modelConfig);
     reportProgress(port, 'model', 100);
 
     // Stage 3: Storage initialization (stub for future phase)
@@ -152,6 +295,11 @@ async function handleInit(
   } catch (error) {
     // Send error response
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const recoveryHint =
+      error instanceof Error && 'recoveryHint' in error
+        ? (error as Error & { recoveryHint: string }).recoveryHint
+        : 'Check configuration and try again';
+
     const response: ResponseMessage = {
       id: request.id,
       type: MessageTypeConst.ERROR,
@@ -159,6 +307,7 @@ async function handleInit(
       error: {
         code: 'INIT_FAILED',
         message: errorMessage,
+        details: { recoveryHint },
       },
     };
     port.postMessage(response);
@@ -190,10 +339,35 @@ function createWorkerPortLike(
 /**
  * Initialize the embedding model (Phase 4)
  */
-async function initializeModel(_config?: unknown): Promise<void> {
-  // Stub: Will be implemented in Phase 4 (Embedding Engine)
-  // Simulates async work
-  await new Promise((resolve) => setTimeout(resolve, 10));
+async function initializeModel(
+  port: PortLike,
+  config?: ModelConfig,
+): Promise<void> {
+  // Get or create the singleton embedding engine
+  embeddingEngine = EmbeddingEngine.getInstance();
+
+  // Initialize with progress reporting
+  await embeddingEngine.initialize(
+    config,
+    (stage: string, progress: number) => {
+      // Map internal stages to progress within the 'model' stage
+      // stage can be 'download', 'init', 'ready', etc.
+      let stageProgress = progress;
+
+      // Normalize progress to 0-100 range for the model stage
+      if (stage === 'download') {
+        // Download phase: 0-70%
+        stageProgress = Math.round(progress * 0.7);
+      } else if (stage === 'init') {
+        // Init/WASM phase: 70-100%
+        stageProgress = 70 + Math.round(progress * 0.3);
+      } else if (stage === 'ready') {
+        stageProgress = 100;
+      }
+
+      reportProgress(port, 'model', stageProgress);
+    },
+  );
 }
 
 /**
