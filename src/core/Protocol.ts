@@ -77,6 +77,24 @@ export const MessageType = {
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];
 
 /**
+ * Model configuration for initialization
+ */
+export interface ModelConfig {
+  /** Model name (e.g., 'Xenova/all-MiniLM-L6-v2') */
+  modelName?: string;
+  /** Base URL for local model files (airgap mode) */
+  localModelBaseUrl?: string;
+  /** Embedding dimensions (default: 384 for MiniLM-L6-v2) */
+  embeddingDims?: number;
+  /** Cache size for LRU embedding cache */
+  cacheSize?: number;
+  /** Enable embedding cache */
+  enableCache?: boolean;
+  /** Custom ONNX Runtime WASM paths */
+  onnxPaths?: string | Record<string, string>;
+}
+
+/**
  * Payload for initialization request
  */
 export interface InitPayload {
@@ -84,6 +102,8 @@ export interface InitPayload {
   dbName: string;
   /** Whether storage persistence was granted */
   persistenceGranted: boolean;
-  /** Optional model configuration */
-  modelConfig?: unknown;
+  /** Model configuration */
+  modelConfig?: ModelConfig;
+  /** Custom worker URL (passed through for reference) */
+  workerUrl?: string;
 }
