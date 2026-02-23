@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import { resolve } from 'path'
 import dts from 'vite-plugin-dts'
+import { viteStaticCopy } from 'vite-plugin-static-copy'
 
 /**
  * Vite configuration for LokulMem library
@@ -9,6 +10,7 @@ import dts from 'vite-plugin-dts'
  * - Main library entry (src/index.ts)
  * - Worker entry as separate chunk (src/worker/index.ts)
  * - Automatic type declaration generation via vite-plugin-dts
+ * - ORT WASM asset bundling for offline/airgapped deployments
  */
 export default defineConfig({
   plugins: [
@@ -16,6 +18,19 @@ export default defineConfig({
       include: ['src'],
       rollupTypes: true,
       insertTypesEntry: true,
+    }),
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'node_modules/onnxruntime-web/dist/*.wasm',
+          dest: '.',
+        },
+        {
+          src: 'node_modules/onnxruntime-web/dist/ort-wasm*.mjs',
+          dest: '.',
+        },
+      ],
+      silent: true,
     }),
   ],
   build: {
@@ -34,12 +49,19 @@ export default defineConfig({
       external: [],
       output: {
         globals: {},
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name?.endsWith('.wasm')) {
+            return '[name][extname]'
+          }
+          return 'assets/[name]-[hash][extname]'
+        },
       },
     },
     sourcemap: true,
     minify: 'esbuild',
     target: 'es2020',
   },
+  publicDir: 'public',
   worker: {
     format: 'es',
     plugins: () => [],
