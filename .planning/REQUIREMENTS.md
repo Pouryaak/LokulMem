@@ -10,7 +10,7 @@
 - [ ] **WORKER-01**: Library detects and uses SharedWorker when available
 - [ ] **WORKER-02**: Falls back to Dedicated Worker when SharedWorker unavailable
 - [ ] **WORKER-03**: Falls back to main thread when Workers unavailable
-- [ ] **WORKER-04**: `navigator.storage.persist()` called before worker spawn
+- [x] **WORKER-04**: Library provides `persistStorage()` API for explicit storage persistence (user decides when to call)
 - [x] **WORKER-05**: `onProgress` callback reports init stages (worker, model, storage, maintenance, ready)
 
 ### Storage & Schema
@@ -197,7 +197,7 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | TS-01..05 | Phase 1 | Complete |
-| WORKER-01..05 | Phase 2 | Pending |
+| WORKER-01..05 | Phase 2 | Complete |
 | STORAGE-01..04 | Phase 3 | Pending |
 | EMBED-01..10 | Phase 4 | Pending |
 | SEARCH-01..07 | Phase 5 | Pending |
