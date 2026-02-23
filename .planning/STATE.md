@@ -31,8 +31,8 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 ### Phase Progress
 
 ```
-[░░░░░░░░░░] 0% - Phase 1: Foundation (Not started)
-[░░░░░░░░░░] 0% - Phase 2: Worker Infrastructure (Not started)
+[██████████] 100% - Phase 1: Foundation (Complete)
+[██████░░░░] 60% - Phase 2: Worker Infrastructure (In Progress - 3 of 5 plans complete)
 [░░░░░░░░░░] 0% - Phase 3: Storage Layer (Not started)
 [░░░░░░░░░░] 0% - Phase 4: Embedding Engine (Not started)
 [░░░░░░░░░░] 0% - Phase 5: Memory Store & Retrieval (Not started)
@@ -43,7 +43,7 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 
 ### Active Work
 
-Plan 02-02 (Message Protocol and Communication Layer) completed. Created src/core/Protocol.ts with message types for request/response correlation and progress reporting. Updated src/worker/index.ts with progress reporting through all 5 init stages (worker, model, storage, maintenance, ready). WorkerClient implemented in src/core/MessagePort.ts for PortLike abstraction and timeout handling.
+Plan 02-01 (WorkerManager with fallback chain) completed. Created src/core/WorkerManager.ts with three-tier fallback (SharedWorker → DedicatedWorker → main thread), src/core/Persistence.ts for explicit storage persistence API, and src/core/types.ts with PortLike abstraction. WorkerClient handles request/response correlation with timeout support.
 
 ---
 
@@ -84,6 +84,8 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 | 2026-02-23 | MessageType as const object | Avoids const enum build tool issues; better compatibility | Implemented in 02-02 |
 | 2026-02-23 | PortLike abstraction | Unified interface for SharedWorker, DedicatedWorker, main thread | Implemented in 02-02 |
 | 2026-02-23 | DedicatedWorker PortLike wrapper | Avoids unsafe casting of self to MessagePort | Implemented in 02-02 |
+| 2026-02-23 | Persistence is explicit API | User calls persistStorage() when ready, not auto-called during init | Implemented in 02-01 |
+| 2026-02-23 | PortLike single signature | Avoids TypeScript overload conflicts with Worker.postMessage | Implemented in 02-01 |
 
 ### Open Questions
 
@@ -109,10 +111,10 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 ## Session Continuity
 
 ### Last Action
-Completed Plan 02-02 (Message Protocol and Communication Layer) — created src/core/Protocol.ts with message types, updated src/worker/index.ts with progress reporting through 5 stages
+Completed Plan 02-01 (WorkerManager with fallback chain) — created src/core/WorkerManager.ts with three-tier fallback, src/core/Persistence.ts, src/core/types.ts with PortLike abstraction
 
 ### Next Action
-Execute Plan 02-03 (Worker initialization and fallback chain)
+Execute Plan 02-02 (Message Protocol and Communication Layer) or continue with 02-03 (Worker initialization completion)
 
 ### Blockers
 None.
@@ -137,7 +139,7 @@ master (initial development)
 | Category | Total | Pending | In Progress | Complete |
 |----------|-------|---------|-------------|----------|
 | TS | 5 | 3 | 0 | 2 |
-| WORKER | 5 | 4 | 0 | 1 |
+| WORKER | 5 | 1 | 0 | 4 |
 | STORAGE | 4 | 4 | 0 | 0 |
 | EMBED | 10 | 10 | 0 | 0 |
 | SEARCH | 7 | 7 | 0 | 0 |
@@ -149,7 +151,7 @@ master (initial development)
 | MGMT | 16 | 16 | 0 | 0 |
 | EVENT | 7 | 7 | 0 | 0 |
 | DEMO | 4 | 4 | 0 | 0 |
-| **Total** | **82** | **81** | **0** | **1** |
+| **Total** | **82** | **78** | **0** | **4** |
 
 ### v2 Requirements (Deferred)
 
