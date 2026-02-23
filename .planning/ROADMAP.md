@@ -91,7 +91,7 @@ Plans:
 **Plans:** 3 plans created
 
 Plans:
-- [ ] 04-03-PLAN.md — Vite WASM bundling and workerUrl support (Wave 1 - Foundation)
+- [x] 04-03-PLAN.md — Vite WASM bundling and workerUrl support (Wave 1 - Foundation)
 - [ ] 04-01-PLAN.md — Transformers.js integration with CDN and airgap modes (Wave 2)
 - [ ] 04-02-PLAN.md — LRU cache and concurrency queue (Wave 2)
 
@@ -175,7 +175,7 @@ Plans:
 | 1. Foundation | 3/3 | Complete    | 2026-02-23 |
 | 2. Worker Infrastructure | 3/3 | Complete    | 2026-02-23 |
 | 3. Storage Layer | 3/3 | Complete | 2026-02-23 |
-| 4. Embedding Engine | 0/3 | Not started | - |
+| 4. Embedding Engine | 1/3 | In Progress | - |
 | 5. Memory Store & Retrieval | 0/2 | Not started | - |
 | 6. Lifecycle & Decay | 0/1 | Not started | - |
 | 7. Extraction & Contradiction | 0/2 | Not started | - |

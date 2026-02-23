@@ -1,9 +1,9 @@
 # State: LokulMem
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
-**Current Phase:** 03
-**Current Plan:** Not started
-**Status:** Milestone complete
+**Current Phase:** 04
+**Current Plan:** 1 of 3
+**Status:** In Progress
 **Updated:** 2026-02-23
 
 ---
@@ -34,7 +34,7 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 1: Foundation (Complete)
 [██████████] 100% - Phase 2: Worker Infrastructure (Complete - 5 of 5 plans)
 [██████████] 100% - Phase 3: Storage Layer (Complete - 3 of 3 plans)
-[░░░░░░░░░░] 0% - Phase 4: Embedding Engine (Not started)
+[██░░░░░░░░] 33% - Phase 4: Embedding Engine (1 of 3 plans complete)
 [░░░░░░░░░░] 0% - Phase 5: Memory Store & Retrieval (Not started)
 [░░░░░░░░░░] 0% - Phase 6: Lifecycle & Decay (Not started)
 [░░░░░░░░░░] 0% - Phase 7: Extraction & Contradiction (Not started)
@@ -43,7 +43,7 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 
 ### Active Work
 
-Plan 03-03 (MemoryRepository with CRUD operations) completed. Implemented MemoryRepository class with full CRUD operations, query methods using all compound indexes, bulk operations, and utility methods. Created internal barrel file for storage layer exports. Added storage types (StorageStatus, StorageError, StorageErrorType) to public API exports. Phase 03-storage-layer is now complete.
+Plan 04-03 (Vite WASM bundling and workerUrl support) completed. Configured vite-plugin-static-copy for ORT WASM asset bundling. Implemented workerUrl option with permissive validation (accepts blob:, data:, extensionless URLs). Added onnxPaths configuration option to LokulMemConfig and ModelConfig. Created EmbeddingEngine foundation class with ONNX WASM path configuration. Updated package.json files array to include WASM patterns.
 
 ---
 
@@ -95,6 +95,10 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 | 2026-02-23 | Repository pattern for memory storage | Clean separation between storage layer and business logic | Implemented in 03-03 |
 | 2026-02-23 | Internal barrel file (_index.ts) | Clear distinction between internal and public API | Implemented in 03-03 |
 | 2026-02-23 | Only storage types exported publicly | Storage implementation remains internal, types for callbacks | Implemented in 03-03 |
+| 2026-02-23 | vite-plugin-static-copy for WASM bundling | Better Vite integration, handles dev and production | Implemented in 04-03 |
+| 2026-02-23 | wasmPaths NOT defaulted to localModelBaseUrl | Avoids 404s in airgap setups with separate model/WASM paths | Implemented in 04-03 |
+| 2026-02-23 | Permissive workerUrl validation | Accepts blob:, data:, extensionless URLs for flexibility | Implemented in 04-03 |
+| 2026-02-23 | Typed ModelConfig in Protocol.ts | Type safety across WorkerConfig, InitPayload, EmbeddingConfig | Implemented in 04-03 |
 
 ### Open Questions
 
@@ -106,6 +110,7 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 
 | Risk | Mitigation | Status |
 |------|------------|--------|
+| WASM asset loading in airgap | vite-plugin-static-copy bundles ORT assets to dist/ | Mitigated in 04-03 |
 | Float32Array serialization in Workers | DTO pattern excludes embeddings from IPC | Mitigated in 01-03 |
 | Message timeout memory leaks | WorkerClient clears timeouts on resolve/reject/terminate | Mitigated in 02-02 |
 | SharedWorker port lifecycle | Always use `onmessage` or call `port.start()` | Documented |
@@ -120,10 +125,10 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 ## Session Continuity
 
 ### Last Action
-Completed Plan 03-03 (MemoryRepository with CRUD operations) — created MemoryRepository with full CRUD, query methods using all compound indexes, bulk operations, internal barrel file, and storage type exports
+Completed Plan 04-03 (Vite WASM bundling and workerUrl support) — configured vite-plugin-static-copy for ORT WASM assets, implemented workerUrl with permissive validation, added onnxPaths configuration, created EmbeddingEngine foundation
 
 ### Next Action
-Begin Phase 04: Embedding Engine
+Continue Phase 04: Embedding Engine - Plan 04-01 (Transformers.js integration with CDN and airgap modes)
 
 ### Blockers
 None.
@@ -150,7 +155,7 @@ master (initial development)
 | TS | 5 | 3 | 0 | 2 |
 | WORKER | 5 | 0 | 0 | 5 |
 | STORAGE | 4 | 0 | 0 | 4 |
-| EMBED | 10 | 10 | 0 | 0 |
+| EMBED | 10 | 7 | 0 | 3 |
 | SEARCH | 7 | 7 | 0 | 0 |
 | DECAY | 9 | 9 | 0 | 0 |
 | EXTRACT | 7 | 7 | 0 | 0 |
@@ -160,7 +165,7 @@ master (initial development)
 | MGMT | 16 | 16 | 0 | 0 |
 | EVENT | 7 | 7 | 0 | 0 |
 | DEMO | 4 | 4 | 0 | 0 |
-| **Total** | **82** | **73** | **0** | **9** |
+| **Total** | **82** | **70** | **0** | **12** |
 
 ### v2 Requirements (Deferred)
 
