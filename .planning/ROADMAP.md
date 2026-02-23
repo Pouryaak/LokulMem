@@ -11,7 +11,7 @@
 ## Phases
 
 - [x] **Phase 1: Foundation** - Project scaffolding, TypeScript build system, and core types (completed 2026-02-23)
-- [ ] **Phase 2: Worker Infrastructure** - SharedWorker coordination with graceful fallback chain
+- [x] **Phase 2: Worker Infrastructure** - SharedWorker coordination with graceful fallback chain (completed 2026-02-23)
 - [ ] **Phase 3: Storage Layer** - Dexie.js schema with memories, episodes, edges, clusters stores
 - [ ] **Phase 4: Embedding Engine** - Transformers.js MiniLM with LRU cache and airgap support
 - [ ] **Phase 5: Memory Store & Retrieval** - Brute-force vector search with composite relevance scoring
@@ -163,7 +163,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete    | 2026-02-23 |
-| 2. Worker Infrastructure | 3/3 | In Progress|  |
+| 2. Worker Infrastructure | 3/3 | Complete    | 2026-02-23 |
 | 3. Storage Layer | 0/1 | Not started | - |
 | 4. Embedding Engine | 0/1 | Not started | - |
 | 5. Memory Store & Retrieval | 0/2 | Not started | - |
@@ -237,4 +237,4 @@ Per research/SUMMARY.md, the following phases may need deeper research during pl
 ---
 
 *Roadmap created: 2026-02-23*
-*Last updated: 2026-02-23 (Phase 2 plans completed)*
+*Last updated: 2026-02-23 (Phase 2 completed)*
