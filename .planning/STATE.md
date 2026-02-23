@@ -1,9 +1,9 @@
 # State: LokulMem
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
-**Current Phase:** 1
-**Current Plan:** Not started
-**Status:** Milestone complete
+**Current Phase:** 2
+**Current Plan:** 02-02
+**Status:** In Progress
 **Updated:** 2026-02-23
 
 ---
@@ -43,7 +43,7 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 
 ### Active Work
 
-Plan 01-03 (Core type definitions) completed. Created src/types/ with MemoryDTO, API types, and event types. Created src/internal/ with MemoryInternal (includes Float32Array) and DTO conversion utilities. DTO pattern implemented: embeddings excluded from public API.
+Plan 02-02 (Message Protocol and Communication Layer) completed. Created src/core/Protocol.ts with message types for request/response correlation and progress reporting. Updated src/worker/index.ts with progress reporting through all 5 init stages (worker, model, storage, maintenance, ready). WorkerClient implemented in src/core/MessagePort.ts for PortLike abstraction and timeout handling.
 
 ---
 
@@ -81,6 +81,9 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 | 2026-02-23 | Worker import via ?worker&url | Bundler compatibility for worker instantiation | Implemented in 01-02 |
 | 2026-02-23 | Dual ESM/CJS output | Maximum compatibility across module systems | Implemented in 01-02 |
 | 2026-02-23 | happy-dom for unit tests | DOM mocking in Node.js without browser overhead | Implemented in 01-02 |
+| 2026-02-23 | MessageType as const object | Avoids const enum build tool issues; better compatibility | Implemented in 02-02 |
+| 2026-02-23 | PortLike abstraction | Unified interface for SharedWorker, DedicatedWorker, main thread | Implemented in 02-02 |
+| 2026-02-23 | DedicatedWorker PortLike wrapper | Avoids unsafe casting of self to MessagePort | Implemented in 02-02 |
 
 ### Open Questions
 
@@ -93,6 +96,7 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 | Risk | Mitigation | Status |
 |------|------------|--------|
 | Float32Array serialization in Workers | DTO pattern excludes embeddings from IPC | Mitigated in 01-03 |
+| Message timeout memory leaks | WorkerClient clears timeouts on resolve/reject/terminate | Mitigated in 02-02 |
 | SharedWorker port lifecycle | Always use `onmessage` or call `port.start()` | Documented |
 | IndexedDB transaction timing | Use Dexie's transaction helper for async | Documented |
 | Model loading memory exhaustion | Singleton pattern, quantized models (q8) | Documented |
@@ -105,10 +109,10 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 ## Session Continuity
 
 ### Last Action
-Completed Plan 01-03 (Core type definitions) — created src/types/memory.ts, api.ts, events.ts, index.ts and src/internal/types.ts, dto.ts with DTO pattern
+Completed Plan 02-02 (Message Protocol and Communication Layer) — created src/core/Protocol.ts with message types, updated src/worker/index.ts with progress reporting through 5 stages
 
 ### Next Action
-Execute Plan 01-04 (next foundation plan) or continue with 01-01 (Project configuration)
+Execute Plan 02-03 (Worker initialization and fallback chain)
 
 ### Blockers
 None.
@@ -133,7 +137,7 @@ master (initial development)
 | Category | Total | Pending | In Progress | Complete |
 |----------|-------|---------|-------------|----------|
 | TS | 5 | 3 | 0 | 2 |
-| WORKER | 5 | 5 | 0 | 0 |
+| WORKER | 5 | 4 | 0 | 1 |
 | STORAGE | 4 | 4 | 0 | 0 |
 | EMBED | 10 | 10 | 0 | 0 |
 | SEARCH | 7 | 7 | 0 | 0 |
@@ -145,7 +149,7 @@ master (initial development)
 | MGMT | 16 | 16 | 0 | 0 |
 | EVENT | 7 | 7 | 0 | 0 |
 | DEMO | 4 | 4 | 0 | 0 |
-| **Total** | **82** | **82** | **0** | **0** |
+| **Total** | **82** | **81** | **0** | **1** |
 
 ### v2 Requirements (Deferred)
 

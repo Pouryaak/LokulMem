@@ -50,7 +50,7 @@ Plans:
   3. Final fallback to main thread when Workers unavailable
   4. `navigator.storage.persist()` called before worker spawn
   5. `onProgress` callback reports all 5 init stages: worker, model, storage, maintenance, ready
-**Plans:** 3 plans ready
+**Plans:** 1/3 plans executed
 
 Plans:
 - [ ] 02-01-PLAN.md — WorkerManager with fallback chain (SharedWorker → DedicatedWorker → main thread)
@@ -163,7 +163,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete    | 2026-02-23 |
-| 2. Worker Infrastructure | 0/3 | Ready to start | - |
+| 2. Worker Infrastructure | 1/3 | In Progress|  |
 | 3. Storage Layer | 0/1 | Not started | - |
 | 4. Embedding Engine | 0/1 | Not started | - |
 | 5. Memory Store & Retrieval | 0/2 | Not started | - |

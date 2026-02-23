@@ -11,7 +11,7 @@
 - [ ] **WORKER-02**: Falls back to Dedicated Worker when SharedWorker unavailable
 - [ ] **WORKER-03**: Falls back to main thread when Workers unavailable
 - [ ] **WORKER-04**: `navigator.storage.persist()` called before worker spawn
-- [ ] **WORKER-05**: `onProgress` callback reports init stages (worker, model, storage, maintenance, ready)
+- [x] **WORKER-05**: `onProgress` callback reports init stages (worker, model, storage, maintenance, ready)
 
 ### Storage & Schema
 
