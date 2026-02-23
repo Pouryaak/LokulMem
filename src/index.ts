@@ -19,8 +19,11 @@ export const VERSION = '0.1.0';
  */
 export { WorkerUrl };
 
+// Main API exports
+export { LokulMem, createLokulMem } from './core/LokulMem.js';
+
 // Public type re-exports from src/types/
-// Internal types (src/internal/) are NOT exported - they stay internal
+// Internal types (src/core/, src/internal/) are NOT exported - they stay internal
 export type {
   // Memory types
   MemoryDTO,
