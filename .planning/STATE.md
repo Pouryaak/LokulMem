@@ -99,7 +99,7 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 ## Session Continuity
 
 ### Last Action
-Created roadmap with 8 phases covering all 76 v1 requirements.
+Created roadmap with 8 phases covering all 82 v1 requirements.
 
 ### Next Action
 Plan Phase 1 (Foundation) with `/gsd:plan-phase 1`
@@ -122,16 +122,16 @@ master (initial development)
 
 ## Requirements Status
 
-### v1 Requirements (76 total)
+### v1 Requirements (82 total)
 
 | Category | Total | Pending | In Progress | Complete |
 |----------|-------|---------|-------------|----------|
 | TS | 5 | 5 | 0 | 0 |
 | WORKER | 5 | 5 | 0 | 0 |
 | STORAGE | 4 | 4 | 0 | 0 |
-| EMBED | 6 | 6 | 0 | 0 |
-| SEARCH | 6 | 6 | 0 | 0 |
-| DECAY | 7 | 7 | 0 | 0 |
+| EMBED | 10 | 10 | 0 | 0 |
+| SEARCH | 7 | 7 | 0 | 0 |
+| DECAY | 9 | 9 | 0 | 0 |
 | EXTRACT | 7 | 7 | 0 | 0 |
 | CONTRA | 6 | 6 | 0 | 0 |
 | AUG | 7 | 7 | 0 | 0 |
@@ -139,7 +139,7 @@ master (initial development)
 | MGMT | 16 | 16 | 0 | 0 |
 | EVENT | 7 | 7 | 0 | 0 |
 | DEMO | 4 | 4 | 0 | 0 |
-| **Total** | **76** | **76** | **0** | **0** |
+| **Total** | **82** | **82** | **0** | **0** |
 
 ### v2 Requirements (Deferred)
 

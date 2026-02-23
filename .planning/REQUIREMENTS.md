@@ -31,6 +31,7 @@
 - [ ] **EMBED-07**: ORT assets bundled into dist (glob copy ort-wasm*.wasm and ort-wasm*.mjs)
 - [ ] **EMBED-08**: `workerUrl` option supported for custom worker resolution
 - [ ] **EMBED-09**: Airgap mode explicitly sets `env.allowLocalModels=true`, `env.allowRemoteModels=false`, `env.localModelPath=<localModelBaseUrl>`
+- [ ] **EMBED-10**: Airgap mode requires consumers to host model assets mirroring `Xenova/all-MiniLM-L6-v2` repository structure under `localModelBaseUrl`
 
 ### Extraction Layer
 
@@ -61,6 +62,7 @@
 - [ ] **DECAY-06**: Faded memories (strength < 0.1) marked as faded, deleted after 30 days
 - [ ] **DECAY-07**: K-means clustering runs synchronously in worker
 - [ ] **DECAY-08**: `fadedAt` timestamp field records when memory transitioned to faded status (enables 30-day deletion policy)
+- [ ] **DECAY-09**: Faded memory deletion runs during session-start maintenance sweep
 
 ### Vector Search & Retrieval
 
@@ -197,10 +199,10 @@
 | TS-01..05 | Phase 1 | Pending |
 | WORKER-01..05 | Phase 2 | Pending |
 | STORAGE-01..04 | Phase 3 | Pending |
-| EMBED-01..09 | Phase 4 | Pending |
+| EMBED-01..10 | Phase 4 | Pending |
 | SEARCH-01..07 | Phase 5 | Pending |
 | MGMT-01..09 | Phase 5 | Pending |
-| DECAY-01..08 | Phase 6 | Pending |
+| DECAY-01..09 | Phase 6 | Pending |
 | EXTRACT-01..07 | Phase 7 | Pending |
 | CONTRA-01..06 | Phase 7 | Pending |
 | AUG-01..07 | Phase 8 | Pending |
@@ -210,8 +212,8 @@
 | DEMO-01..04 | Phase 8 | Pending |
 
 **Coverage:**
-- v1 requirements: 81 total
-- Mapped to phases: 81
+- v1 requirements: 82 total
+- Mapped to phases: 82
 - Unmapped: 0 ✓
 
 ---

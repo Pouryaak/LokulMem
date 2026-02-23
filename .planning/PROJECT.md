@@ -2,7 +2,7 @@
 
 ## What This Is
 
-LokulMem is a browser-native, zero-server, LLM-agnostic memory management library for AI applications. It gives any LLM — running locally via WebGPU/WebLLM, or remotely via API — the ability to remember users across conversations, extract structured knowledge from dialogue, and retrieve contextually relevant memories at inference time. Everything happens client-side: embeddings computed by quantized MiniLM in a Worker (SharedWorker when available), with graceful fallback to Dedicated Worker or main thread; storage via IndexedDB/Dexie.js; and full lifecycle management with decay, contradiction resolution, and user inspectability.
+LokulMem is a browser-native, zero-server, LLM-agnostic memory management library for AI applications. It works with any LLM — whether local (e.g., WebLLM) or remote (OpenAI, Anthropic, Ollama) — giving it the ability to remember users across conversations, extract structured knowledge from dialogue, and retrieve contextually relevant memories at inference time. Everything happens client-side: embeddings computed by quantized MiniLM via Transformers.js / ONNX Runtime Web (WASM) in a Worker (SharedWorker when available), with graceful fallback to Dedicated Worker or main thread; storage via IndexedDB/Dexie.js; and full lifecycle management with decay, contradiction resolution, and user inspectability.
 
 ## Core Value
 
@@ -69,7 +69,7 @@ Mem0, LangMem, railroad-memory exist but all require servers or lack full lifecy
 ## Constraints
 
 - **Tech Stack**: TypeScript, Vite, Transformers.js, Dexie.js — no switching
-- **Browser APIs**: Must work in modern browsers with IndexedDB, Worker, Web Crypto support
+- **Browser APIs**: Must work in modern browsers with IndexedDB, Worker support (Web Crypto reserved for future v0.3 encryption)
 - **Bundle Size**: Library < 2MB gzipped (excluding ~22MB model weights)
 - **Performance**: Retrieval < 30ms for N ≤ 3,000; embedding < 10ms warm cache
 - **Privacy**: Zero network calls after initial model download (unless user opts into remote models)
