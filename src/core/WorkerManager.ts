@@ -79,7 +79,6 @@ export class WorkerManager {
   private port: PortLike | null = null;
   private worker: SharedWorker | Worker | null = null;
   private workerType: WorkerType = 'main-thread';
-  private config: WorkerConfig | null = null;
   private persistenceStatus: PersistenceStatus | null = null;
   private isReady = false;
   private client: WorkerClient | null = null;
@@ -95,8 +94,6 @@ export class WorkerManager {
     config: WorkerConfig,
     onProgress?: ProgressCallback,
   ): Promise<void> {
-    this.config = config;
-
     // Get port via fallback chain
     this.port = await this.doInitialize(config);
 
@@ -198,8 +195,8 @@ export class WorkerManager {
           name: 'lokulmem-v1',
         });
 
-        const port = sharedWorker.port;
-        port.start();
+        const port = sharedWorker.port as PortLike;
+        port.start?.();
 
         this.worker = sharedWorker;
         this.workerType = 'shared';
@@ -241,7 +238,11 @@ export class WorkerManager {
   private createDedicatedWorkerPort(worker: Worker): PortLike {
     return {
       postMessage: (data: unknown, transfer?: Transferable[]) => {
-        worker.postMessage(data, transfer);
+        if (transfer) {
+          worker.postMessage(data, transfer);
+        } else {
+          worker.postMessage(data);
+        }
       },
       get onmessage() {
         return worker.onmessage;
@@ -269,7 +270,7 @@ export class WorkerManager {
     // Placeholder implementation
     // Will be connected to in-memory worker handlers in a future plan
     return {
-      postMessage: () => {
+      postMessage: (_data: unknown, _transfer?: Transferable[]) => {
         console.warn('Main thread port not yet implemented');
       },
       onmessage: null,

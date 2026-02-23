@@ -174,7 +174,11 @@ function createWorkerPortLike(
 ): PortLike {
   return {
     postMessage: (data: unknown, transfer?: Transferable[]) => {
-      workerScope.postMessage(data, transfer);
+      if (transfer) {
+        workerScope.postMessage(data, transfer);
+      } else {
+        workerScope.postMessage(data);
+      }
     },
     onmessage: null,
     onmessageerror: null,

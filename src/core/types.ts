@@ -32,10 +32,11 @@ export interface WorkerConfig {
  * Wraps both MessagePort (SharedWorker) and Worker (DedicatedWorker)
  */
 export interface PortLike {
-  postMessage: (data: unknown, transfer?: Transferable[]) => void;
+  postMessage(message: unknown, transfer?: Transferable[]): void;
   onmessage: ((event: MessageEvent) => void) | null;
   onmessageerror: ((event: MessageEvent) => void) | null;
   close?: () => void;
+  start?: () => void;
 }
 
 /**
