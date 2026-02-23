@@ -4,6 +4,14 @@
  * This is the primary entry point that users interact with.
  * It orchestrates worker initialization, progress reporting, and provides
  * the base for augment/learn/manage APIs in later phases.
+ *
+ * WORKER URL RESOLUTION:
+ * The worker URL is resolved using `new URL('./worker.mjs', import.meta.url).href`
+ * which points to the built worker file at `dist/worker.mjs` (relative to `dist/main.mjs`).
+ *
+ * IMPORTANT: Do NOT use `?worker&url` import syntax. That is designed for inline
+ * workers in Vite applications, not for library builds with separate worker entry
+ * points in `build.lib.worker`. See Phase 4 final summary for details.
  */
 
 import type { InitStage, LokulMemConfig } from '../types/api.js';
@@ -130,8 +138,8 @@ export class LokulMem {
           workerType: this.config.workerType,
           workerUrl:
             this.config.workerUrl ??
-            // Default worker URL - will be resolved by bundler
-            new URL('../worker/index.ts', import.meta.url).href,
+            // Default worker URL - points to built worker file
+            new URL('./worker.mjs', import.meta.url).href,
           initTimeoutMs: this.config.initTimeoutMs,
           maxRetries: this.config.maxRetries,
           dbName: this.config.dbName,

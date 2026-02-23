@@ -3,33 +3,23 @@
   "version": "0.1.0",
   "description": "Browser-native LLM memory management library",
   "type": "module",
-  "main": "./dist/main.cjs.js",
-  "module": "./dist/main.es.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/main.cjs",
+  "module": "./dist/main.mjs",
+  "types": "./dist/main.d.ts",
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/main.es.js"
+        "types": "./dist/main.d.ts",
+        "default": "./dist/main.mjs"
       },
       "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/main.cjs.js"
+        "types": "./dist/main.d.ts",
+        "default": "./dist/main.cjs"
       }
     },
     "./worker": {
-      "import": "./dist/worker.es.js",
-      "require": "./dist/worker.cjs.js"
-    },
-    "./react": {
-      "import": {
-        "types": "./dist/react/index.d.ts",
-        "default": "./dist/react.es.js"
-      },
-      "require": {
-        "types": "./dist/react/index.d.ts",
-        "default": "./dist/react.cjs.js"
-      }
+      "import": "./dist/worker.mjs",
+      "require": "./dist/worker.cjs"
     },
     "./package.json": "./package.json"
   },
@@ -37,7 +27,10 @@
   "files": [
     "dist",
     "dist/*.wasm",
-    "dist/ort-wasm*.mjs"
+    "dist/ort-wasm*.mjs",
+    "dist/assets",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "vite build",

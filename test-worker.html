@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Worker Debug Test</title>
+</head>
+<body>
+  <h1>Worker Debug Test</h1>
+  <div id="log"></div>
+
+  <script type="module">
+    const logEl = document.getElementById('log');
+
+    function log(msg, type = 'info') {
+      const div = document.createElement('div');
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      div.style.color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'black';
+      logEl.appendChild(div);
+    }
+
+    log('Loading worker...');
+
+    try {
+      // Try to load the worker directly
+      const worker = new Worker('/assets/index-JanCOQcb.js', { type: 'module' });
+
+      worker.addEventListener('message', (e) => {
+        log(`Worker message: ${JSON.stringify(e.data)}`, 'success');
+      });
+
+      worker.addEventListener('error', (e) => {
+        log(`Worker error: ${e.message} at ${e.filename}:${e.lineno}:${e.colno}`, 'error');
+      });
+
+      // Send a ping
+      log('Sending ping to worker...');
+      worker.postMessage({
+        id: 'test-1',
+        type: 'ping',
+        payload: null
+      });
+
+      // Timeout check
+      setTimeout(() => {
+        log('No response after 5 seconds - worker may not be running', 'error');
+      }, 5000);
+
+    } catch (e) {
+      log(`Failed to create worker: ${e.message}`, 'error');
+      log(`Stack: ${e.stack}`, 'error');
+    }
+  </script>
+</body>
+</html>

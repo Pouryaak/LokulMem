@@ -13,8 +13,8 @@
  */
 
 import Dexie from 'dexie';
-import { LokulDatabase } from './Database.js';
 import type { StorageError, StorageStatus } from '../types/api.js';
+import { LokulDatabase } from './Database.js';
 
 /**
  * Options for StorageManager initialization
@@ -66,7 +66,9 @@ export class StorageManager {
       this.status.isOpen = true;
       this.status.dbVersion = this.db.verno;
     } catch (error) {
-      this.handleStorageError(error instanceof Error ? error : new Error(String(error)));
+      this.handleStorageError(
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   }
 
@@ -161,7 +163,8 @@ export class StorageManager {
         message: 'Storage quota exceeded. Database is now in read-only mode.',
         code: 'QUOTA_EXCEEDED',
         timestamp,
-        recoveryHint: 'Free up disk space or clear browser data to restore write access.',
+        recoveryHint:
+          'Free up disk space or clear browser data to restore write access.',
         originalError: error,
       };
     }
@@ -243,7 +246,9 @@ export class StorageManager {
    * @param storageError - The corruption error being handled
    * @private
    */
-  private async attemptCorruptionRecovery(storageError: StorageError): Promise<void> {
+  private async attemptCorruptionRecovery(
+    storageError: StorageError,
+  ): Promise<void> {
     console.warn('[StorageManager] Attempting corruption recovery...');
 
     let backupData: string | undefined;
@@ -254,7 +259,9 @@ export class StorageManager {
       console.log('[StorageManager] Backup export succeeded');
     } catch {
       // Export may fail if corruption is severe - that's ok
-      console.warn('[StorageManager] Backup export failed, proceeding without backup');
+      console.warn(
+        '[StorageManager] Backup export failed, proceeding without backup',
+      );
     }
 
     try {
@@ -269,13 +276,16 @@ export class StorageManager {
 
       // Update error with recovery info
       if (backupData) {
-        storageError.backup = JSON.parse(backupData) as NonNullable<StorageError['backup']>;
+        storageError.backup = JSON.parse(backupData) as NonNullable<
+          StorageError['backup']
+        >;
       }
 
       console.log('[StorageManager] Corruption recovery complete');
     } catch (recoveryError) {
       console.error('[StorageManager] Recovery failed:', recoveryError);
-      storageError.message += ' Recovery failed - manual intervention required.';
+      storageError.message +=
+        ' Recovery failed - manual intervention required.';
     }
   }
 }
