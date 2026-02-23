@@ -14,6 +14,7 @@
 
 import Dexie, { type Table } from 'dexie';
 import type { EdgeInternal, EpisodeInternal } from '../internal/types.js';
+import type { LokulMemExport } from '../types/api.js';
 
 /**
  * Database row format for memories
@@ -186,6 +187,93 @@ export class LokulDatabase extends Dexie {
     await this.open();
     return this.verno;
   }
+
+  /**
+   * Export all data as a structured object for backup/recovery
+   * Embeddings are base64-encoded for JSON serialization
+   */
+  async exportData(): Promise<LokulMemExport> {
+    await this.open();
+
+    const [memories, episodes, edges, clusters] = await Promise.all([
+      this.memories.toArray(),
+      this.episodes.toArray(),
+      this.edges.toArray(),
+      this.clusters.toArray(),
+    ]);
+
+    // Convert ArrayBuffer embeddings to base64
+    const memoriesWithBase64 = memories.map((row) => ({
+      ...row,
+      embeddingBase64: arrayBufferToBase64(row.embeddingBytes),
+    }));
+
+    return {
+      version: this.verno,
+      exportedAt: Date.now(),
+      memories: memoriesWithBase64.map((m) => ({
+        id: m.id,
+        content: m.content,
+        types: m.types,
+        status: m.status,
+        embeddingBase64: m.embeddingBase64,
+        createdAt: m.createdAt,
+        updatedAt: m.updatedAt,
+        validFrom: m.validFrom,
+        validTo: m.validTo,
+        baseStrength: m.baseStrength,
+        currentStrength: m.currentStrength,
+        pinned: m.pinnedInt === 1,
+        mentionCount: m.mentionCount,
+        lastAccessedAt: m.lastAccessedAt,
+        clusterId: m.clusterId,
+        entities: m.entities,
+        sourceConversationIds: m.sourceConversationIds,
+        supersededBy: m.supersededBy,
+        supersededAt: m.supersededAt,
+        fadedAt: m.fadedAt,
+        metadata: m.metadata,
+      })),
+      episodes,
+      edges,
+      clusters,
+    };
+  }
+
+  /**
+   * Export all data as a JSON string
+   * Convenience method for backup operations
+   */
+  async exportDataString(): Promise<string> {
+    const data = await this.exportData();
+    return JSON.stringify(data);
+  }
+
+  /**
+   * Clear all data from all tables
+   * Used for corruption recovery and reset scenarios
+   */
+  async clearAll(): Promise<void> {
+    await this.open();
+    await Promise.all([
+      this.memories.clear(),
+      this.episodes.clear(),
+      this.edges.clear(),
+      this.clusters.clear(),
+    ]);
+  }
+}
+
+/**
+ * Convert ArrayBuffer to base64 string for JSON serialization
+ */
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i] ?? 0);
+  }
+  return btoa(binary);
 }
 
 /** Singleton database instance */
