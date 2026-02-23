@@ -97,3 +97,78 @@ export interface LokulMemDebug {
   /** Total latency in milliseconds */
   latencyMs: number;
 }
+
+/**
+ * Types of storage errors that can occur
+ */
+export type StorageErrorType =
+  | 'quota_exceeded'
+  | 'corruption'
+  | 'migration_failed'
+  | 'unknown';
+
+/**
+ * Complete export of all LokulMem data
+ * Used for backup, corruption recovery, and migration
+ */
+export interface LokulMemExport {
+  version: number; // schema version
+  exportedAt: number; // Unix timestamp
+  memories: {
+    id: string;
+    content: string;
+    types: string[];
+    status: string;
+    embeddingBase64: string; // base64-encoded embedding
+    createdAt: number;
+    updatedAt: number;
+    validFrom: number;
+    validTo: number | null;
+    baseStrength: number;
+    currentStrength: number;
+    pinned: boolean;
+    mentionCount: number;
+    lastAccessedAt: number;
+    clusterId: string | null;
+    entities: string[];
+    sourceConversationIds: string[];
+    supersededBy: string | null;
+    supersededAt: number | null;
+    fadedAt: number | null;
+    metadata: Record<string, unknown>;
+  }[];
+  episodes: unknown[];
+  edges: unknown[];
+  clusters: unknown[];
+}
+
+/**
+ * Structured storage error information
+ * Per Phase 2 decisions: full error details with timestamp and recovery hint
+ */
+export interface StorageError {
+  type: StorageErrorType;
+  message: string;
+  code: string; // error code for programmatic handling
+  timestamp: number; // Unix timestamp when error occurred
+  recoveryHint?: string; // suggested recovery action
+  originalError?: Error;
+  backup?: LokulMemExport; // backup data if corruption recovery succeeded
+}
+
+/**
+ * Storage status for debugging and monitoring
+ */
+export interface StorageStatus {
+  /** Whether database is in read-only mode (quota exceeded) */
+  isReadOnly: boolean;
+
+  /** Last error message if any */
+  lastError: string | null;
+
+  /** Current database schema version */
+  dbVersion: number;
+
+  /** Whether database is currently open */
+  isOpen: boolean;
+}
