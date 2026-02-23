@@ -59,3 +59,21 @@ export interface EdgeInternal {
   /** Creation timestamp (Unix ms) */
   createdAt: number;
 }
+
+/**
+ * ClusterInternal - Internal representation of a memory cluster
+ * Clusters group related memories using K-means clustering
+ */
+export interface ClusterInternal {
+  /** Unique identifier for the cluster */
+  id: string;
+
+  /** Centroid vector for the cluster (average of member embeddings) */
+  embedding: Float32Array;
+
+  /** IDs of memories in this cluster */
+  memoryIds: string[];
+
+  /** Creation timestamp (Unix ms) */
+  createdAt: number;
+}
