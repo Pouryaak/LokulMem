@@ -36,7 +36,7 @@
 **Plans:** 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Project configuration (package.json, tsconfig.json, biome.json)
+- [x] 01-01-PLAN.md — Project configuration (package.json, tsconfig.json, biome.json)
 - [ ] 01-02-PLAN.md — Vite build system (vite.config.ts, vitest.config.ts, entry points)
 - [ ] 01-03-PLAN.md — Core type definitions (public types, internal types, DTO pattern)
 
@@ -157,7 +157,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/3 | Planned | - |
+| 1. Foundation | 1/3 | In Progress | 2026-02-23 |
 | 2. Worker Infrastructure | 0/1 | Not started | - |
 | 3. Storage Layer | 0/1 | Not started | - |
 | 4. Embedding Engine | 0/1 | Not started | - |
@@ -232,4 +232,4 @@ Per research/SUMMARY.md, the following phases may need deeper research during pl
 ---
 
 *Roadmap created: 2026-02-23*
-*Last updated: 2026-02-23*
+*Last updated: 2026-02-23 (01-01 complete)*

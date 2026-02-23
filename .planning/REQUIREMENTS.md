@@ -124,9 +124,9 @@
 ### TypeScript & Build
 
 - [ ] **TS-01**: 100% TypeScript coverage for public API
-- [ ] **TS-02**: Tree-shakeable ESM bundle output
-- [ ] **TS-03**: Type declarations (.d.ts) generated
-- [ ] **TS-04**: Worker compiled as separate chunk
+- [x] **TS-02**: Tree-shakeable ESM bundle output
+- [x] **TS-03**: Type declarations (.d.ts) generated
+- [x] **TS-04**: Worker compiled as separate chunk
 - [ ] **TS-05**: DTO pattern: embeddings excluded from public API responses
 
 ### Demo Application
