@@ -33,7 +33,12 @@
   3. All public API types are defined and exported
   4. DTO pattern documented: embeddings excluded from public interfaces
   5. Project passes TypeScript strict mode with zero errors
-**Plans:** TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Project configuration (package.json, tsconfig.json, biome.json)
+- [ ] 01-02-PLAN.md — Vite build system (vite.config.ts, vitest.config.ts, entry points)
+- [ ] 01-03-PLAN.md — Core type definitions (public types, internal types, DTO pattern)
 
 ### Phase 2: Worker Infrastructure
 **Goal:** Library initializes with optimal worker strategy (SharedWorker → DedicatedWorker → main thread) and reports progress through all stages.
@@ -152,7 +157,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/1 | Not started | - |
+| 1. Foundation | 0/3 | Planned | - |
 | 2. Worker Infrastructure | 0/1 | Not started | - |
 | 3. Storage Layer | 0/1 | Not started | - |
 | 4. Embedding Engine | 0/1 | Not started | - |
