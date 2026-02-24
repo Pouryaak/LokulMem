@@ -3,7 +3,7 @@
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
 **Current Phase:** 05
 **Current Plan:** 03 (Gap Closure: Token-aware Dynamic K)
-**Status:** Plan 02 complete, Plan 03 ready for execution
+**Status:** Plan 03 complete
 **Updated:** 2026-02-24
 
 ---
@@ -35,7 +35,7 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 2: Worker Infrastructure (Complete - 5 of 5 plans)
 [██████████] 100% - Phase 3: Storage Layer (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 4: Embedding Engine (Complete - 3 of 3 plans)
-[██████████░] 67% - Phase 5: Memory Store & Retrieval (Plans 01-02 complete, Plan 03 gap closure)
+[██████████] 100% - Phase 5: Memory Store & Retrieval (Plans 01-03 complete)
 [░░░░░░░░░░] 0% - Phase 6: Lifecycle & Decay (Not started)
 [░░░░░░░░░░] 0% - Phase 7: Extraction & Contradiction (Not started)
 [░░░░░░░░░░] 0% - Phase 8: Public API & Demo (Not started)
@@ -43,28 +43,35 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 
 ### Active Work
 
-**Plan 05-02 Complete:** Query Engine with 10+ Methods
+**Plan 05-03 Complete:** Token-aware Dynamic K Selection
 
-Implemented high-level query API for all data access patterns:
-- QueryEngine class with 10+ methods: list, get, getByConversation, getRecent, getTop, getPinned, search, semanticSearch, getTimeline, getGrouped, getInjectionPreview
-- Query filtering by types, status, strength, pinned, clusterId
-- Pagination with offset/limit returning { items, total, hasMore }
-- Full-text search with exact/and/or modes (default: and, case-insensitive)
-- Semantic search defaults to semantic-only (useCompositeScoring=false)
-- Timeline grouping by date, type grouping for visualization
-- Worker message handlers: LIST, GET, SEARCH, SEMANTIC_SEARCH
-- RPC payload types separated into protocol-types.ts for cleaner protocol layering
-- All handlers use PortLike type for SharedWorker compatibility
+Implemented messages-based token accounting for accurate context window awareness:
+- computeTokenBudget() helper in core/TokenBudget.ts
+- ChatMessage, TokenBudgetConfig, TokenBudgetResult types
+- getInjectionPreview() accepts messages array for accurate budget calculation
+- LokulMemConfig with contextWindowTokens (NO default), reservedForResponseTokens (1024), tokenOverheadPerMessage (4)
+- Worker remains stateless (token budgeting computed in main thread)
+- Backward compatible (works without messages parameter)
+- NO provider-specific defaults in code (LLM-agnostic design)
 
-**Next: Plan 05-03** - Gap Closure: Token-aware Dynamic K (SEARCH-05)
+**Token Estimation Strategy:**
+- Current: ~4 characters per token (rough estimate)
+- Reasoning: Fast, no dependencies, works in browser
+- Limitations: Inaccurate for code, numbers, non-English text
+- Future (v2): Integrate tiktoken for accurate tokenization
 
-**Wave 3 (Gap Closure):**
-- 05-03: Token-aware dynamic K selection with context window configuration
-  - Add contextWindow field to LokulMemConfig (default: 4096)
-  - Add systemPromptTokens field for custom system prompts
-  - Calculate remaining tokens: contextWindow - systemPromptTokens - userMessageTokens
-  - Update getInjectionPreview() to use context-aware token budget
-  - Document token estimation strategy (~4 chars/token, tiktoken deferred to v2)
+**Configuration Precedence:**
+- maxTokens parameter > computed budget
+- tokenCounter function > default ~4 chars/token
+- messages array > systemPromptTokens (deprecated)
+
+**Next:** Phase 6: Lifecycle & Decay (Time-based memory decay, access refresh, archival)
+
+**Phase 5 Complete:**
+All 3 plans executed successfully:
+- 05-01: Vector search with composite scoring
+- 05-02: Query Engine with 10+ methods
+- 05-03: Token-aware dynamic K selection
 
 **Phase 4 Complete:**
 All 3 plans executed successfully:
@@ -152,9 +159,43 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 | 2026-02-24 | RPC payload types separated | protocol-types.ts for cleaner protocol layering | **Implemented** ✅ (05-02) |
 | 2026-02-24 | Worker handlers use PortLike | SharedWorker + DedicatedWorker compatibility | **Implemented** ✅ (05-02) |
 | 2026-02-24 | Method overloads deferred | Phase 6+ or .d.ts for includeEmbedding overloads | Planned in 05-02 |
+| 2026-02-24 | Messages-based token accounting for accurate budgeting | computeTokenBudget() accepts full message list (system + history + user), NO default context window, worker remains stateless | **Implemented** ✅ (05-03) |
 - [Phase 04]: Use @huggingface/transformers v3.x with dtype: 'q8' quantization
 - [Phase 04]: Explicit env.useBrowserCache=true for Cache API persistence
 - [Phase 04]: Airgap mode blocks all network via env.allowRemoteModels=false
+
+## Technical Memory
+
+### Token Estimation Strategy
+
+**Current:** ~4 characters per token (rough estimate)
+**Reasoning:** Fast, no dependencies, works in browser
+**Limitations:** Inaccurate for code, numbers, and non-English text
+**Future (v2):** Integrate tiktoken for accurate tokenization
+
+### Token Budget Configuration
+
+**NO default context window:** contextWindowTokens is optional with NO default.
+This prevents silent under-injection for modern LLMs (8k/16k/128k context).
+
+**Default behavior (no contextWindow):**
+- Use maxTokens parameter override, OR
+- Use safe default 512 tokens for injection
+
+**Messages-based accounting:**
+- computeTokenBudget() accepts ChatMessage[] (full message list)
+- Accounts for: content tokens + per-message overhead (4 tokens)
+- Returns: availableTokens, usedTokens, remainingTokens
+
+**Worker stateless:**
+- Token budgeting computed in main thread
+- Worker receives computed maxTokens for retrieval
+- No protocol churn for config changes
+
+**Configuration precedence:**
+- maxTokens parameter > computed budget
+- tokenCounter function > default ~4 chars/token
+- messages array > systemPromptTokens (deprecated)
 
 ### Open Questions
 
@@ -181,26 +222,26 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 ## Session Continuity
 
 ### Last Action
-Plan 05-01 complete! Implemented vector search with composite scoring:
+Plan 05-03 complete! Implemented token-aware dynamic K selection:
 
 **Completed Tasks:**
-- Task 1: Created search types and interfaces (SearchResult, SearchOptions, ScoringConfig, etc.)
-- Task 2: Implemented Scoring class with exponential recency decay
-- Task 3: Implemented VectorSearch class with in-memory Float32Array cache
-- Task 4: Created search module barrel file for clean exports
+- Task 1: Added token budget configuration to LokulMemConfig (NO defaults)
+- Task 2: Added ChatMessage and token budget types to search/types.ts
+- Task 3: Implemented computeTokenBudget() helper in core/TokenBudget.ts
+- Task 4: Updated QueryEngine.getInjectionPreview() with messages-based accounting
+- Task 5: Updated LokulMem to store token budget config in main thread only
+- Task 6: Updated STATE.md to document token estimation strategy
 
 **Key Features:**
-- Brute-force O(N) cosine similarity search for N ≤ 3000
-- Composite R(m,q) scoring: semantic (0.40), recency (0.20), strength (0.25), continuity (0.15)
-- Exponential recency decay with 72h half-life
-- Pinned memories get strength = 1.0 (weight override)
-- Dual cache: Float32Array embeddings + metadata (~4.5MB for 3000 memories)
-- Write-through cache sync on mutations
-- Cluster bonus: +0.05 to same-cluster candidates as top match
-- Floor threshold R > 0.3 for relevance filtering
+- Messages-based token accounting (system + history + user)
+- NO default context window (prevents under-injection for modern LLMs)
+- Shared helper for consistent behavior across augment() and getInjectionPreview()
+- Worker remains stateless (token budgeting computed in main thread)
+- Backward compatible (works without messages parameter)
+- Custom tokenCounter support for tiktoken integration in v2
 
 ### Next Action
-Execute Plan 05-02: Query Engine with 10+ methods
+Execute Phase 6: Lifecycle & Decay (Time-based memory decay, access refresh, archival)
 
 ### Blockers
 None.
