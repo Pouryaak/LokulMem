@@ -5,7 +5,10 @@
  * - Search results with composite scoring
  * - Search options and configuration
  * - Scoring weights and breakdown
+ * - Query filters and pagination
  */
+
+import type { MemoryStatus, MemoryType } from '../types/memory.js';
 
 /**
  * SearchResult - A single search result with similarity and composite score
@@ -95,4 +98,111 @@ export interface ScoreBreakdown {
 
   /** Total weighted score (sum of weighted components) */
   total: number;
+}
+
+/**
+ * QueryFilter - Filter criteria for memory queries
+ */
+export interface QueryFilter {
+  /** Filter by memory types (matches any if multiple) */
+  types?: MemoryType[];
+
+  /** Filter by memory status */
+  status?: MemoryStatus;
+
+  /** Minimum current strength (inclusive) */
+  minStrength?: number;
+
+  /** Maximum current strength (inclusive) */
+  maxStrength?: number;
+
+  /** Filter by pinned status */
+  pinned?: boolean;
+
+  /** Filter by cluster ID */
+  clusterId?: string;
+}
+
+/**
+ * QueryOptions - Options for listing and querying memories
+ */
+export interface QueryOptions {
+  /** Filter criteria */
+  filter?: QueryFilter;
+
+  /** Sort order: recent (lastAccessedAt), strength, or created */
+  sort?: 'recent' | 'strength' | 'created';
+
+  /** Number of items to skip (for pagination) */
+  offset?: number;
+
+  /** Maximum number of items to return (default: 50) */
+  limit?: number;
+
+  /** Include embedding in results (internal use only) */
+  includeEmbedding?: boolean;
+}
+
+/**
+ * PaginatedResult - Paginated query result with metadata
+ */
+export interface PaginatedResult<T> {
+  /** Array of items in the current page */
+  items: T[];
+
+  /** Total number of items matching the query */
+  total: number;
+
+  /** Whether there are more items available */
+  hasMore: boolean;
+}
+
+/**
+ * FullTextSearchOptions - Options for full-text search
+ */
+export interface FullTextSearchOptions extends QueryOptions {
+  /** Search mode: exact match, all terms (and), or any term (or) */
+  mode?: 'exact' | 'and' | 'or';
+
+  /** Whether to use case-sensitive search (default: false) */
+  caseSensitive?: boolean;
+}
+
+/**
+ * SemanticSearchOptions - Options for semantic vector search
+ */
+export interface SemanticSearchOptions {
+  /** Maximum number of results to return (default: 50) */
+  k?: number;
+
+  /** Whether to use composite scoring vs semantic-only (default: false per CONTEXT.md) */
+  useCompositeScoring?: boolean;
+
+  /** Search mode: active-cache (in-memory), database (IndexedDB), all (both) */
+  searchMode?: 'active-cache' | 'database' | 'all';
+
+  /** Include embedding in results (internal use only) */
+  includeEmbedding?: boolean;
+}
+
+/**
+ * TimelineGroup - Memories grouped by date
+ */
+export interface TimelineGroup {
+  /** ISO date string (YYYY-MM-DD) */
+  date: string;
+
+  /** Memories for this date */
+  memories: import('../types/memory.js').MemoryDTO[];
+}
+
+/**
+ * TypeGroup - Memories grouped by type
+ */
+export interface TypeGroup {
+  /** Memory type */
+  type: MemoryType;
+
+  /** Memories for this type */
+  memories: import('../types/memory.js').MemoryDTO[];
 }
