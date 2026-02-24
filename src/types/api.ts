@@ -77,6 +77,53 @@ export interface LokulMemConfig {
 
   /** Enable embedding cache (default: true) */
   enableEmbeddingCache?: boolean;
+
+  /**
+   * LLM context window size in tokens.
+   *
+   * Used to calculate available token budget for memory injection.
+   * If not provided, uses maxTokens parameter or safe default (512).
+   *
+   * NO DEFAULT: This is intentionally optional. Different LLMs have
+   * vastly different context windows (4k, 8k, 16k, 128k+). Let the
+   * user specify based on their LLM, or use maxTokens override.
+   *
+   * @example
+   * // For Claude 3 (200k context)
+   * contextWindowTokens: 200000
+   *
+   * @example
+   * // For GPT-4 (8k context)
+   * contextWindowTokens: 8192
+   */
+  contextWindowTokens?: number;
+
+  /**
+   * Tokens to reserve for the LLM's response (default: 1024).
+   *
+   * This ensures the context window isn't completely filled with
+   * injected memories, leaving room for the model to generate a response.
+   */
+  reservedForResponseTokens?: number;
+
+  /**
+   * Token overhead per message (default: 4).
+   *
+   * Accounts for message formatting overhead (role, delimiters, etc.)
+   * in chat-style APIs like OpenAI's Chat Completions.
+   */
+  tokenOverheadPerMessage?: number;
+
+  /**
+   * Custom token counter for accurate tokenization (optional).
+   *
+   * If provided, overrides the default ~4 chars/token estimation.
+   * Useful for integrating tiktoken or other tokenizers in v2.
+   *
+   * @param text - Text to count tokens for
+   * @returns Estimated token count
+   */
+  tokenCounter?: (text: string) => number;
 }
 
 /**
@@ -97,7 +144,7 @@ export interface EmbeddingCacheStats {
  * Options for the augment() API
  */
 export interface AugmentOptions {
-  /** Maximum tokens for augmented context */
+  /** Maximum tokens for augmented context (overrides automatic calculation) */
   maxTokens?: number;
 
   /** Enable debug mode to get detailed retrieval information */
