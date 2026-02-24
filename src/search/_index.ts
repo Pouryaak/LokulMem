@@ -7,6 +7,7 @@
 // Core search classes
 export { VectorSearch } from './VectorSearch.js';
 export { Scoring, DEFAULT_SCORING_CONFIG } from './Scoring.js';
+export { QueryEngine } from './QueryEngine.js';
 
 // Search types
 export type {
@@ -15,4 +16,11 @@ export type {
   ScoringConfig,
   ScoringWeights,
   ScoreBreakdown,
+  QueryFilter,
+  QueryOptions,
+  PaginatedResult,
+  FullTextSearchOptions,
+  SemanticSearchOptions,
+  TimelineGroup,
+  TypeGroup,
 } from './types.js';
