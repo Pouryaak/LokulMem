@@ -2,8 +2,8 @@
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
 **Current Phase:** 05
-**Current Plan:** Planning complete
-**Status:** Phase 5 plans created, ready for execution
+**Current Plan:** 02 (Next: Query Engine)
+**Status:** Plan 01 complete, executing Plan 02
 **Updated:** 2026-02-24
 
 ---
@@ -35,7 +35,7 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 2: Worker Infrastructure (Complete - 5 of 5 plans)
 [██████████] 100% - Phase 3: Storage Layer (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 4: Embedding Engine (Complete - 3 of 3 plans)
-[████████░░] 60% - Phase 5: Memory Store & Retrieval (Planning complete, 2 plans ready)
+[██████████░] 50% - Phase 5: Memory Store & Retrieval (Plan 01 complete, Plan 02 next)
 [░░░░░░░░░░] 0% - Phase 6: Lifecycle & Decay (Not started)
 [░░░░░░░░░░] 0% - Phase 7: Extraction & Contradiction (Not started)
 [░░░░░░░░░░] 0% - Phase 8: Public API & Demo (Not started)
@@ -43,14 +43,17 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 
 ### Active Work
 
-Phase 5 planning complete! Created 2 implementation plans:
+**Plan 05-01 Complete:** Vector Search & Composite Scoring
 
-**Wave 1 (Foundation):**
-- 05-01: Vector Search & Composite Scoring
-  - Implement Scoring class with exponential recency decay
-  - Implement VectorSearch class with Float32Array cache
-  - Composite scoring: semantic (0.40), recency (0.20), strength (0.25), continuity (0.15)
-  - Eager cache loading at init (~4.5MB for 3000 memories)
+Implemented brute-force vector search with composite R(m,q) scoring:
+- Scoring class with exponential recency decay (72h half-life)
+- VectorSearch class with Float32Array cache (eager loading)
+- Composite scoring: semantic (0.40), recency (0.20), strength (0.25), continuity (0.15)
+- Pinned memories get strength = 1.0 (weight override)
+- Floor threshold R > 0.3 for filtering
+- Write-through cache sync on mutations
+
+**Next: Plan 05-02** - Query Engine with 10+ methods
 
 **Wave 2 (Query API):**
 - 05-02: Query Engine with 10+ methods
@@ -96,7 +99,7 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 
 | Date | Decision | Rationale | Status |
 |------|----------|-----------|--------|
-| 2026-02-23 | Brute-force search for v0.1 | O(N) acceptable until 3,000 memories; HNSW adds complexity | Pending validation (Phase 5) |
+| 2026-02-23 | Brute-force search for v0.1 | O(N) acceptable until 3,000 memories; HNSW adds complexity | **Validated** ✅ (05-01 complete) |
 | 2026-02-23 | DTO pattern for IPC | Float32Arrays don't serialize well; embeddings internal-only | Validated ✅ |
 | 2026-02-23 | SharedWorker primary | Multi-tab sync, model sharing across tabs | Validated ✅ (worker loads correctly) |
 | 2026-02-23 | Transformers.js over custom ONNX | Battle-tested, caching, progressive loading | Validated ✅ (model loads in 3s) |
@@ -130,25 +133,19 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 | 2026-02-24 | PromiseQueue for concurrency | Only one embedding call at a time prevents race conditions | Implemented in 04-02 |
 | 2026-02-24 | Text-based cache keys | Raw text content for exact match deduplication | Implemented in 04-02 |
 | 2026-02-24 | Parameterized embedding dims | Support different models with different dimensions | Implemented in 04-02 |
-| 2026-02-24 | @huggingface/transformers v3.x with dtype: 'q8' | Current maintained package, new quantization API | Planned in 05-01 |
-| 2026-02-24 | Composite scoring for retrieval | Combines semantic, recency, strength, continuity signals | Planned in 05-01 |
-| 2026-02-24 | Exponential recency decay | True exponential decay with configurable half-life (72h default) | Planned in 05-01 |
-| 2026-02-24 | Pinned memory weight override | Pinned memories get strength = 1.0 regardless of actual strength | Planned in 05-01 |
-| 2026-02-24 | Eager embedding cache loading | Load all active memories at init (~4.5MB for 3000) | Planned in 05-01 |
-| 2026-02-24 | Write-through cache sync | Update cache on add/update/delete mutations | Planned in 05-01 |
-| 2026-02-24 | Floor threshold for relevance | R > 0.3 filters low-relevance memories from injection | Planned in 05-01 |
+| 2026-02-24 | @huggingface/transformers v3.x with dtype: 'q8' | Current maintained package, new quantization API | Implemented in 04-01 |
+| 2026-02-24 | Composite scoring for retrieval | Combines semantic, recency, strength, continuity signals | **Implemented** ✅ (05-01) |
+| 2026-02-24 | Exponential recency decay | True exponential decay with configurable half-life (72h default) | **Implemented** ✅ (05-01) |
+| 2026-02-24 | Pinned memory weight override | Pinned memories get strength = 1.0 regardless of actual strength | **Implemented** ✅ (05-01) |
+| 2026-02-24 | Eager embedding cache loading | Load all active memories at init (~4.5MB for 3000) | **Implemented** ✅ (05-01) |
+| 2026-02-24 | Write-through cache sync | Update cache on add/update/delete mutations | **Implemented** ✅ (05-01) |
+| 2026-02-24 | Floor threshold for relevance | R > 0.3 filters low-relevance memories from injection | **Implemented** ✅ (05-01) |
+| 2026-02-24 | Cluster bonus for related memories | +0.05 to candidates with same clusterId as top match | **Implemented** ✅ (05-01) |
+| 2026-02-24 | Dual cache design | Separate Float32Array and metadata caches for O(1) lookups | **Implemented** ✅ (05-01) |
 | 2026-02-24 | QueryEngine with 10+ methods | Complete query API for all data access patterns | Planned in 05-02 |
 | 2026-02-24 | Pagination with offset/limit | Returns { items, total, hasMore } for UI scrolling | Planned in 05-02 |
 | 2026-02-24 | Full-text search modes | exact, and, or for multi-word queries | Planned in 05-02 |
 | 2026-02-24 | Semantic search modes | cache, database, all for different performance tradeoffs | Planned in 05-02 |
-| 2026-02-23 | vite-plugin-static-copy for WASM bundling | Better Vite integration, handles dev and production | Implemented in 04-03 |
-| 2026-02-23 | wasmPaths NOT defaulted to localModelBaseUrl | Avoids 404s in airgap setups with separate model/WASM paths | Implemented in 04-03 |
-| 2026-02-23 | Permissive workerUrl validation | Accepts blob:, data:, extensionless URLs for flexibility | Implemented in 04-03 |
-| 2026-02-23 | Typed ModelConfig in Protocol.ts | Type safety across WorkerConfig, InitPayload, EmbeddingConfig | Implemented in 04-03 |
-| 2026-02-23 | Map-based LRU cache | O(1) operations with insertion order for LRU eviction | Implemented in 04-02 |
-| 2026-02-23 | PromiseQueue for concurrency | Only one embedding call at a time prevents race conditions | Implemented in 04-02 |
-| 2026-02-23 | Text-based cache keys | Raw text content for exact match deduplication | Implemented in 04-02 |
-| 2026-02-23 | Parameterized embedding dims | Support different models with different dimensions | Implemented in 04-02 |
 - [Phase 04]: Use @huggingface/transformers v3.x with dtype: 'q8' quantization
 - [Phase 04]: Explicit env.useBrowserCache=true for Cache API persistence
 - [Phase 04]: Airgap mode blocks all network via env.allowRemoteModels=false
@@ -178,26 +175,26 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 ## Session Continuity
 
 ### Last Action
-Phase 5 planning complete. Created 2 implementation plans:
+Plan 05-01 complete! Implemented vector search with composite scoring:
 
-**Plan 05-01 (Wave 1): Vector Search & Composite Scoring**
-- Scoring class with exponential recency decay (72h half-life)
-- VectorSearch class with Float32Array cache (eager loading)
-- Composite scoring: semantic (0.40), recency (0.20), strength (0.25), continuity (0.15)
+**Completed Tasks:**
+- Task 1: Created search types and interfaces (SearchResult, SearchOptions, ScoringConfig, etc.)
+- Task 2: Implemented Scoring class with exponential recency decay
+- Task 3: Implemented VectorSearch class with in-memory Float32Array cache
+- Task 4: Created search module barrel file for clean exports
+
+**Key Features:**
+- Brute-force O(N) cosine similarity search for N ≤ 3000
+- Composite R(m,q) scoring: semantic (0.40), recency (0.20), strength (0.25), continuity (0.15)
+- Exponential recency decay with 72h half-life
 - Pinned memories get strength = 1.0 (weight override)
-- Floor threshold R > 0.3 for filtering
+- Dual cache: Float32Array embeddings + metadata (~4.5MB for 3000 memories)
 - Write-through cache sync on mutations
-
-**Plan 05-02 (Wave 2): Query Engine API**
-- QueryEngine with 10+ methods
-- Pagination with { items, total, hasMore }
-- Full-text search modes: exact, and, or
-- Semantic search with composite scoring
-- Timeline and grouped queries
-- Worker message handlers (LIST, GET, SEARCH, SEMANTIC_SEARCH)
+- Cluster bonus: +0.05 to same-cluster candidates as top match
+- Floor threshold R > 0.3 for relevance filtering
 
 ### Next Action
-Run /gsd:execute-phase 5 to execute the 2 implementation plans
+Execute Plan 05-02: Query Engine with 10+ methods
 
 ### Blockers
 None.

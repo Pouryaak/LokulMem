@@ -66,13 +66,13 @@
 
 ### Vector Search & Retrieval
 
-- [ ] **SEARCH-01**: Brute-force cosine similarity for N ≤ 3000
-- [ ] **SEARCH-02**: Composite R(m,q) = w1×semantic + w2×recency + w3×strength + w4×continuity
-- [ ] **SEARCH-03**: Default weights: semantic 0.40, recency 0.20, strength 0.25, continuity 0.15
-- [ ] **SEARCH-04**: Pinned memories get w3 = 1.0 regardless of actual strength
+- [x] **SEARCH-01**: Brute-force cosine similarity for N ≤ 3000
+- [x] **SEARCH-02**: Composite R(m,q) = w1×semantic + w2×recency + w3×strength + w4×continuity
+- [x] **SEARCH-03**: Default weights: semantic 0.40, recency 0.20, strength 0.25, continuity 0.15
+- [x] **SEARCH-04**: Pinned memories get w3 = 1.0 regardless of actual strength
 - [ ] **SEARCH-05**: Token-aware dynamic K based on available context window
-- [ ] **SEARCH-06**: R > 0.3 floor for injection
-- [ ] **SEARCH-07**: Active memory embeddings loaded into in-memory cache for retrieval; cache stays in sync with mutations
+- [x] **SEARCH-06**: R > 0.3 floor for injection
+- [x] **SEARCH-07**: Active memory embeddings loaded into in-memory cache for retrieval; cache stays in sync with mutations
 
 ### Public API - augment()
 
