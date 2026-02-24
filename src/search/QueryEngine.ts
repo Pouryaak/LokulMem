@@ -9,18 +9,21 @@
  * - Injection preview for augment()
  */
 
+import { computeTokenBudget, estimateTokens } from '../core/TokenBudget.js';
 import type { MemoryInternal } from '../internal/types.js';
 import type { MemoryRepository } from '../storage/MemoryRepository.js';
 import type { MemoryDTO, MemoryType } from '../types/memory.js';
 import type { EmbeddingEngine } from '../worker/EmbeddingEngine.js';
 import type { VectorSearch } from './VectorSearch.js';
 import type {
+  ChatMessage,
   FullTextSearchOptions,
   PaginatedResult,
   QueryFilter,
   QueryOptions,
   SemanticSearchOptions,
   TimelineGroup,
+  TokenBudgetConfig,
   TypeGroup,
 } from './types.js';
 
@@ -309,17 +312,55 @@ export class QueryEngine {
 
   /**
    * Preview what augment() would inject for a query
+   *
+   * NOW uses messages-based token accounting for accurate budget calculation.
+   *
    * @param query - Query text to search for
-   * @param maxTokens - Maximum token budget (default: 1000)
-   * @returns Memories with estimated token count
+   * @param options - Preview options including messages array
+   * @returns Memories with estimated token count and budget info
    */
   async getInjectionPreview(
     query: string,
-    maxTokens = 1000,
+    options?: {
+      /** Full message list for accurate token accounting */
+      messages?: ChatMessage[];
+
+      /** Override automatic token budget calculation */
+      maxTokens?: number;
+
+      /** Token budget configuration */
+      tokenBudget?: TokenBudgetConfig;
+    },
   ): Promise<{
     memories: MemoryDTO[];
     estimatedTokens: number;
+    availableTokens: number;
+    usedTokens: number;
   }> {
+    const {
+      messages,
+      maxTokens: maxTokensOverride,
+      tokenBudget,
+    } = options ?? {};
+
+    // If messages provided, compute accurate token budget
+    let injectionBudget: number;
+    let usedTokens = 0;
+    let availableTokens = 0;
+
+    if (messages && messages.length > 0) {
+      const budget = computeTokenBudget(messages, tokenBudget);
+      usedTokens = budget.usedTokens;
+      availableTokens = budget.availableTokens;
+      injectionBudget = maxTokensOverride ?? budget.availableTokens;
+    } else {
+      // Backward compatible: use maxTokens or safe default
+      injectionBudget = maxTokensOverride ?? 512;
+    }
+
+    // Ensure non-negative budget
+    injectionBudget = Math.max(0, injectionBudget);
+
     const results = await this.semanticSearch(query, { k: 50 });
 
     // Dynamic K based on token budget
@@ -327,8 +368,11 @@ export class QueryEngine {
     let currentTokens = 0;
 
     for (const memory of results) {
-      const memTokens = Math.ceil(memory.content.length / 4);
-      if (currentTokens + memTokens > maxTokens) break;
+      const memTokens = estimateTokens(
+        memory.content,
+        tokenBudget?.tokenCounter,
+      );
+      if (currentTokens + memTokens > injectionBudget) break;
       limitedMemories.push(memory);
       currentTokens += memTokens;
     }
@@ -336,6 +380,8 @@ export class QueryEngine {
     return {
       memories: limitedMemories,
       estimatedTokens: currentTokens,
+      availableTokens,
+      usedTokens,
     };
   }
 
