@@ -65,6 +65,11 @@ export class LokulMem {
     workerUrl?: string;
     onnxPaths?: string | Record<string, string>;
     onProgress?: (stage: InitStage, progress: number) => void;
+    // Token budget config (main thread only, NOT sent to worker)
+    contextWindowTokens?: number;
+    reservedForResponseTokens?: number;
+    tokenOverheadPerMessage?: number;
+    tokenCounter?: (text: string) => number;
   };
   private isInitialized = false;
 
@@ -98,6 +103,20 @@ export class LokulMem {
     }
     if (config.onnxPaths !== undefined) {
       this.config.onnxPaths = config.onnxPaths;
+    }
+
+    // NEW: Store token budget config (main thread only, NOT sent to worker)
+    if (config.contextWindowTokens !== undefined) {
+      this.config.contextWindowTokens = config.contextWindowTokens;
+    }
+    if (config.reservedForResponseTokens !== undefined) {
+      this.config.reservedForResponseTokens = config.reservedForResponseTokens;
+    }
+    if (config.tokenOverheadPerMessage !== undefined) {
+      this.config.tokenOverheadPerMessage = config.tokenOverheadPerMessage;
+    }
+    if (config.tokenCounter !== undefined) {
+      this.config.tokenCounter = config.tokenCounter;
     }
   }
 
