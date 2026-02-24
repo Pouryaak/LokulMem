@@ -206,3 +206,48 @@ export interface TypeGroup {
   /** Memories for this type */
   memories: import('../types/memory.js').MemoryDTO[];
 }
+
+/**
+ * ChatMessage - Message for token estimation
+ */
+export interface ChatMessage {
+  /** Message role: 'system', 'user', 'assistant', etc. */
+  role: string;
+
+  /** Message content */
+  content: string;
+}
+
+/**
+ * TokenBudgetConfig - Configuration for token budget calculation
+ */
+export interface TokenBudgetConfig {
+  /** LLM context window size in tokens (optional, no default) */
+  contextWindowTokens?: number;
+
+  /** Tokens to reserve for response (default: 1024) */
+  reservedForResponseTokens?: number;
+
+  /** Token overhead per message (default: 4) */
+  tokenOverheadPerMessage?: number;
+
+  /** Custom token counter (optional) */
+  tokenCounter?: (text: string) => number;
+
+  /** System prompt tokens override (deprecated: use messages array) */
+  systemPromptTokens?: number;
+}
+
+/**
+ * TokenBudgetResult - Result of token budget calculation
+ */
+export interface TokenBudgetResult {
+  /** Total tokens available for memory injection */
+  availableTokens: number;
+
+  /** Total tokens used by messages (with overhead) */
+  usedTokens: number;
+
+  /** Remaining tokens after reserving for response */
+  remainingTokens: number;
+}
