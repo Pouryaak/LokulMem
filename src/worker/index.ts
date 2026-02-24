@@ -21,6 +21,16 @@ import type {
 } from '../core/Protocol.js';
 import { MessageType as MessageTypeConst } from '../core/Protocol.js';
 import type { PortLike } from '../core/types.js';
+import type {
+  GetPayload,
+  ListPayload,
+  SearchPayload,
+  SemanticSearchPayload,
+} from '../ipc/protocol-types.js';
+import { QueryEngine } from '../search/QueryEngine.js';
+import { VectorSearch } from '../search/VectorSearch.js';
+import { LokulDatabase } from '../storage/Database.js';
+import { MemoryRepository } from '../storage/MemoryRepository.js';
 import type { InitStage } from '../types/api.js';
 import { EmbeddingEngine } from './EmbeddingEngine.js';
 
@@ -50,6 +60,26 @@ const stageWeights: Record<InitStage, number> = {
  * Singleton embedding engine instance
  */
 let embeddingEngine: EmbeddingEngine | null = null;
+
+/**
+ * Singleton database instance
+ */
+let database: LokulDatabase | null = null;
+
+/**
+ * Singleton memory repository instance
+ */
+let repository: MemoryRepository | null = null;
+
+/**
+ * Singleton vector search instance
+ */
+let vectorSearch: VectorSearch | null = null;
+
+/**
+ * Singleton query engine instance
+ */
+let queryEngine: QueryEngine | null = null;
 
 /**
  * Calculate overall progress based on current stage and stage progress
@@ -109,6 +139,18 @@ function setupPort(port: PortLike): void {
         break;
       case MessageTypeConst.EMBED_BATCH:
         await handleEmbedBatch(port, request);
+        break;
+      case MessageTypeConst.LIST:
+        await handleList(port, request);
+        break;
+      case MessageTypeConst.GET:
+        await handleGet(port, request);
+        break;
+      case MessageTypeConst.SEARCH:
+        await handleSearch(port, request);
+        break;
+      case MessageTypeConst.SEMANTIC_SEARCH:
+        await handleSemanticSearch(port, request);
         break;
       default:
         console.warn('Unknown message type:', request.type);
@@ -255,6 +297,213 @@ async function handleEmbedBatch(
 }
 
 /**
+ * Handle LIST request for memory listing
+ */
+async function handleList(
+  port: PortLike,
+  request: RequestMessage,
+): Promise<void> {
+  if (!queryEngine) {
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'NOT_INITIALIZED',
+        message: 'Query engine not initialized. Call initialize() first.',
+        details: {
+          recoveryHint:
+            'Ensure the worker is initialized before sending LIST requests',
+        },
+      },
+    };
+    port.postMessage(response);
+    return;
+  }
+
+  try {
+    const payload = request.payload as ListPayload;
+    const result = await queryEngine.list(payload.options);
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.LIST,
+      payload: { result },
+    };
+    port.postMessage(response);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'LIST_FAILED',
+        message: errorMessage,
+        details: { recoveryHint: 'Check query options and try again' },
+      },
+    };
+    port.postMessage(response);
+  }
+}
+
+/**
+ * Handle GET request for single memory retrieval
+ */
+async function handleGet(
+  port: PortLike,
+  request: RequestMessage,
+): Promise<void> {
+  if (!queryEngine) {
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'NOT_INITIALIZED',
+        message: 'Query engine not initialized. Call initialize() first.',
+        details: {
+          recoveryHint:
+            'Ensure the worker is initialized before sending GET requests',
+        },
+      },
+    };
+    port.postMessage(response);
+    return;
+  }
+
+  try {
+    const payload = request.payload as GetPayload;
+    const memory = await queryEngine.get(payload.id, payload.includeEmbedding);
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.GET,
+      payload: { memory },
+    };
+    port.postMessage(response);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'GET_FAILED',
+        message: errorMessage,
+        details: { recoveryHint: 'Check memory ID and try again' },
+      },
+    };
+    port.postMessage(response);
+  }
+}
+
+/**
+ * Handle SEARCH request for full-text search
+ */
+async function handleSearch(
+  port: PortLike,
+  request: RequestMessage,
+): Promise<void> {
+  if (!queryEngine) {
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'NOT_INITIALIZED',
+        message: 'Query engine not initialized. Call initialize() first.',
+        details: {
+          recoveryHint:
+            'Ensure the worker is initialized before sending SEARCH requests',
+        },
+      },
+    };
+    port.postMessage(response);
+    return;
+  }
+
+  try {
+    const payload = request.payload as SearchPayload;
+    const result = await queryEngine.search(payload.query, payload.options);
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.SEARCH,
+      payload: { result },
+    };
+    port.postMessage(response);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'SEARCH_FAILED',
+        message: errorMessage,
+        details: { recoveryHint: 'Check query text and options' },
+      },
+    };
+    port.postMessage(response);
+  }
+}
+
+/**
+ * Handle SEMANTIC_SEARCH request for vector similarity search
+ */
+async function handleSemanticSearch(
+  port: PortLike,
+  request: RequestMessage,
+): Promise<void> {
+  if (!queryEngine) {
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'NOT_INITIALIZED',
+        message: 'Query engine not initialized. Call initialize() first.',
+        details: {
+          recoveryHint:
+            'Ensure the worker is initialized before sending SEMANTIC_SEARCH requests',
+        },
+      },
+    };
+    port.postMessage(response);
+    return;
+  }
+
+  try {
+    const payload = request.payload as SemanticSearchPayload;
+    const memories = await queryEngine.semanticSearch(
+      payload.query,
+      payload.options,
+    );
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.SEMANTIC_SEARCH,
+      payload: { memories },
+    };
+    port.postMessage(response);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'SEMANTIC_SEARCH_FAILED',
+        message: errorMessage,
+        details: { recoveryHint: 'Check query text and options' },
+      },
+    };
+    port.postMessage(response);
+  }
+}
+
+/**
  * Handle initialization request with progress reporting through all 5 stages
  */
 async function handleInit(
@@ -272,10 +521,13 @@ async function handleInit(
     await initializeModel(port, payload.modelConfig);
     reportProgress(port, 'model', 100);
 
-    // Stage 3: Storage initialization (stub for future phase)
+    // Stage 3: Storage initialization
     reportProgress(port, 'storage', 0);
     await initializeStorage(payload.dbName);
     reportProgress(port, 'storage', 100);
+
+    // Stage 3.5: Query engine initialization (part of storage stage)
+    await initializeQueryEngine();
 
     // Stage 4: Maintenance (stub for future phase)
     reportProgress(port, 'maintenance', 0);
@@ -373,10 +625,37 @@ async function initializeModel(
 /**
  * Initialize storage layer (Phase 3)
  */
-async function initializeStorage(_dbName: string): Promise<void> {
-  // Stub: Will be implemented in Phase 3 (Storage Layer)
-  // Simulates async work
-  await new Promise((resolve) => setTimeout(resolve, 10));
+async function initializeStorage(dbName: string): Promise<void> {
+  // Note: LokulDatabase uses hardcoded name 'LokulMemDB'
+  // dbName parameter is kept for API compatibility but not used
+  console.log(`[Worker] Initializing storage (requested: ${dbName})`);
+
+  // Create database instance
+  database = new LokulDatabase();
+  await database.open();
+
+  // Create repository
+  repository = new MemoryRepository(database);
+  console.log('[Worker] Storage layer initialized');
+}
+
+/**
+ * Initialize query engine (Phase 5)
+ */
+async function initializeQueryEngine(): Promise<void> {
+  if (!embeddingEngine || !repository) {
+    throw new Error(
+      'Embedding engine and repository must be initialized first',
+    );
+  }
+
+  // Create vector search
+  vectorSearch = new VectorSearch(repository, embeddingEngine);
+  await vectorSearch.initialize();
+
+  // Create query engine
+  queryEngine = new QueryEngine(repository, vectorSearch, embeddingEngine);
+  console.log('[Worker] Query engine initialized');
 }
 
 /**
