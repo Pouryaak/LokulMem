@@ -1,8 +1,8 @@
 # Phase 5: Memory Store & Retrieval - Plan Summary
 
 **Created:** 2026-02-24
-**Status:** Ready for Execution
-**Plans:** 2
+**Status:** Gap Closure in Progress
+**Plans:** 3 (2 complete + 1 gap closure)
 
 ---
 
@@ -84,6 +84,54 @@ Phase 5 implements the memory retrieval infrastructure using brute-force cosine 
 - Full-text search supports 3 modes
 - Semantic search uses composite scoring by default
 - Return null for not found, [] for no matches
+
+---
+
+### Plan 05-03: Gap Closure - Token-aware Dynamic K (Wave 3)
+**File:** `.planning/phases/05-memory-store-retrieval/05-03-PLAN.md`
+**Depends on:** 05-01, 05-02
+**Requirements:** SEARCH-05
+**Type:** Gap Closure (partial implementation found in verification)
+
+**Gap Description:**
+The `getInjectionPreview()` method implements token estimation and budget limiting, but lacks **context window awareness**:
+- No `contextWindow` field in `LokulMemConfig`
+- Hardcoded `maxTokens = 1000` parameter instead of deriving from context window
+- Does not account for system prompt tokens or user message tokens in budget calculation
+- Does not adjust K based on remaining context window after system prompt and user message
+
+**Implementation:**
+1. Add `contextWindow?: number` to `LokulMemConfig` (default: 4096 for GPT-3.5)
+2. Add `systemPromptTokens?: number` to `LokulMemConfig` (default: 0)
+3. Update `InitPayload` to include context window configuration
+4. Add `QueryEngineConfig` interface with context window fields
+5. Update `QueryEngine.getInjectionPreview()` to calculate remaining tokens
+6. Add `estimateTokens(text: string)` helper method (~4 chars/token)
+7. Update `LokulMem` to pass context window config to worker
+8. Document token estimation strategy and tiktoken v2 plan
+
+**Key Deliverables:**
+- Updated `src/types/api.ts` - LokulMemConfig with contextWindow and systemPromptTokens
+- Updated `src/ipc/protocol-types.ts` - InitPayload with context window fields
+- Updated `src/search/types.ts` - QueryEngineConfig interface
+- Updated `src/search/QueryEngine.ts` - Context-aware token budget calculation
+- Updated `src/core/LokulMem.ts` - Config propagation to worker
+- Updated `.planning/STATE.md` - Token estimation strategy documentation
+
+**Token Budget Calculation:**
+```typescript
+remainingTokens = contextWindow - systemPromptTokens - userMessageTokens
+maxTokens = maxTokensOverride ?? Math.max(0, remainingTokens)
+```
+
+**Success Criteria:**
+- LokulMemConfig has contextWindow field (default: 4096)
+- getInjectionPreview() calculates remaining tokens from context window
+- System prompt tokens configurable via config or options override
+- User message tokens estimated using ~4 chars/token
+- Manual maxTokens override still works (backward compatibility)
+- JSDoc documents token estimation strategy and tiktoken v2 plan
+- Config propagates: LokulMem → WorkerClient → Worker → QueryEngine
 
 ---
 

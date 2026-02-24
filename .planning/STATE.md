@@ -2,8 +2,8 @@
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
 **Current Phase:** 05
-**Current Plan:** 03 (Next: Memory Management API)
-**Status:** Plan 02 complete, ready for Plan 03
+**Current Plan:** 03 (Gap Closure: Token-aware Dynamic K)
+**Status:** Plan 02 complete, Plan 03 ready for execution
 **Updated:** 2026-02-24
 
 ---
@@ -35,7 +35,7 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 2: Worker Infrastructure (Complete - 5 of 5 plans)
 [██████████] 100% - Phase 3: Storage Layer (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 4: Embedding Engine (Complete - 3 of 3 plans)
-[██████████░] 67% - Phase 5: Memory Store & Retrieval (Plans 01-02 complete, Plan 03 next)
+[██████████░] 67% - Phase 5: Memory Store & Retrieval (Plans 01-02 complete, Plan 03 gap closure)
 [░░░░░░░░░░] 0% - Phase 6: Lifecycle & Decay (Not started)
 [░░░░░░░░░░] 0% - Phase 7: Extraction & Contradiction (Not started)
 [░░░░░░░░░░] 0% - Phase 8: Public API & Demo (Not started)
@@ -56,14 +56,15 @@ Implemented high-level query API for all data access patterns:
 - RPC payload types separated into protocol-types.ts for cleaner protocol layering
 - All handlers use PortLike type for SharedWorker compatibility
 
-**Next: Plan 05-03** - Memory Management API
+**Next: Plan 05-03** - Gap Closure: Token-aware Dynamic K (SEARCH-05)
 
-**Wave 3 (Memory Management):**
-- 05-03: Memory Management API with CRUD operations
-  - add(), update(), delete() worker handlers
-  - Pin/unpin operations
-  - Strength adjustment
-  - Conversation management
+**Wave 3 (Gap Closure):**
+- 05-03: Token-aware dynamic K selection with context window configuration
+  - Add contextWindow field to LokulMemConfig (default: 4096)
+  - Add systemPromptTokens field for custom system prompts
+  - Calculate remaining tokens: contextWindow - systemPromptTokens - userMessageTokens
+  - Update getInjectionPreview() to use context-aware token budget
+  - Document token estimation strategy (~4 chars/token, tiktoken deferred to v2)
 
 **Phase 4 Complete:**
 All 3 plans executed successfully:
