@@ -1,9 +1,9 @@
 # State: LokulMem
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
-**Current Phase:** 5
-**Current Plan:** Not started
-**Status:** Milestone complete
+**Current Phase:** 06
+**Current Plan:** Context gathered
+**Status:** Phase 6 context captured, ready for research and planning
 **Updated:** 2026-02-24
 
 ---
@@ -36,14 +36,20 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 3: Storage Layer (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 4: Embedding Engine (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 5: Memory Store & Retrieval (Plans 01-03 complete)
-[░░░░░░░░░░] 0% - Phase 6: Lifecycle & Decay (Not started)
+[████████░░] 20% - Phase 6: Lifecycle & Decay (Context gathered)
 [░░░░░░░░░░] 0% - Phase 7: Extraction & Contradiction (Not started)
 [░░░░░░░░░░] 0% - Phase 8: Public API & Demo (Not started)
 ```
 
 ### Active Work
 
-**Plan 05-03 Complete:** Token-aware Dynamic K Selection
+Phase 6 context gathered via /gsd:discuss-phase. Captured decisions on:
+- Decay calculation: Hybrid (session batch + incremental for frequent access)
+- Timestamp: lastAccessedAt with createdAt fallback, millisecond timestamps
+- Reinforcement: get() + semanticSearch() triggers, category-based amounts, debounced writes
+- Maintenance: Session + periodic triggers, sync during init, cache-then-batch writes
+- Fading: Configurable threshold (default 0.1), soft delete with events
+- Deletion: Batch in sweep, immediate after 30 days, events emitted
 
 Implemented messages-based token accounting for accurate context window awareness:
 - computeTokenBudget() helper in core/TokenBudget.ts
