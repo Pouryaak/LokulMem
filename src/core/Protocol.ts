@@ -71,6 +71,10 @@ export const MessageType = {
   ERROR: 'error',
   EMBED: 'embed',
   EMBED_BATCH: 'embed_batch',
+  LIST: 'list',
+  GET: 'get',
+  SEARCH: 'search',
+  SEMANTIC_SEARCH: 'semantic_search',
 } as const;
 
 /**
