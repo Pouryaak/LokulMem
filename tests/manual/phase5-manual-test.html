@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 5 Manual Test - LokulMem</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: 0; }
+        .test-case {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .test-case.pass { border-left: 4px solid #4caf50; }
+        .test-case.fail { border-left: 4px solid #f44336; }
+        .test-case.pending { border-left: 4px solid #ff9800; }
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status.pass { background: #4caf50; color: white; }
+        .status.fail { background: #f44336; color: white; }
+        .status.pending { background: #ff9800; color: white; }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #1976d2; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .output {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .summary {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .summary-item {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        .summary-item .number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2196f3;
+        }
+        .progress {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #4caf50;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Phase 5 Manual Test Suite</h1>
+    <p>LokulMem Memory Store & Retrieval - Comprehensive Testing</p>
+
+    <div class="summary">
+        <div class="summary-item">
+            <div class="number" id="totalTests">0</div>
+            <div>Total Tests</div>
+        </div>
+        <div class="summary-item">
+            <div class="number" id="passedTests">0</div>
+            <div>Passed</div>
+        </div>
+        <div class="summary-item">
+            <div class="number" id="failedTests">0</div>
+            <div>Failed</div>
+        </div>
+    </div>
+
+    <div class="progress">
+        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+    </div>
+
+    <button id="runAllBtn" onclick="runAllTests()">▶ Run All Tests</button>
+    <button onclick="location.reload()">↻ Reload</button>
+
+    <div id="results"></div>
+
+    <script type="module">
+        import { LokulMem } from '../dist/main.mjs';
+
+        let lokulmem;
+        let testResults = [];
+
+        function updateSummary() {
+            const total = testResults.length;
+            const passed = testResults.filter(r => r.passed).length;
+            const failed = testResults.filter(r => !r.passed).length;
+
+            document.getElementById('totalTests').textContent = total;
+            document.getElementById('passedTests').textContent = passed;
+            document.getElementById('failedTests').textContent = failed;
+            document.getElementById('progressBar').style.width = `${(passed / total) * 100}%`;
+        }
+
+        function createTestCase(name, category) {
+            const div = document.createElement('div');
+            div.className = 'test-case pending';
+            div.id = `test-${Date.now()}`;
+            div.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong>${category}</strong>
+                    <span class="status pending">Pending</span>
+                </div>
+                <div style="margin-top: 8px;">${name}</div>
+                <div class="output" style="display: none;"></div>
+            `;
+            document.getElementById('results').appendChild(div);
+            return div;
+        }
+
+        function updateTestCase(element, passed, message, output = '') {
+            const statusSpan = element.querySelector('.status');
+            const outputDiv = element.querySelector('.output');
+
+            element.className = `test-case ${passed ? 'pass' : 'fail'}`;
+            statusSpan.className = `status ${passed ? 'pass' : 'fail'}`;
+            statusSpan.textContent = passed ? 'PASS' : 'FAIL';
+
+            if (output) {
+                outputDiv.style.display = 'block';
+                outputDiv.textContent = output;
+            }
+
+            testResults.push({ passed, message });
+            updateSummary();
+        }
+
+        async function testInitialization() {
+            const test = createTestCase('Library initializes with default configuration', 'Initialization');
+
+            try {
+                lokulmem = new LokulMem({
+                    localModelBaseUrl: '/models',
+                    onProgress: (stage, progress) => {
+                        console.log(`Init progress: ${stage} - ${progress}%`);
+                    }
+                });
+
+                updateTestCase(test, true, 'LokulMem instance created successfully');
+            } catch (error) {
+                updateTestCase(test, false, error.message, error.stack);
+            }
+        }
+
+        async function testLearnBasic() {
+            const test = createTestCase('Learn memories from conversation', 'Learn API');
+
+            try {
+                const userMessage = "My name is Alice and I live in New York.";
+                const assistantResponse = "Hello Alice! Nice to meet you.";
+
+                const result = await lokulmem.learn(userMessage, assistantResponse);
+
+                updateTestCase(test, true,
+                    `Learned ${result.extractedMemories?.length || 0} memories`,
+                    JSON.stringify(result, null, 2).substring(0, 500)
+                );
+            } catch (error) {
+                updateTestCase(test, false, error.message, error.stack);
+            }
+        }
+
+        async function testListMemories() {
+            const test = createTestCase('List all memories with pagination', 'Query API');
+
+            try {
+                const result = await lokulmem.manage().list({
+                    limit: 10,
+                    offset: 0
+                });
+
+                const hasCorrectStructure = result.items && typeof result.total === 'number' && 'hasMore' in result;
+
+                updateTestCase(test, hasCorrectStructure,
+                    hasCorrectStructure
+                        ? `Retrieved ${result.items.length} memories (total: ${result.total})`
+                        : 'Invalid response structure',
+                    hasCorrectStructure ? JSON.stringify(result, null, 2).substring(0, 300) : ''
+                );
+            } catch (error) {
+                updateTestCase(test, false, error.message, error.stack);
+            }
+        }
+
+        async function testGetSpecificMemory() {
+            const test = createTestCase('Get specific memory by ID', 'Query API');
+
+            try {
+                // First get all memories to find an ID
+                const listResult = await lokulmem.manage().list({ limit: 1 });
+
+                if (listResult.items.length === 0) {
+                    updateTestCase(test, false, 'No memories found to test get()');
+                    return;
+                }
+
+                const memoryId = listResult.items[0].id;
+                const memory = await lokulmem.manage().get(memoryId);
+
+                const hasId = memory && memory.id === memoryId;
+
+                updateTestCase(test, hasId,
+                    hasId ? 'Retrieved memory successfully' : 'Memory ID mismatch',
+                    hasId ? JSON.stringify(memory, null, 2) : ''
+                );
+            } catch (error) {
+                updateTestCase(test, false, error.message, error.stack);
+            }
+        }
+
+        async function testSemanticSearch() {
+            const test = createTestCase('Semantic search with composite scoring', 'Vector Search');
+
+            try {
+                const results = await lokulmem.manage().semanticSearch('Alice', {
+                    k: 5,
+                    useCompositeScoring: true
+                });
+
+                const hasResults = Array.isArray(results) && results.length >= 0;
+
+                updateTestCase(test, hasResults,
+                    hasResults
+                        ? `Found ${results.length} relevant memories`
+                        : 'Invalid search results',
+                    hasResults && results.length > 0 ? JSON.stringify(results[0], null, 2).substring(0, 300) : ''
+                );
+            } catch (error) {
+                updateTestCase(test, false, error.message, error.stack);
+            }
+        }
+
+        async function testFullTextSearch() {
+            const test = createTestCase('Full-text search with AND mode', 'Query API');
+
+            try {
+                const results = await lokulmem.manage().search('Alice', {
+                    mode: 'and'
+                });
+
+                const hasResults = Array.isArray(results);
+
+                updateTestCase(test, hasResults,
+                    hasResults
+                        ? `Found ${results.length} matching memories`
+                        : 'Invalid search results',
+                    hasResults && results.length > 0 ? JSON.stringify(results[0], null, 2).substring(0, 300) : ''
+                );
+            } catch (error) {
+                updateTestCase(test, false, error.message, error.stack);
+            }
+        }
+
+        async function testGetRecent() {
+            const test = createTestCase('Get recent memories', 'Convenience Methods');
+
+            try {
+                const results = await lokulmem.manage().getRecent(5);
+
+                const hasResults = Array.isArray(results);
+
+                updateTestCase(test, hasResults,
+                    hasResults
+                        ? `Retrieved ${results.length} recent memories`
+                        : 'Invalid results',
+                    hasResults && results.length > 0 ? JSON.stringify(results[0], null, 2).substring(0, 300) : ''
+                );
+            } catch (error) {
+                updateTestCase(test, false, error.message, error.stack);
+            }
+        }
+
+        async function testTokenBudgetPreview() {
+            const test = createTestCase('Token budget preview for injection', 'Token Awareness');
+
+            try {
+                const messages = [
+                    { role: 'system', content: 'You are a helpful assistant.' },
+                    { role: 'user', content: 'Tell me about Alice.' }
+                ];
+
+                const preview = await lokulmem.manage().getInjectionPreview('Alice', {
+                    messages: messages,
+                    contextWindowTokens: 4096
+                });
+
+                const hasValidStructure = preview &&
+                    Array.isArray(preview.memories) &&
+                    typeof preview.estimatedTokens === 'number';
+
+                updateTestCase(test, hasValidStructure,
+                    hasValidStructure
+                        ? `Can inject ${preview.memories.length} memories (${preview.estimatedTokens} tokens)`
+                        : 'Invalid preview structure',
+                    hasValidStructure ? JSON.stringify(preview, null, 2).substring(0, 400) : ''
+                );
+            } catch (error) {
+                updateTestCase(test, false, error.message, error.stack);
+            }
+        }
+
+        async function testGetTimeline() {
+            const test = createTestCase('Get memories grouped by date (timeline)', 'Query API');
+
+            try {
+                const timeline = await lokulmem.manage().getTimeline();
+
+                const hasGroups = Array.isArray(timeline);
+
+                updateTestCase(test, hasGroups,
+                    hasGroups
+                        ? `Retrieved ${timeline.length} timeline groups`
+                        : 'Invalid timeline structure',
+                    hasGroups && timeline.length > 0 ? JSON.stringify(timeline[0], null, 2).substring(0, 300) : ''
+                );
+            } catch (error) {
+                updateTestCase(test, false, error.message, error.stack);
+            }
+        }
+
+        async function testGetGrouped() {
+            const test = createTestCase('Get memories grouped by type', 'Query API');
+
+            try {
+                const grouped = await lokulmem.manage().getGrouped();
+
+                const hasGroups = grouped && typeof grouped === 'object';
+
+                updateTestCase(test, hasGroups,
+                    hasGroups
+                        ? `Retrieved ${Object.keys(grouped).length} type groups`
+                        : 'Invalid grouped structure',
+                    hasGroups ? JSON.stringify(grouped, null, 2).substring(0, 400) : ''
+                );
+            } catch (error) {
+                updateTestCase(test, false, error.message, error.stack);
+            }
+        }
+
+        async function testGetTopMemories() {
+            const test = createTestCase('Get top (strongest) memories', 'Convenience Methods');
+
+            try {
+                const results = await lokulmem.manage().getTop(5);
+
+                const hasResults = Array.isArray(results);
+
+                updateTestCase(test, hasResults,
+                    hasResults
+                        ? `Retrieved ${results.length} top memories`
+                        : 'Invalid results',
+                    hasResults && results.length > 0 ? JSON.stringify(results[0], null, 2).substring(0, 300) : ''
+                );
+            } catch (error) {
+                updateTestCase(test, false, error.message, error.stack);
+            }
+        }
+
+        async function testStats() {
+            const test = createTestCase('Get memory statistics', 'Query API');
+
+            try {
+                const stats = await lokulmem.manage().stats();
+
+                const hasValidStats = stats &&
+                    typeof stats.total === 'number' &&
+                    typeof stats.active === 'number';
+
+                updateTestCase(test, hasValidStats,
+                    hasValidStats
+                        ? `Stats: ${stats.total} total, ${stats.active} active`
+                        : 'Invalid stats structure',
+                    hasValidStats ? JSON.stringify(stats, null, 2) : ''
+                );
+            } catch (error) {
+                updateTestCase(test, false, error.message, error.stack);
+            }
+        }
+
+        async function runAllTests() {
+            document.getElementById('runAllBtn').disabled = true;
+            testResults = [];
+            document.getElementById('results').innerHTML = '';
+
+            const tests = [
+                testInitialization,
+                testLearnBasic,
+                testListMemories,
+                testGetSpecificMemory,
+                testSemanticSearch,
+                testFullTextSearch,
+                testGetRecent,
+                testTokenBudgetPreview,
+                testGetTimeline,
+                testGetGrouped,
+                testGetTopMemories,
+                testStats
+            ];
+
+            for (const test of tests) {
+                await test();
+                await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between tests
+            }
+
+            document.getElementById('runAllBtn').disabled = false;
+
+            // Final summary
+            const passed = testResults.filter(r => r.passed).length;
+            const total = testResults.length;
+            console.log(`\n🎯 Test Results: ${passed}/${total} passed`);
+        }
+
+        // Expose to global scope for button onclick
+        window.runAllTests = runAllTests;
+    </script>
+</body>
+</html>

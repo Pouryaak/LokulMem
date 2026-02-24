@@ -2,8 +2,8 @@
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
 **Current Phase:** 06
-**Current Plan:** Context gathered
-**Status:** Phase 6 context captured, ready for research and planning
+**Current Plan:** 06-03 (Plans complete)
+**Status:** Phase 6 planning complete, ready for execution
 **Updated:** 2026-02-24
 
 ---
@@ -36,20 +36,41 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 3: Storage Layer (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 4: Embedding Engine (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 5: Memory Store & Retrieval (Plans 01-03 complete)
-[████████░░] 20% - Phase 6: Lifecycle & Decay (Context gathered)
+[████████░░] 80% - Phase 6: Lifecycle & Decay (Plans 01-03 created, ready for execution)
 [░░░░░░░░░░] 0% - Phase 7: Extraction & Contradiction (Not started)
 [░░░░░░░░░░] 0% - Phase 8: Public API & Demo (Not started)
 ```
 
 ### Active Work
 
-Phase 6 context gathered via /gsd:discuss-phase. Captured decisions on:
+Phase 6 planning complete! Created 3 plans:
+
+**06-01: Decay Calculator & Reinforcement Tracker (Wave 1)**
+- DecayCalculator: Ebbinghaus decay with per-category lambda values
+- ReinforcementTracker: Debounced writes with category-based reinforcement
+- Types: DecayConfig, ReinforcementConfig, DecayResult, etc.
+- Requirements: DECAY-01, DECAY-02, DECAY-03, DECAY-04, DECAY-08
+
+**06-02: Maintenance Sweep & Event Emitter (Wave 2)**
+- MaintenanceSweep: Session + periodic maintenance with decay/fade/delete
+- LifecycleEventEmitter: Event callbacks with unsubscribe support
+- LifecycleManager: Orchestrator combining all components
+- Requirements: DECAY-05, DECAY-06, DECAY-09, EVENT-03, EVENT-04
+
+**06-03: K-means Clustering & Worker Integration (Wave 2)**
+- KMeansClusterer: Lloyd's algorithm with k-means++ initialization
+- Worker integration: recordAccess in get() and semanticSearch()
+- Public API: onMemoryFaded, onMemoryDeleted event callbacks
+- Requirements: DECAY-07, EVENT-01, EVENT-02, EVENT-05, EVENT-06, EVENT-07
+
+**Implementation Decisions:**
 - Decay calculation: Hybrid (session batch + incremental for frequent access)
 - Timestamp: lastAccessedAt with createdAt fallback, millisecond timestamps
-- Reinforcement: get() + semanticSearch() triggers, category-based amounts, debounced writes
+- Reinforcement: get() + semanticSearch() triggers, category-based amounts, debounced writes (5s window)
 - Maintenance: Session + periodic triggers, sync during init, cache-then-batch writes
 - Fading: Configurable threshold (default 0.1), soft delete with events
 - Deletion: Batch in sweep, immediate after 30 days, events emitted
+- K-means: Runs after sweep, k-means++ initialization, max 100 iterations
 
 Implemented messages-based token accounting for accurate context window awareness:
 - computeTokenBudget() helper in core/TokenBudget.ts
@@ -249,7 +270,9 @@ Plan 05-03 complete! Implemented token-aware dynamic K selection:
 - Custom tokenCounter support for tiktoken integration in v2
 
 ### Next Action
-Execute Phase 6: Lifecycle & Decay (Time-based memory decay, access refresh, archival)
+Execute Phase 6 plans in wave order:
+- Wave 1 (autonomous): Plan 06-01 - Decay Calculator & Reinforcement Tracker
+- Wave 2 (autonomous): Plans 06-02, 06-03 - Maintenance, K-means, Integration (parallel)
 
 ### Blockers
 None.
