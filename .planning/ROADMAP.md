@@ -14,7 +14,7 @@
 - [x] **Phase 2: Worker Infrastructure** - SharedWorker coordination with graceful fallback chain (completed 2026-02-23)
 - [x] **Phase 3: Storage Layer** - Dexie.js schema with memories, episodes, edges, clusters stores (completed 2026-02-23)
 - [ ] **Phase 4: Embedding Engine** - Transformers.js MiniLM with LRU cache and airgap support
-- [ ] **Phase 5: Memory Store & Retrieval** - Brute-force vector search with composite relevance scoring
+- [x] **Phase 5: Memory Store & Retrieval** - Brute-force vector search with composite relevance scoring (completed 2026-02-24)
 - [ ] **Phase 6: Lifecycle & Decay** - Ebbinghaus decay model with per-category lambda values
 - [ ] **Phase 7: Extraction & Contradiction** - Fact extraction scoring and contradiction detection pipeline
 - [ ] **Phase 8: Public API & Demo** - Complete augment/learn/manage APIs with React demo app
@@ -107,7 +107,7 @@ Plans:
   5. Only memories with R > 0.3 are considered for injection
   6. Management query methods work: list, get, getByConversation, getRecent, getTop, getPinned, search, semanticSearch, getTimeline, getGrouped, getInjectionPreview
   7. Active memory embeddings loaded into in-memory cache; cache stays in sync with mutations
-**Plans:** TBD
+**Plans:** 5/3 plans complete
 
 ### Phase 6: Lifecycle & Decay
 **Goal:** Memories decay according to Ebbinghaus forgetting curve with per-category rates, pinned memories exempt from decay.
@@ -176,7 +176,7 @@ Plans:
 | 2. Worker Infrastructure | 3/3 | Complete    | 2026-02-23 |
 | 3. Storage Layer | 3/3 | Complete | 2026-02-23 |
 | 4. Embedding Engine | 1/3 | In Progress | - |
-| 5. Memory Store & Retrieval | 0/2 | Not started | - |
+| 5. Memory Store & Retrieval | 0/2 | Complete    | 2026-02-24 |
 | 6. Lifecycle & Decay | 0/1 | Not started | - |
 | 7. Extraction & Contradiction | 0/2 | Not started | - |
 | 8. Public API & Demo | 0/3 | Not started | - |
