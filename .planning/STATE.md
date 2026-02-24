@@ -2,8 +2,8 @@
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
 **Current Phase:** 05
-**Current Plan:** 02 (Next: Query Engine)
-**Status:** Plan 01 complete, executing Plan 02
+**Current Plan:** 03 (Next: Memory Management API)
+**Status:** Plan 02 complete, ready for Plan 03
 **Updated:** 2026-02-24
 
 ---
@@ -35,7 +35,7 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 2: Worker Infrastructure (Complete - 5 of 5 plans)
 [██████████] 100% - Phase 3: Storage Layer (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 4: Embedding Engine (Complete - 3 of 3 plans)
-[██████████░] 50% - Phase 5: Memory Store & Retrieval (Plan 01 complete, Plan 02 next)
+[██████████░] 67% - Phase 5: Memory Store & Retrieval (Plans 01-02 complete, Plan 03 next)
 [░░░░░░░░░░] 0% - Phase 6: Lifecycle & Decay (Not started)
 [░░░░░░░░░░] 0% - Phase 7: Extraction & Contradiction (Not started)
 [░░░░░░░░░░] 0% - Phase 8: Public API & Demo (Not started)
@@ -43,25 +43,27 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 
 ### Active Work
 
-**Plan 05-01 Complete:** Vector Search & Composite Scoring
+**Plan 05-02 Complete:** Query Engine with 10+ Methods
 
-Implemented brute-force vector search with composite R(m,q) scoring:
-- Scoring class with exponential recency decay (72h half-life)
-- VectorSearch class with Float32Array cache (eager loading)
-- Composite scoring: semantic (0.40), recency (0.20), strength (0.25), continuity (0.15)
-- Pinned memories get strength = 1.0 (weight override)
-- Floor threshold R > 0.3 for filtering
-- Write-through cache sync on mutations
+Implemented high-level query API for all data access patterns:
+- QueryEngine class with 10+ methods: list, get, getByConversation, getRecent, getTop, getPinned, search, semanticSearch, getTimeline, getGrouped, getInjectionPreview
+- Query filtering by types, status, strength, pinned, clusterId
+- Pagination with offset/limit returning { items, total, hasMore }
+- Full-text search with exact/and/or modes (default: and, case-insensitive)
+- Semantic search defaults to semantic-only (useCompositeScoring=false)
+- Timeline grouping by date, type grouping for visualization
+- Worker message handlers: LIST, GET, SEARCH, SEMANTIC_SEARCH
+- RPC payload types separated into protocol-types.ts for cleaner protocol layering
+- All handlers use PortLike type for SharedWorker compatibility
 
-**Next: Plan 05-02** - Query Engine with 10+ methods
+**Next: Plan 05-03** - Memory Management API
 
-**Wave 2 (Query API):**
-- 05-02: Query Engine with 10+ methods
-  - QueryEngine class: list, get, getByConversation, getRecent, getTop, getPinned
-  - Full-text search with exact/and/or modes
-  - Semantic search with composite scoring
-  - Timeline and grouped queries
-  - Worker message handlers for all query types
+**Wave 3 (Memory Management):**
+- 05-03: Memory Management API with CRUD operations
+  - add(), update(), delete() worker handlers
+  - Pin/unpin operations
+  - Strength adjustment
+  - Conversation management
 
 **Phase 4 Complete:**
 All 3 plans executed successfully:
@@ -142,10 +144,13 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 | 2026-02-24 | Floor threshold for relevance | R > 0.3 filters low-relevance memories from injection | **Implemented** ✅ (05-01) |
 | 2026-02-24 | Cluster bonus for related memories | +0.05 to candidates with same clusterId as top match | **Implemented** ✅ (05-01) |
 | 2026-02-24 | Dual cache design | Separate Float32Array and metadata caches for O(1) lookups | **Implemented** ✅ (05-01) |
-| 2026-02-24 | QueryEngine with 10+ methods | Complete query API for all data access patterns | Planned in 05-02 |
-| 2026-02-24 | Pagination with offset/limit | Returns { items, total, hasMore } for UI scrolling | Planned in 05-02 |
-| 2026-02-24 | Full-text search modes | exact, and, or for multi-word queries | Planned in 05-02 |
-| 2026-02-24 | Semantic search modes | cache, database, all for different performance tradeoffs | Planned in 05-02 |
+| 2026-02-24 | QueryEngine with 10+ methods | Complete query API for all data access patterns | **Implemented** ✅ (05-02) |
+| 2026-02-24 | Pagination with offset/limit | Returns { items, total, hasMore } for UI scrolling | **Implemented** ✅ (05-02) |
+| 2026-02-24 | Full-text search modes | exact, and, or for multi-word queries | **Implemented** ✅ (05-02) |
+| 2026-02-24 | Semantic search defaults to semantic-only | useCompositeScoring=false per CONTEXT.md decision | **Implemented** ✅ (05-02) |
+| 2026-02-24 | RPC payload types separated | protocol-types.ts for cleaner protocol layering | **Implemented** ✅ (05-02) |
+| 2026-02-24 | Worker handlers use PortLike | SharedWorker + DedicatedWorker compatibility | **Implemented** ✅ (05-02) |
+| 2026-02-24 | Method overloads deferred | Phase 6+ or .d.ts for includeEmbedding overloads | Planned in 05-02 |
 - [Phase 04]: Use @huggingface/transformers v3.x with dtype: 'q8' quantization
 - [Phase 04]: Explicit env.useBrowserCache=true for Cache API persistence
 - [Phase 04]: Airgap mode blocks all network via env.allowRemoteModels=false
