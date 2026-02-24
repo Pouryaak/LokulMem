@@ -96,6 +96,7 @@ All 3 plans executed successfully:
 | Bundle size (gzipped) | < 2MB | 3.78 kB (main) | ✅ Measured |
 | Model load time | — | ~3s first, <100ms cached | ✅ Measured |
 | Phase 04 | All plans | 3 plans, 15 tasks | ✅ Complete |
+| Phase 05 P03 | 167 | 6 tasks | 6 files |
 
 ### Benchmarks
 
@@ -163,6 +164,7 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 - [Phase 04]: Use @huggingface/transformers v3.x with dtype: 'q8' quantization
 - [Phase 04]: Explicit env.useBrowserCache=true for Cache API persistence
 - [Phase 04]: Airgap mode blocks all network via env.allowRemoteModels=false
+- [Phase 05]: Messages-based token accounting for accurate budgeting (computeTokenBudget accepts full message list, NO default context window, worker stateless)
 
 ## Technical Memory
 
