@@ -78,6 +78,10 @@ export const MessageType = {
   SEMANTIC_SEARCH: 'semantic_search',
   MEMORY_FADED: 'MEMORY_FADED',
   MEMORY_DELETED: 'MEMORY_DELETED',
+  /** Contradiction detected in worker */
+  CONTRADICTION_DETECTED: 'CONTRADICTION_DETECTED',
+  /** Memory superseded event */
+  MEMORY_SUPERSEDED: 'MEMORY_SUPERSEDED',
 } as const;
 
 /**
@@ -153,4 +157,52 @@ export interface EmbedBatchResponsePayload {
   embeddings: number[][];
   /** Dimensions of each embedding */
   dimensions: number;
+}
+
+/**
+ * ContradictionDetected payload
+ *
+ * CRITICAL: IDs and metadata only, per CONTEXT decision.
+ * Full content retrievable via manage().get() if needed.
+ */
+export interface ContradictionDetectedPayload {
+  /** New memory ID */
+  newMemoryId: string;
+
+  /** Conflicting memory ID */
+  conflictingMemoryId: string;
+
+  /** Similarity score */
+  similarity: number;
+
+  /** Whether temporal marker detected */
+  hasTemporalMarker: boolean;
+
+  /** Resolution mode */
+  resolution: 'supersede' | 'parallel' | 'pending';
+
+  /** Timestamps */
+  newMemoryCreatedAt: number;
+  conflictingMemoryCreatedAt: number;
+
+  /** Memory types */
+  newMemoryTypes: string[];
+  conflictingMemoryTypes: string[];
+
+  /** Conflict domain */
+  conflictDomain: string;
+}
+
+/**
+ * MemorySuperseded payload
+ */
+export interface MemorySupersededPayload {
+  /** Old memory ID */
+  oldMemoryId: string;
+
+  /** New memory ID */
+  newMemoryId: string;
+
+  /** Timestamp */
+  timestamp: number;
 }

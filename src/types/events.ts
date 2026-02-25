@@ -47,22 +47,62 @@ export type StatsCallback = (stats: MemoryStats) => void;
 
 /**
  * Contradiction event payload
+ *
+ * CRITICAL: Per CONTEXT decision, events contain IDs and metadata only.
+ * Full content retrievable via manage().get() if needed.
+ * DTO violation: Do NOT include full MemoryDTO with content field.
  */
 export interface ContradictionEvent {
-  /** The memory being replaced/superseded */
-  oldMemory: MemoryDTO;
+  /** New memory ID that triggered contradiction */
+  newMemoryId: string;
 
-  /** The new memory that contradicts it */
-  newMemory: MemoryDTO;
+  /** Conflicting existing memory ID */
+  conflictingMemoryId: string;
 
-  /** How the contradiction was resolved */
-  resolution: string;
+  /** Similarity score */
+  similarity: number;
+
+  /** Whether temporal marker detected in NEW message text */
+  hasTemporalMarker: boolean;
+
+  /** Resolution mode applied */
+  resolution: 'supersede' | 'parallel' | 'pending';
+
+  /** Timestamps for both memories */
+  newMemoryCreatedAt: number;
+  conflictingMemoryCreatedAt: number;
+
+  /** Memory types for domain context */
+  newMemoryTypes: string[];
+  conflictingMemoryTypes: string[];
+
+  /** Conflict domain */
+  conflictDomain: string;
+}
+
+/**
+ * Supersession event payload
+ */
+export interface SupersessionEvent {
+  /** ID of superseded memory */
+  oldMemoryId: string;
+
+  /** ID of new memory */
+  newMemoryId: string;
+
+  /** Timestamp of supersession */
+  timestamp: number;
 }
 
 /**
  * Callback for contradiction detection events
  */
 export type ContradictionCallback = (event: ContradictionEvent) => void;
+
+/**
+ * Callback for supersession events
+ */
+export type SupersessionCallback = (event: SupersessionEvent) => void;
 
 /**
  * Unsubscribe function returned by event subscriptions
