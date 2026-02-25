@@ -46,8 +46,8 @@
 ### Contradiction Detection
 
 - [ ] **CONTRA-01**: Retrieve topK candidates (5-10) and evaluate any with similarity > 0.80; choose best typed-attribute match
-- [ ] **CONTRA-02**: Temporal markers detected (16 patterns: "used to", "previously", "no longer", etc.)
-- [ ] **CONTRA-03**: Temporal updates set validTo on existing, validFrom on new
+- [x] **CONTRA-02**: Temporal markers detected (16 patterns: "used to", "previously", "no longer", etc.)
+- [x] **CONTRA-03**: Temporal updates set validTo on existing, validFrom on new
 - [ ] **CONTRA-04**: Typed attribute conflicts mark existing as superseded
 - [ ] **CONTRA-05**: Contradiction events emitted via callback
 - [ ] **CONTRA-06**: Supersession chains preserved (supersededBy, supersededAt)

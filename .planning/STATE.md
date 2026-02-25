@@ -2,8 +2,8 @@
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
 **Current Phase:** 7
-**Current Plan:** 07-02 (Temporal Marker Tracking)
-**Status:** Ready for execution
+**Current Plan:** 07-03a (Contradiction Detection Engine)
+**Status:** In progress - 2 of 4 plans complete
 **Updated:** 2026-02-25
 
 ---
@@ -37,11 +37,34 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 4: Embedding Engine (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 5: Memory Store & Retrieval (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 6: Lifecycle & Decay (Complete - 4 of 4 plans)
-[███░░░░░░░] 25% - Phase 7: Extraction & Contradiction (1 of 4 plans complete)
+[█████░░░░░] 50% - Phase 7: Extraction & Contradiction (2 of 4 plans complete)
 [░░░░░░░░░░] 0% - Phase 8: Public API & Demo (Not started)
 ```
 
 ### Active Work
+
+**Plan 07-02 Complete!** Temporal marker tracking implemented in 2 minutes:
+
+**Implemented:**
+- TemporalMarkerDetector class with 16 temporal patterns (used to, previously, no longer, etc.)
+- TemporalMarker and TemporalUpdate types (no position tracking per Phase 7 decision)
+- ConflictDomain type with 8 domain values (identity, location, profession, preference, temporal, relational, emotional, project)
+- Extended MemoryInternal interface with conflictDomain field
+- Updated fromMemoryDTO and createMemoryInternal to infer conflictDomain from types
+- Change type inference from content keywords (location, profession, preference, identity, general)
+- Static mapToConflictDomain() helper for type-to-domain mapping
+- getTimestampRange() for temporal update handling
+- Exported TemporalMarkerDetector from extraction barrel file
+
+**Committed:**
+- e9d90fd: feat(07-02): implement TemporalMarkerDetector and ConflictDomain type
+- 3710b2f: feat(07-02): export TemporalMarkerDetector from extraction barrel
+
+**Deviations:** None - plan executed exactly as written.
+
+**Next Action:** Execute Plan 07-03a: Contradiction Detection Engine
+
+---
 
 **Plan 07-01 Complete!** Extraction quality pipeline implemented in 6 minutes:
 
@@ -252,6 +275,7 @@ All 3 plans executed successfully:
 | Phase 05 P03 | 167 | 6 tasks | 6 files |
 | Phase 06 P06-01 | 3min | 5 tasks | 5 files |
 | Phase 07 P01 | 342 | 6 tasks | 6 files |
+| Phase 07 P02 | 147 | 4 tasks | 4 files |
 
 ### Benchmarks
 
@@ -340,6 +364,8 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 - [Phase 06]: Ebbinghaus decay formula: strength(t) = base × e^(-λ × t) with per-category lambda values
 - [Phase 06]: Debounced reinforcement writes batch within 5s window to prevent excessive IndexedDB operations
 - [Phase 06]: Hard cap at 3.0 for baseStrength prevents unlimited reinforcement
+- [Phase 07]: No position tracking for temporal markers - per Phase 7 CONTEXT decision, position is debug-only and never persisted to database
+- [Phase 07]: Removed generic \\bold\\b pattern - temporal markers should be precise, not broad. Pattern matched 'old laptop', 'old code' causing false positives
 
 ## Technical Memory
 
