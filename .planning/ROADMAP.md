@@ -123,12 +123,12 @@ Plans:
   7. K-means clustering runs synchronously in worker to organize memories
   8. `fadedAt` timestamp field records when memory transitioned to faded status
   9. Faded memory deletion runs during session-start maintenance sweep
-**Plans:** 2/4 plans complete
+**Plans:** 3/4 plans complete
 
 Plans:
 - [x] 06-01-PLAN.md — Decay calculator and reinforcement tracker (Wave 1)
 - [x] 06-02-PLAN.md — Maintenance sweep and event emitter (Wave 2)
-- [ ] 06-03a-PLAN.md — K-means clustering and worker integration (Wave 2)
+- [x] 06-03a-PLAN.md — K-means clustering and worker integration (Wave 2)
 - [ ] 06-03b-PLAN.md — Public API event callbacks (Wave 2)
 
 ### Phase 7: Extraction & Contradiction
