@@ -83,3 +83,21 @@ export interface SemanticSearchPayload {
 export interface SemanticSearchResponsePayload {
   memories: MemoryDTO[];
 }
+
+/**
+ * Payload for MEMORY_FADED event message type
+ * Emitted when a memory's strength drops below the faded threshold
+ */
+export interface MemoryFadedEvent {
+  type: 'MEMORY_FADED';
+  payload: MemoryDTO;
+}
+
+/**
+ * Payload for MEMORY_DELETED event message type
+ * Emitted when a memory is permanently deleted from storage
+ */
+export interface MemoryDeletedEvent {
+  type: 'MEMORY_DELETED';
+  payload: { memoryId: string };
+}

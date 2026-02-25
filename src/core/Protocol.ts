@@ -76,6 +76,8 @@ export const MessageType = {
   GET: 'get',
   SEARCH: 'search',
   SEMANTIC_SEARCH: 'semantic_search',
+  MEMORY_FADED: 'MEMORY_FADED',
+  MEMORY_DELETED: 'MEMORY_DELETED',
 } as const;
 
 /**
