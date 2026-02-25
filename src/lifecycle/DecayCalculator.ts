@@ -13,6 +13,7 @@
  */
 
 import type { MemoryInternal } from '../internal/types.js';
+import type { MemoryType } from '../types/memory.js';
 import type { DecayConfig, DecayResult } from './types.js';
 
 /**
@@ -106,7 +107,7 @@ export class DecayCalculator {
 
     // Iterate through types to find minimum lambda
     for (const type of types) {
-      const lambda = this.config.lambdaByCategory[type];
+      const lambda = this.config.lambdaByCategory[type as MemoryType];
       if (lambda !== undefined && lambda < minLambda) {
         minLambda = lambda;
       }
