@@ -310,6 +310,20 @@ export class WorkerManager {
       set onmessageerror(handler: ((event: MessageEvent) => void) | null) {
         worker.onmessageerror = handler;
       },
+      addEventListener: (
+        type: string,
+        listener: (event: MessageEvent) => void,
+        options?: AddEventListenerOptions | boolean,
+      ) => {
+        worker.addEventListener(type, listener as EventListener, options);
+      },
+      removeEventListener: (
+        type: string,
+        listener: (event: MessageEvent) => void,
+        options?: EventListenerOptions | boolean,
+      ) => {
+        worker.removeEventListener(type, listener as EventListener, options);
+      },
       close: () => {
         worker.terminate();
       },
@@ -356,8 +370,9 @@ export class WorkerManager {
     }
 
     // Create a wrapper that only handles messages of the specified type
-    const eventHandler = (event: MessageEvent): void => {
-      const message = event.data;
+    const eventHandler = (event: Event): void => {
+      const messageEvent = event as MessageEvent;
+      const message = messageEvent.data;
       if (
         message &&
         typeof message === 'object' &&

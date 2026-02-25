@@ -44,6 +44,7 @@ import type {
 export class LifecycleManager {
   private readonly repository: MemoryRepository;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // @ts-expect-error - Stored for future use (K-means clustering enhancements)
   private readonly _vectorSearch: VectorSearch; // Stored for future use
 
   // Lifecycle components
@@ -295,6 +296,7 @@ export class LifecycleManager {
    * @deprecated Reserved for future use
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // @ts-expect-error - Reserved for future use (auto K calculation)
   private async _calculateOptimalK(): Promise<number> {
     const count = await this.repository.count();
     return Math.max(2, Math.floor(Math.sqrt(count / 2)));

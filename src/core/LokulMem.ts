@@ -15,7 +15,7 @@
  */
 
 import type { InitStage, LokulMemConfig } from '../types/api.js';
-import type { MemoryDTO } from '../types/memory.js';
+import type { MemoryDTO, MemoryType } from '../types/memory.js';
 import type { WorkerClient } from './MessagePort.js';
 import type { ModelConfig } from './Protocol.js';
 import { MessageType as MessageTypeConst } from './Protocol.js';
@@ -196,56 +196,82 @@ export class LokulMem {
 
   /**
    * Build LifecycleConfig from LokulMemConfig options
-   * Only includes properties that are explicitly set
+   * Provides sensible defaults for all required fields
+   * Returns undefined if lifecycle is not explicitly configured
    */
   private buildLifecycleConfig():
     | import('../lifecycle/types.js').LifecycleConfig
     | undefined {
-    const config: import('../lifecycle/types.js').LifecycleConfig = {};
+    // Only build config if user explicitly set at least one lifecycle field
+    const hasLifecycleConfig =
+      this.config.lambdaByCategory !== undefined ||
+      this.config.pinnedLambda !== undefined ||
+      this.config.fadedThreshold !== undefined ||
+      this.config.reinforcementByCategory !== undefined ||
+      this.config.maxBaseStrength !== undefined ||
+      this.config.reinforcementDebounceMs !== undefined ||
+      this.config.maintenanceIntervalMs !== undefined ||
+      this.config.kMeansK !== undefined ||
+      this.config.kMeansMaxIterations !== undefined ||
+      this.config.kMeansConvergenceThreshold !== undefined;
 
-    if (this.config.lambdaByCategory !== undefined) {
-      config.lambdaByCategory = this.config.lambdaByCategory;
+    if (!hasLifecycleConfig) {
+      return undefined;
     }
 
-    if (this.config.pinnedLambda !== undefined) {
-      config.pinnedLambda = this.config.pinnedLambda;
-    }
+    // Default values from Phase 6 research (06-RESEARCH.md)
+    // Pre-define the default category values for type safety
+    const defaultLambdaByCategory: Partial<Record<MemoryType, number>> = {
+      identity: 0.0001,
+      location: 0.0005,
+      profession: 0.0003,
+      preference: 0.001,
+      project: 0.005,
+      temporal: 0.02,
+      relational: 0.0004,
+      emotional: 0.01,
+    };
 
-    if (this.config.fadedThreshold !== undefined) {
-      config.fadedThreshold = this.config.fadedThreshold;
-    }
+    const defaultReinforcementByCategory: Partial<Record<MemoryType, number>> =
+      {
+        identity: 0.5,
+        location: 0.3,
+        profession: 0.4,
+        preference: 0.4,
+        project: 0.3,
+        temporal: 0.1,
+        relational: 0.3,
+        emotional: 0.2,
+      };
 
-    if (this.config.reinforcementByCategory !== undefined) {
-      config.reinforcementByCategory = this.config.reinforcementByCategory;
-    }
+    // Build base config with all required fields
+    const config: import('../lifecycle/types.js').LifecycleConfig = {
+      // Decay defaults
+      lambdaByCategory: this.config.lambdaByCategory ?? defaultLambdaByCategory,
+      pinnedLambda: this.config.pinnedLambda ?? 0,
+      fadedThreshold: this.config.fadedThreshold ?? 0.1,
 
-    if (this.config.maxBaseStrength !== undefined) {
-      config.maxBaseStrength = this.config.maxBaseStrength;
-    }
+      // Reinforcement defaults
+      reinforcementByCategory:
+        this.config.reinforcementByCategory ?? defaultReinforcementByCategory,
+      maxBaseStrength: this.config.maxBaseStrength ?? 3.0,
+      reinforcementDebounceMs: this.config.reinforcementDebounceMs ?? 5000,
 
-    if (this.config.reinforcementDebounceMs !== undefined) {
-      config.reinforcementDebounceMs = this.config.reinforcementDebounceMs;
-    }
+      // Maintenance defaults
+      maintenanceIntervalMs: this.config.maintenanceIntervalMs ?? 3600000,
 
-    if (this.config.maintenanceIntervalMs !== undefined) {
-      config.maintenanceIntervalMs = this.config.maintenanceIntervalMs;
-    }
+      // K-means defaults
+      kMeansMaxIterations: this.config.kMeansMaxIterations ?? 100,
+      kMeansConvergenceThreshold:
+        this.config.kMeansConvergenceThreshold ?? 0.001,
+    };
 
+    // Add optional kMeansK only if explicitly set
     if (this.config.kMeansK !== undefined) {
-      config.kMeansK = this.config.kMeansK;
+      (config as { kMeansK: number }).kMeansK = this.config.kMeansK;
     }
 
-    if (this.config.kMeansMaxIterations !== undefined) {
-      config.kMeansMaxIterations = this.config.kMeansMaxIterations;
-    }
-
-    if (this.config.kMeansConvergenceThreshold !== undefined) {
-      config.kMeansConvergenceThreshold =
-        this.config.kMeansConvergenceThreshold;
-    }
-
-    // Only return config if at least one property was set
-    return Object.keys(config).length > 0 ? config : undefined;
+    return config;
   }
 
   /**

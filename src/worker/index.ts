@@ -630,6 +630,20 @@ function createWorkerPortLike(
     },
     onmessage: null,
     onmessageerror: null,
+    addEventListener: (
+      type: string,
+      listener: (event: Event) => void,
+      options?: AddEventListenerOptions | boolean,
+    ) => {
+      workerScope.addEventListener(type, listener, options);
+    },
+    removeEventListener: (
+      type: string,
+      listener: (event: Event) => void,
+      options?: EventListenerOptions | boolean,
+    ) => {
+      workerScope.removeEventListener(type, listener, options);
+    },
   };
 }
 

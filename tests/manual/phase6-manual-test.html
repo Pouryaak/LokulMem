@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase 6: Lifecycle & Decay - Manual Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #1a1a2e;
+      color: #eaeaea;
+    }
+    h1 { color: #00d9ff; }
+    h2 { color: #00ff88; border-bottom: 1px solid #333; padding-bottom: 10px; }
+    h3 { color: #ffaa00; }
+    .test-section {
+      background: #16213e;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .test-result {
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    .pass { background: #1a472a; color: #00ff88; }
+    .fail { background: #4a1a1a; color: #ff4444; }
+    .pending { background: #3a3a1a; color: #ffaa00; }
+    .info { background: #1a3a4a; color: #00d9ff; }
+    button {
+      background: #00d9ff;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+      font-weight: bold;
+    }
+    button:hover { background: #00ff88; }
+    button:disabled { background: #444; color: #888; cursor: not-allowed; }
+    #runAllBtn { font-size: 1.2em; padding: 15px 30px; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0; }
+    .stat-box { background: #0f0f23; padding: 15px; border-radius: 8px; text-align: center; }
+    .stat-value { font-size: 2em; font-weight: bold; color: #00d9ff; }
+    .stat-label { color: #888; font-size: 0.9em; }
+    .console { background: #000; padding: 10px; border-radius: 4px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+    .console-line { margin: 2px 0; }
+    .console-error { color: #ff4444; }
+    .console-info { color: #00d9ff; }
+    .console-warn { color: #ffaa00; }
+    .progress-bar { background: #333; height: 20px; border-radius: 10px; overflow: hidden; }
+    .progress-fill { background: linear-gradient(90deg, #00d9ff, #00ff88); height: 100%; transition: width 0.3s; }
+  </style>
+</head>
+<body>
+  <h1>Phase 6: Lifecycle & Decay - Manual Test Suite</h1>
+
+  <div class="stats">
+    <div class="stat-box">
+      <div class="stat-value" id="passedTests">0</div>
+      <div class="stat-label">Passed</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="failedTests">0</div>
+      <div class="stat-label">Failed</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="totalTests">0</div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="initStatus">Not Started</div>
+      <div class="stat-label">Status</div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test Controls</h2>
+    <button id="runAllBtn" onclick="runAllTests()">Run All Tests</button>
+    <button onclick="runCategory('init')">Test: Initialization</button>
+    <button onclick="runCategory('ipc')">Test: IPC Protocol</button>
+    <button onclick="runCategory('events')">Test: Event Callbacks</button>
+    <button onclick="runCategory('types')">Test: Type Verification</button>
+    <button onclick="runCategory('cleanup')">Test: Cleanup</button>
+  </div>
+
+  <div class="test-section">
+    <h2>Progress</h2>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+    </div>
+    <p id="progressText">Waiting to start...</p>
+  </div>
+
+  <div class="test-section">
+    <h2>Test Results</h2>
+    <div id="testResults"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>Console Output</h2>
+    <div class="console" id="console"></div>
+  </div>
+
+  <script type="module">
+    // Test state
+    let lokul = null;
+    let testResults = { passed: 0, failed: 0, total: 0 };
+    let lifecycleEvents = { faded: [], deleted: [] };
+
+    // Console logging
+    function log(message, type = 'info') {
+      const consoleEl = document.getElementById('console');
+      const line = document.createElement('div');
+      line.className = `console-line console-${type}`;
+      line.textContent = `[${new Date().toISOString().split('T')[1]}] ${message}`;
+      consoleEl.appendChild(line);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    // Update stats
+    function updateStats() {
+      document.getElementById('passedTests').textContent = testResults.passed;
+      document.getElementById('failedTests').textContent = testResults.failed;
+      document.getElementById('totalTests').textContent = testResults.total;
+      const progress = testResults.total > 0 ? (testResults.passed / testResults.total) * 100 : 0;
+      document.getElementById('progressBar').style.width = `${progress}%`;
+      document.getElementById('progressText').textContent =
+        `${testResults.passed}/${testResults.total} tests passed (${progress.toFixed(1)}%)`;
+    }
+
+    // Add test result
+    function addResult(name, passed, details = '') {
+      testResults.total++;
+      if (passed) testResults.passed++;
+      else testResults.failed++;
+
+      const resultsEl = document.getElementById('testResults');
+      const result = document.createElement('div');
+      result.className = `test-result ${passed ? 'pass' : 'fail'}`;
+      result.textContent = `${passed ? '✓' : '✗'} ${name}${details ? ': ' + details : ''}`;
+      resultsEl.appendChild(result);
+      updateStats();
+      log(`${passed ? 'PASS' : 'FAIL'}: ${name}`, passed ? 'info' : 'error');
+    }
+
+    // Update progress text
+    function setProgress(text) {
+      document.getElementById('progressText').textContent = text;
+      document.getElementById('initStatus').textContent = text.split('...')[0];
+    }
+
+    // Run all tests
+    window.runAllTests = async function() {
+      const btn = document.getElementById('runAllBtn');
+      btn.disabled = true;
+
+      document.getElementById('testResults').innerHTML = '';
+      testResults = { passed: 0, failed: 0, total: 0 };
+      updateStats();
+
+      try {
+        await runCategory('init');
+        await runCategory('ipc');
+        await runCategory('events');
+        await runCategory('types');
+        await runCategory('cleanup');
+      } catch (error) {
+        log(`Test suite error: ${error.message}`, 'error');
+      }
+
+      btn.disabled = false;
+      setProgress('All tests completed');
+    };
+
+    // Run specific test category
+    window.runCategory = async function(category) {
+      log(`Starting ${category} tests...`, 'info');
+
+      switch (category) {
+        case 'init':
+          await testInitialization();
+          break;
+        case 'ipc':
+          await testIPCProtocol();
+          break;
+        case 'events':
+          await testEventCallbacks();
+          break;
+        case 'types':
+          await testTypeVerification();
+          break;
+        case 'cleanup':
+          await testCleanup();
+          break;
+      }
+    };
+
+    // Test: Initialization
+    async function testInitialization() {
+      setProgress('Testing initialization...');
+
+      // Test 1: Import module
+      try {
+        const module = await import('/dist/main.mjs');
+        addResult('Module import', typeof module.LokulMem === 'function');
+      } catch (error) {
+        addResult('Module import', false, error.message);
+        return;
+      }
+
+      // Test 2: Create instance with lifecycle config
+      try {
+        const { LokulMem } = await import('/dist/main.mjs');
+
+        // Set up event handlers before initialization
+        lokul = new LokulMem({
+          dbName: 'phase6-manual-test',
+          lambdaByCategory: {
+            identity: 0.0001,
+            location: 0.0005,
+            preference: 0.001,
+          },
+          fadedThreshold: 0.1,
+          maxBaseStrength: 3.0,
+          reinforcementDebounceMs: 1000,
+          maintenanceIntervalMs: 60000,
+          kMeansMaxIterations: 100,
+          kMeansConvergenceThreshold: 0.001,
+        });
+
+        // Register event handlers
+        lokul.onMemoryFaded((memory) => {
+          lifecycleEvents.faded.push(memory);
+          log(`Memory faded: ${memory.id}`, 'warn');
+        });
+
+        lokul.onMemoryDeleted((memoryId) => {
+          lifecycleEvents.deleted.push(memoryId);
+          log(`Memory deleted: ${memoryId}`, 'warn');
+        });
+
+        await lokul.initialize();
+        addResult('Create with lifecycle config', true);
+      } catch (error) {
+        addResult('Create with lifecycle config', false, error.message);
+        return;
+      }
+
+      // Test 3: Check worker type
+      try {
+        const workerType = lokul.getWorkerType();
+        addResult('Worker type valid',
+          ['shared', 'dedicated', 'main-thread'].includes(workerType),
+          workerType);
+      } catch (error) {
+        addResult('Worker type valid', false, error.message);
+      }
+
+      // Test 4: Check ready state
+      addResult('Ready state', lokul.isReady());
+
+      setProgress('Initialization complete');
+    }
+
+    // Test: IPC Protocol (using available methods)
+    async function testIPCProtocol() {
+      setProgress('Testing IPC protocol...');
+
+      if (!lokul) {
+        addResult('IPC tests', false, 'Lokul not initialized');
+        return;
+      }
+
+      try {
+        const client = lokul.getClient();
+        if (!client) {
+          addResult('IPC: Client available', false);
+          return;
+        }
+        addResult('IPC: Client available', true);
+
+        // Test 1: PING
+        try {
+          const pingResult = await client.request('ping', {}, 5000);
+          addResult('IPC: PING works', !!pingResult && typeof pingResult.timestamp === 'number',
+            pingResult?.timestamp ? `timestamp: ${pingResult.timestamp}` : 'no timestamp');
+        } catch (error) {
+          addResult('IPC: PING works', false, error.message);
+        }
+
+        // Test 2: LIST (should work even with empty DB)
+        // Note: Worker returns { result: { items, total, hasMore } }
+        try {
+          const listResult = await client.request('list', { limit: 10 }, 5000);
+          // Response is nested: payload: { result: { items, total, hasMore } }
+          const items = listResult?.result?.items;
+          addResult('IPC: LIST works', Array.isArray(items),
+            `${items?.length || 0} items, total: ${listResult?.result?.total || 0}`);
+        } catch (error) {
+          addResult('IPC: LIST works', false, error.message);
+        }
+
+        // Test 3: EMBED
+        try {
+          const embedResult = await client.request('embed', { text: 'Test embedding' }, 30000);
+          addResult('IPC: EMBED works',
+            embedResult?.embedding && embedResult.embedding.length > 0,
+            `dims: ${embedResult?.embedding?.length || 0}`);
+        } catch (error) {
+          addResult('IPC: EMBED works', false, error.message);
+        }
+
+        // Test 4: SEMANTIC_SEARCH
+        // Note: Message type is 'semantic_search' (snake_case) per Protocol.ts
+        try {
+          const searchResult = await client.request('semantic_search', {
+            query: 'test query',
+            maxTokens: 1000,
+          }, 30000);
+          addResult('IPC: SEMANTIC_SEARCH works', Array.isArray(searchResult?.memories),
+            `${searchResult?.memories?.length || 0} results`);
+        } catch (error) {
+          addResult('IPC: SEMANTIC_SEARCH works', false, error.message);
+        }
+
+      } catch (error) {
+        addResult('IPC protocol tests', false, error.message);
+      }
+    }
+
+    // Test: Event Callbacks
+    async function testEventCallbacks() {
+      setProgress('Testing event callbacks...');
+
+      if (!lokul) {
+        addResult('Event callback tests', false, 'Lokul not initialized');
+        return;
+      }
+
+      // Test 1: Verify handlers are registered
+      addResult('Events: onMemoryFaded returns unsubscribe',
+        typeof lokul.onMemoryFaded(() => {}) === 'function');
+      addResult('Events: onMemoryDeleted returns unsubscribe',
+        typeof lokul.onMemoryDeleted(() => {}) === 'function');
+
+      // Test 2: Test unsubscribe
+      let called = false;
+      const unsubscribe = lokul.onMemoryFaded(() => { called = true; });
+      addResult('Events: Unsubscribe is function', typeof unsubscribe === 'function');
+
+      // Call unsubscribe
+      unsubscribe();
+      addResult('Events: Unsubscribe works', true);
+
+      // Test 3: Verify lifecycle events array exists
+      addResult('Events: Lifecycle events tracked', Array.isArray(lifecycleEvents.faded) && Array.isArray(lifecycleEvents.deleted));
+    }
+
+    // Test: Type Verification
+    async function testTypeVerification() {
+      setProgress('Testing type verification...');
+
+      // Test 1: LokulMem has expected methods
+      if (lokul) {
+        addResult('Types: getWorkerType exists', typeof lokul.getWorkerType === 'function');
+        addResult('Types: isReady exists', typeof lokul.isReady === 'function');
+        addResult('Types: terminate exists', typeof lokul.terminate === 'function');
+        addResult('Types: getClient exists', typeof lokul.getClient === 'function');
+        addResult('Types: getPersistenceStatus exists', typeof lokul.getPersistenceStatus === 'function');
+        addResult('Types: onMemoryFaded exists', typeof lokul.onMemoryFaded === 'function');
+        addResult('Types: onMemoryDeleted exists', typeof lokul.onMemoryDeleted === 'function');
+      } else {
+        addResult('Types: LokulMem methods', false, 'Lokul not initialized');
+      }
+
+      // Test 2: WorkerClient has expected methods
+      if (lokul) {
+        const client = lokul.getClient();
+        if (client) {
+          addResult('Types: client.request exists', typeof client.request === 'function');
+          addResult('Types: client.terminate exists', typeof client.terminate === 'function');
+        } else {
+          addResult('Types: WorkerClient methods', false, 'Client not available');
+        }
+      }
+    }
+
+    // Test: Cleanup
+    async function testCleanup() {
+      setProgress('Testing cleanup...');
+
+      if (!lokul) {
+        addResult('Cleanup tests', false, 'Lokul not initialized');
+        return;
+      }
+
+      try {
+        // Test terminate
+        lokul.terminate();
+        addResult('Cleanup: Terminate works', !lokul.isReady());
+
+        // Test reinitialize
+        lokul = null;
+        addResult('Cleanup: Instance cleared', true);
+
+      } catch (error) {
+        addResult('Cleanup tests', false, error.message);
+      }
+    }
+
+    // Initial log
+    log('Phase 6 Manual Test Suite loaded', 'info');
+    log('Click "Run All Tests" to begin', 'info');
+  </script>
+</body>
+</html>

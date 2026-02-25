@@ -42,6 +42,18 @@ export interface PortLike {
   onmessageerror: ((event: MessageEvent) => void) | null;
   close?: () => void;
   start?: () => void;
+  /** Standard event listener API (supported by Worker and MessagePort) */
+  addEventListener(
+    type: string,
+    listener: (event: Event) => void,
+    options?: AddEventListenerOptions | boolean,
+  ): void;
+  /** Standard event listener API (supported by Worker and MessagePort) */
+  removeEventListener(
+    type: string,
+    listener: (event: Event) => void,
+    options?: EventListenerOptions | boolean,
+  ): void;
 }
 
 /**

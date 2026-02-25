@@ -151,15 +151,41 @@ class MainThreadChannel {
   private port2Handler: ((event: MessageEvent) => void) | null = null;
 
   constructor() {
+    // Map of event listeners for each port
+    const port1Listeners = new Map<string, Set<(event: Event) => void>>();
+    const port2Listeners = new Map<string, Set<(event: Event) => void>>();
+
     this.port1 = {
       postMessage: (data: unknown, _transfer?: Transferable[]) => {
         if (this.port2Handler) {
           const event = new MessageEvent('message', { data });
           this.port2Handler(event);
         }
+        // Also trigger addEventListener listeners
+        const listeners = port2Listeners.get('message');
+        if (listeners) {
+          const event = new MessageEvent('message', { data });
+          for (const listener of listeners) {
+            listener(event);
+          }
+        }
       },
       onmessage: null,
       onmessageerror: null,
+      addEventListener: (type: string, listener: (event: Event) => void) => {
+        let listeners = port1Listeners.get(type);
+        if (!listeners) {
+          listeners = new Set();
+          port1Listeners.set(type, listeners);
+        }
+        listeners.add(listener);
+      },
+      removeEventListener: (type: string, listener: (event: Event) => void) => {
+        const listeners = port1Listeners.get(type);
+        if (listeners) {
+          listeners.delete(listener);
+        }
+      },
     };
 
     this.port2 = {
@@ -168,9 +194,31 @@ class MainThreadChannel {
           const event = new MessageEvent('message', { data });
           this.port1Handler(event);
         }
+        // Also trigger addEventListener listeners
+        const listeners = port1Listeners.get('message');
+        if (listeners) {
+          const event = new MessageEvent('message', { data });
+          for (const listener of listeners) {
+            listener(event);
+          }
+        }
       },
       onmessage: null,
       onmessageerror: null,
+      addEventListener: (type: string, listener: (event: Event) => void) => {
+        let listeners = port2Listeners.get(type);
+        if (!listeners) {
+          listeners = new Set();
+          port2Listeners.set(type, listeners);
+        }
+        listeners.add(listener);
+      },
+      removeEventListener: (type: string, listener: (event: Event) => void) => {
+        const listeners = port2Listeners.get(type);
+        if (listeners) {
+          listeners.delete(listener);
+        }
+      },
     };
 
     // Set up handler proxies

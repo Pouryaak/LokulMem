@@ -365,7 +365,7 @@ export class MemoryRepository {
    * Update cluster IDs for multiple memories
    *
    * Optimized for K-means clustering updates.
-   * Only updates the clusterId field using partial update.
+   * Uses Dexie's toCollection().modify() for efficient partial field updates.
    *
    * @param updates - Array of objects with id and clusterId fields
    */
@@ -376,7 +376,22 @@ export class MemoryRepository {
       return;
     }
 
-    await this.db.memories.bulkUpdate(updates, ['clusterId']);
+    // Build a map for O(1) lookup during modify
+    const clusterMap = new Map<string, string>(
+      updates.map((u) => [u.id, u.clusterId] as const),
+    );
+
+    // Use Dexie's Collection.modify() for efficient partial updates
+    // This updates only the clusterId field for matching IDs
+    await this.db.memories
+      .where('id')
+      .anyOf(updates.map((u) => u.id))
+      .modify((memory) => {
+        const newClusterId = clusterMap.get(memory.id);
+        if (newClusterId !== undefined) {
+          memory.clusterId = newClusterId;
+        }
+      });
   }
 
   // ============================================================================
