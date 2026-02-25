@@ -78,6 +78,9 @@ export interface DbMemoryRow {
   /** When this memory faded (Unix ms) */
   fadedAt: number | null;
 
+  /** When content was stripped for tombstone (Unix ms) */
+  deletedAt: number | null;
+
   /** Additional metadata */
   metadata: Record<string, unknown>;
 
@@ -145,7 +148,45 @@ export class LokulDatabase extends Dexie {
   constructor() {
     super('LokulMemDB');
 
-    // Version 1: Initial schema
+    // Version 2: Add supersession tracking
+    // CRITICAL: deletedAt is NOT in stores() string - it uses .and() filter in queries
+    // This is intentional: deletedAt is a query filter, not an indexed lookup
+    this.version(2)
+      .stores({
+        memories: `
+          id,
+          *types,
+          status,
+          clusterId,
+          lastAccessedAt,
+          baseStrength,
+          validFrom,
+          pinnedInt,
+          mentionCount,
+          [status+lastAccessedAt],
+          [clusterId+status],
+          [status+baseStrength],
+          supersededAt
+        `,
+        episodes: 'id, startMemoryId, endMemoryId, createdAt',
+        edges: 'id, sourceMemoryId, targetMemoryId, similarity, createdAt',
+        clusters: 'id, createdAt',
+      })
+      .upgrade(async (trans) => {
+        // Migration from v1 to v2
+        const memories = trans.table('memories');
+        await memories.toCollection().modify((memory) => {
+          // Add supersession fields
+          if (memory.supersededAt === undefined) {
+            memory.supersededAt = null;
+          }
+          if (memory.deletedAt === undefined) {
+            memory.deletedAt = null;
+          }
+        });
+      });
+
+    // Keep v1 for backward compatibility during migration
     this.version(1)
       .stores({
         memories: `
@@ -170,13 +211,6 @@ export class LokulDatabase extends Dexie {
         // v1 is initial creation - no data migration needed
         // Future versions will add upgrade logic here
       });
-
-    // Future migrations follow this pattern:
-    // this.version(2).stores({
-    //   memories: '..., newField'
-    // }).upgrade(async (trans) => {
-    //   // Migration logic here
-    // });
   }
 
   /**
@@ -232,6 +266,7 @@ export class LokulDatabase extends Dexie {
         supersededBy: m.supersededBy,
         supersededAt: m.supersededAt,
         fadedAt: m.fadedAt,
+        deletedAt: m.deletedAt,
         metadata: m.metadata,
       })),
       episodes,

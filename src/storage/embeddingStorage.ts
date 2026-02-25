@@ -102,7 +102,60 @@ export function memoryToDb(memory: MemoryInternal): DbMemoryRow {
     embeddingBytes: toDbFormat(embedding),
     pinnedInt: pinned ? 1 : 0,
     metadata,
+    deletedAt: null,
   };
+}
+
+/**
+ * Infer conflict domain from memory types
+ * @param types - Memory types
+ * @returns Inferred conflict domain
+ */
+function inferConflictDomain(
+  types: string[],
+):
+  | 'identity'
+  | 'location'
+  | 'preference'
+  | 'temporal'
+  | 'relational'
+  | 'emotional'
+  | 'profession'
+  | 'project' {
+  // Map memory types to conflict domains
+  // Priority order for conflict domains when multiple types present
+  const domainMapping: Partial<
+    Record<
+      string,
+      | 'identity'
+      | 'location'
+      | 'preference'
+      | 'temporal'
+      | 'relational'
+      | 'emotional'
+      | 'profession'
+      | 'project'
+    >
+  > = {
+    identity: 'identity',
+    location: 'location',
+    profession: 'profession',
+    preference: 'preference',
+    temporal: 'temporal',
+    relational: 'relational',
+    emotional: 'emotional',
+    project: 'project',
+  };
+
+  // Return the first mapped conflict domain, or 'preference' as default
+  for (const type of types) {
+    const domain = domainMapping[type];
+    if (domain) {
+      return domain;
+    }
+  }
+
+  return 'preference';
 }
 
 /**
@@ -111,18 +164,21 @@ export function memoryToDb(memory: MemoryInternal): DbMemoryRow {
  * Transforms:
  * - embeddingBytes (ArrayBuffer) -> embedding (Float32Array)
  * - pinnedInt (number) -> pinned (boolean)
+ * - types -> conflictDomain (inferred)
  *
  * @param row - Database row format
  * @returns Internal memory representation
  * @throws Error if embedding dimension is invalid
  */
 export function memoryFromDb(row: DbMemoryRow): MemoryInternal {
-  const { embeddingBytes, pinnedInt, ...rest } = row;
+  const { embeddingBytes, pinnedInt, types, ...rest } = row;
 
   return {
     ...rest,
+    types,
     embedding: fromDbFormat(embeddingBytes),
     pinned: pinnedInt === 1,
+    conflictDomain: inferConflictDomain(types),
   } as MemoryInternal;
 }
 
