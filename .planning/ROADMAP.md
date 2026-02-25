@@ -183,7 +183,7 @@ Plans:
 | 3. Storage Layer | 3/3 | Complete | 2026-02-23 |
 | 4. Embedding Engine | 3/3 | Complete | 2026-02-24 |
 | 5. Memory Store & Retrieval | 3/3 | Complete    | 2026-02-24 |
-| 6. Lifecycle & Decay | 2/4 | In Progress | - |
+| 6. Lifecycle & Decay | 2/4 | Complete    | 2026-02-25 |
 | 7. Extraction & Contradiction | 0/2 | Not started | - |
 | 8. Public API & Demo | 0/3 | Not started | - |
 
