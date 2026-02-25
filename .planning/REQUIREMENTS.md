@@ -54,14 +54,14 @@
 
 ### Decay & Lifecycle
 
-- [ ] **DECAY-01**: Ebbinghaus decay: strength(t) = base_strength × e^(-λ × Δt_hours)
-- [ ] **DECAY-02**: Per-category λ values: identity (0.0001), location (0.0005), profession (0.0003), preferences (0.001), project (0.005), temporal (0.02), relational (0.0004), emotional (0.01)
-- [ ] **DECAY-03**: Pinned memories have λ = 0 (no decay)
-- [ ] **DECAY-04**: Reinforcement on retrieval: base_strength + 0.3 (max 3.0)
+- [x] **DECAY-01**: Ebbinghaus decay: strength(t) = base_strength × e^(-λ × Δt_hours)
+- [x] **DECAY-02**: Per-category λ values: identity (0.0001), location (0.0005), profession (0.0003), preferences (0.001), project (0.005), temporal (0.02), relational (0.0004), emotional (0.01)
+- [x] **DECAY-03**: Pinned memories have λ = 0 (no decay)
+- [x] **DECAY-04**: Reinforcement on retrieval: base_strength + 0.3 (max 3.0)
 - [ ] **DECAY-05**: Maintenance sweep runs at session start
 - [ ] **DECAY-06**: Faded memories (strength < 0.1) marked as faded, deleted after 30 days
 - [ ] **DECAY-07**: K-means clustering runs synchronously in worker
-- [ ] **DECAY-08**: `fadedAt` timestamp field records when memory transitioned to faded status (enables 30-day deletion policy)
+- [x] **DECAY-08**: `fadedAt` timestamp field records when memory transitioned to faded status (enables 30-day deletion policy)
 - [ ] **DECAY-09**: Faded memory deletion runs during session-start maintenance sweep
 
 ### Vector Search & Retrieval

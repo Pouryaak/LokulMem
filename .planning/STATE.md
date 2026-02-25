@@ -2,9 +2,9 @@
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
 **Current Phase:** 06
-**Current Plan:** 06-03 (Plans complete)
-**Status:** Phase 6 planning complete, ready for execution
-**Updated:** 2026-02-24
+**Current Plan:** 06-02
+**Status:** Executing Phase 6 plans
+**Updated:** 2026-02-25
 
 ---
 
@@ -35,19 +35,49 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 2: Worker Infrastructure (Complete - 5 of 5 plans)
 [██████████] 100% - Phase 3: Storage Layer (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 4: Embedding Engine (Complete - 3 of 3 plans)
-[██████████] 100% - Phase 5: Memory Store & Retrieval (Plans 01-03 complete)
-[████████░░] 80% - Phase 6: Lifecycle & Decay (Plans 01-03 created, ready for execution)
+[██████████] 100% - Phase 5: Memory Store & Retrieval (Complete - 3 of 3 plans)
+[██░░░░░░░░] 25% - Phase 6: Lifecycle & Decay (06-01 complete, 3 plans remaining)
 [░░░░░░░░░░] 0% - Phase 7: Extraction & Contradiction (Not started)
 [░░░░░░░░░░] 0% - Phase 8: Public API & Demo (Not started)
 ```
 
 ### Active Work
 
-Phase 6 planning complete! Created 3 plans:
+**Plan 06-01 Complete!** Implemented Ebbinghaus decay calculator and reinforcement tracker:
 
-**06-01: Decay Calculator & Reinforcement Tracker (Wave 1)**
-- DecayCalculator: Ebbinghaus decay with per-category lambda values
-- ReinforcementTracker: Debounced writes with category-based reinforcement
+**DecayCalculator:**
+- Ebbinghaus forgetting curve: strength(t) = base × e^(-λ × t)
+- Per-category lambda values (identity: 0.0001, temporal: 0.02, etc.)
+- Pinned memories get lambda = 0 (no decay)
+- Age calculation using lastAccessedAt with createdAt fallback
+- Validation: all lambda values must be non-negative
+
+**ReinforcementTracker:**
+- Category-based reinforcement amounts (default 0.3 per category)
+- Debounced writes with configurable window (default 5 seconds)
+- Hard cap at 3.0 prevents unlimited strengthening
+- Automatic lastAccessedAt and mentionCount updates
+- Efficient batch updates via repository.bulkUpdateStrengths()
+
+**Type Definitions:**
+- DecayConfig, ReinforcementConfig, LifecycleConfig
+- DecayResult, ReinforcementTask
+- All types properly documented and exported
+
+**Committed:**
+- 1c3a3bd: feat(06-01): create lifecycle types and interfaces
+- 577e65e: feat(06-01): implement Ebbinghaus decay calculator
+- 96d49c8: feat(06-01): implement reinforcement tracker with debounced writes
+- 14b5b64: feat(06-01): create lifecycle barrel export
+- c10f519: feat(06-01): add bulkUpdateStrengths to MemoryRepository
+- e470503: fix(06-01): fix TypeScript type error in DecayCalculator
+
+**Duration:** 3 minutes
+**Deviations:** 1 auto-fix (TypeScript type error - Rule 1 - Bug)
+
+### Next Action
+
+Execute Plan 06-02: Maintenance Sweep & Event Emitter (Wave 2)
 - Types: DecayConfig, ReinforcementConfig, DecayResult, etc.
 - Requirements: DECAY-01, DECAY-02, DECAY-03, DECAY-04, DECAY-08
 
@@ -124,6 +154,7 @@ All 3 plans executed successfully:
 | Model load time | — | ~3s first, <100ms cached | ✅ Measured |
 | Phase 04 | All plans | 3 plans, 15 tasks | ✅ Complete |
 | Phase 05 P03 | 167 | 6 tasks | 6 files |
+| Phase 06 P06-01 | 3min | 5 tasks | 5 files |
 
 ### Benchmarks
 
@@ -188,10 +219,25 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 | 2026-02-24 | Worker handlers use PortLike | SharedWorker + DedicatedWorker compatibility | **Implemented** ✅ (05-02) |
 | 2026-02-24 | Method overloads deferred | Phase 6+ or .d.ts for includeEmbedding overloads | Planned in 05-02 |
 | 2026-02-24 | Messages-based token accounting for accurate budgeting | computeTokenBudget() accepts full message list (system + history + user), NO default context window, worker remains stateless | **Implemented** ✅ (05-03) |
+| 2026-02-25 | Ebbinghaus decay with per-category lambda | strength(t) = base × e^(-λ × t), different rates per type | **Implemented** ✅ (06-01) |
+| 2026-02-25 | Debounced reinforcement writes | Batch within 5s window to prevent excessive IndexedDB operations | **Implemented** ✅ (06-01) |
+| 2026-02-25 | Hard cap at 3.0 for baseStrength | Prevents unlimited reinforcement, enforced at calculation time | **Implemented** ✅ (06-01) |
+| 2026-02-25 | Category-based configuration | lambdaByCategory and reinforcementByCategory for flexible tuning | **Implemented** ✅ (06-01) |
+| 2026-02-24 | QueryEngine with 10+ methods | Complete query API for all data access patterns | **Implemented** ✅ (05-02) |
+| 2026-02-24 | Pagination with offset/limit | Returns { items, total, hasMore } for UI scrolling | **Implemented** ✅ (05-02) |
+| 2026-02-24 | Full-text search modes | exact, and, or for multi-word queries | **Implemented** ✅ (05-02) |
+| 2026-02-24 | Semantic search defaults to semantic-only | useCompositeScoring=false per CONTEXT.md decision | **Implemented** ✅ (05-02) |
+| 2026-02-24 | RPC payload types separated | protocol-types.ts for cleaner protocol layering | **Implemented** ✅ (05-02) |
+| 2026-02-24 | Worker handlers use PortLike | SharedWorker + DedicatedWorker compatibility | **Implemented** ✅ (05-02) |
+| 2026-02-24 | Method overloads deferred | Phase 6+ or .d.ts for includeEmbedding overloads | Planned in 05-02 |
+| 2026-02-24 | Messages-based token accounting for accurate budgeting | computeTokenBudget() accepts full message list (system + history + user), NO default context window, worker remains stateless | **Implemented** ✅ (05-03) |
 - [Phase 04]: Use @huggingface/transformers v3.x with dtype: 'q8' quantization
 - [Phase 04]: Explicit env.useBrowserCache=true for Cache API persistence
 - [Phase 04]: Airgap mode blocks all network via env.allowRemoteModels=false
 - [Phase 05]: Messages-based token accounting for accurate budgeting (computeTokenBudget accepts full message list, NO default context window, worker stateless)
+- [Phase 06]: Ebbinghaus decay formula: strength(t) = base × e^(-λ × t) with per-category lambda values
+- [Phase 06]: Debounced reinforcement writes batch within 5s window to prevent excessive IndexedDB operations
+- [Phase 06]: Hard cap at 3.0 for baseStrength prevents unlimited reinforcement
 
 ## Technical Memory
 
