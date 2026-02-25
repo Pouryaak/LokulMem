@@ -2,7 +2,7 @@
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
 **Current Phase:** 7
-**Current Plan:** 07-03a (Contradiction Detection Engine)
+**Current Plan:** 07-03b (Contradiction Detection Engine)
 **Status:** In progress - 2 of 4 plans complete
 **Updated:** 2026-02-25
 
@@ -42,6 +42,27 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 ```
 
 ### Active Work
+
+**Plan 07-03a Complete!** Database schema for supersession implemented in 3 minutes:
+
+**Implemented:**
+- Database schema v2 with deletedAt field and supersededAt index
+- Migration from v1 to v2 with backward compatibility
+- Supersession methods: supersede(), findExpiredSuperseded(), stripToTombstone(), getSupersessionChain()
+- Conflict domain search: searchByConflictDomain() in VectorSearch
+- conflictDomain inference in memoryFromDb conversion
+- Tombstone semantics with metadata preservation (30-day retention)
+
+**Committed:**
+- 5d3ca35: feat(07-03a): extend database schema for supersession
+- f0b9d1b: feat(07-03a): add supersession methods to MemoryRepository
+- 26a4f58: feat(07-03a): add conflict domain search to VectorSearch
+
+**Deviations:** 1 issue (conflictDomain inference missing in memoryFromDb - fixed with Rule 2)
+
+**Next Action:** Execute Plan 07-03b: Contradiction Detection Engine
+
+---
 
 **Plan 07-02 Complete!** Temporal marker tracking implemented in 2 minutes:
 

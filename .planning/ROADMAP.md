@@ -152,9 +152,9 @@ Plans:
 **Plans:** 4/4 plans created
 
 Plans:
-- [ ] 07-01-PLAN.md — Structured Attribute Extraction (Wave 1)
-- [ ] 07-02-PLAN.md — Temporal Marker Tracking (Wave 2)
-- [ ] 07-03a-PLAN.md — Database Schema for Supersession (Wave 3)
+- [x] 07-01-PLAN.md — Structured Attribute Extraction (Wave 1)
+- [x] 07-02-PLAN.md — Temporal Marker Tracking (Wave 2)
+- [x] 07-03a-PLAN.md — Database Schema for Supersession (Wave 3)
 - [ ] 07-03b-PLAN.md — Contradiction Detection Engine (Wave 4)
 
 ### Phase 8: Public API & Demo
