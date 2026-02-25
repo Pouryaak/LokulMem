@@ -345,6 +345,23 @@ export class MemoryRepository {
   }
 
   /**
+   * Update currentStrength field for multiple memories
+   *
+   * Optimized for decay calculation updates from MaintenanceSweep.
+   * Uses bulkPut for efficient batch updates.
+   *
+   * @param memories - Array of MemoryInternal with updated currentStrength
+   */
+  async bulkUpdateCurrentStrengths(memories: MemoryInternal[]): Promise<void> {
+    if (memories.length === 0) {
+      return;
+    }
+
+    const rows = memories.map((memory) => memoryToDb(memory));
+    await this.db.memories.bulkPut(rows);
+  }
+
+  /**
    * Update cluster IDs for multiple memories
    *
    * Optimized for K-means clustering updates.

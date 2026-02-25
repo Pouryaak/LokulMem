@@ -131,7 +131,7 @@ export class MaintenanceSweep {
       }
 
       // Step 5: Batch update all strengths and status changes
-      await this.bulkUpdateCurrentStrengths(updates);
+      await this.repository.bulkUpdateCurrentStrengths(updates);
 
       // Progress: DB updated
       this.config.onProgress?.('decay', 75);
@@ -259,24 +259,6 @@ export class MaintenanceSweep {
   async shutdown(): Promise<void> {
     this.stopPeriodicSweeps();
     await this.reinforcementTracker.forceFlush();
-  }
-
-  /**
-   * Bulk update current strength for multiple memories
-   * @param memories - Array of memories to update
-   *
-   * Helper method that uses the repository's bulk update operation.
-   * Temporarily uses bulkUpdateStrengths until bulkUpdateCurrentStrengths is added.
-   */
-  private async bulkUpdateCurrentStrengths(
-    memories: MemoryInternal[],
-  ): Promise<void> {
-    if (memories.length === 0) {
-      return;
-    }
-
-    // Use existing bulkUpdateStrengths method
-    await this.repository.bulkUpdateStrengths(memories);
   }
 }
 
