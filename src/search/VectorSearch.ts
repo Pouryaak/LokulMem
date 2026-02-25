@@ -47,6 +47,15 @@ export class VectorSearch {
       pinned: boolean;
       strength: number;
       clusterId: string | null;
+      conflictDomain:
+        | 'identity'
+        | 'location'
+        | 'preference'
+        | 'temporal'
+        | 'relational'
+        | 'emotional'
+        | 'profession'
+        | 'project';
     }
   >();
   private scoring: Scoring;
@@ -81,6 +90,7 @@ export class VectorSearch {
         pinned: memory.pinned,
         strength: memory.currentStrength,
         clusterId: memory.clusterId,
+        conflictDomain: memory.conflictDomain,
       });
     }
 
@@ -100,6 +110,7 @@ export class VectorSearch {
       pinned: memory.pinned,
       strength: memory.currentStrength,
       clusterId: memory.clusterId,
+      conflictDomain: memory.conflictDomain,
     });
   }
 
@@ -114,6 +125,7 @@ export class VectorSearch {
       pinned: memory.pinned,
       strength: memory.currentStrength,
       clusterId: memory.clusterId,
+      conflictDomain: memory.conflictDomain,
     });
   }
 
@@ -305,5 +317,52 @@ export class VectorSearch {
   clear(): void {
     this.cache.clear();
     this.metaCache.clear();
+  }
+
+  /**
+   * Search memories within a conflict domain
+   * Used for contradiction detection candidate retrieval
+   *
+   * @param query - Query text
+   * @param conflictDomain - Conflict domain to filter
+   * @param k - Number of candidates (default: 7)
+   * @returns Array of search results with memory details
+   */
+  async searchByConflictDomain(
+    query: string,
+    conflictDomain:
+      | 'identity'
+      | 'location'
+      | 'preference'
+      | 'temporal'
+      | 'relational'
+      | 'emotional'
+      | 'profession'
+      | 'project',
+    k = 7,
+  ): Promise<Array<{ memoryId: string; similarity: number }>> {
+    const queryEmbedding = await this.embeddingEngine.embed(query);
+
+    // Build similarity map filtered by conflict domain
+    const candidates: Array<{ memoryId: string; similarity: number }> = [];
+
+    for (const [memoryId, memoryEmbedding] of this.cache) {
+      const meta = this.metaCache.get(memoryId);
+      if (!meta) continue;
+
+      // CRITICAL FIX: Filter by conflict domain during iteration
+      // conflictDomain MUST be in metaCache from Phase 5 init
+      if (meta.conflictDomain !== conflictDomain) {
+        continue;
+      }
+
+      const similarity = this.cosineSimilarity(queryEmbedding, memoryEmbedding);
+      candidates.push({ memoryId, similarity });
+    }
+
+    // Sort by similarity descending
+    candidates.sort((a, b) => b.similarity - a.similarity);
+
+    return candidates.slice(0, k);
   }
 }
