@@ -2,7 +2,7 @@
  * API types for LokulMem configuration and options
  */
 
-import type { MemoryDTO } from './memory.js';
+import type { MemoryDTO, MemoryType } from './memory.js';
 
 /**
  * Initialization stages for progress callbacks
@@ -124,6 +124,88 @@ export interface LokulMemConfig {
    * @returns Estimated token count
    */
   tokenCounter?: (text: string) => number;
+
+  // === Lifecycle Configuration (optional) ===
+
+  /**
+   * Decay lambda values by memory category.
+   *
+   * Controls how quickly different types of memories decay.
+   * Lower values = slower decay (memories last longer).
+   * Defaults: semantic=0.01, episodic=0.02, procedural=0.005,
+   *           semantic_short=0.03, working=0.1.
+   */
+  lambdaByCategory?: Partial<Record<MemoryType, number>>;
+
+  /**
+   * Lambda value for pinned memories (default: 0).
+   *
+   * Pinned memories don't decay by default (lambda=0).
+   * Set to a positive value to allow slow decay even for pinned memories.
+   */
+  pinnedLambda?: number;
+
+  /**
+   * Threshold below which a memory is considered "faded" (default: 0.1).
+   *
+   * When strength drops below this threshold, the memory is marked as faded
+   * and a MEMORY_FADED event is emitted. Faded memories are deleted after
+   * 30 days.
+   */
+  fadedThreshold?: number;
+
+  /**
+   * Reinforcement amounts by memory category.
+   *
+   * Controls how much different types of memories are reinforced when accessed.
+   * Higher values = stronger reinforcement.
+   * Defaults: semantic=0.3, episodic=0.5, procedural=0.2,
+   *           semantic_short=0.4, working=0.6.
+   */
+  reinforcementByCategory?: Partial<Record<MemoryType, number>>;
+
+  /**
+   * Maximum base strength cap (default: 3.0).
+   *
+   * Prevents unlimited reinforcement. Once a memory reaches this strength,
+   * further reinforcement has no effect.
+   */
+  maxBaseStrength?: number;
+
+  /**
+   * Reinforcement debounce window in milliseconds (default: 5000).
+   *
+   * Multiple accesses within this window are debounced and written as a single
+   * reinforcement to reduce IndexedDB operations.
+   */
+  reinforcementDebounceMs?: number;
+
+  /**
+   * Maintenance sweep interval in milliseconds (default: 3600000 = 1 hour).
+   *
+   * How often to run maintenance sweeps that calculate decay, mark faded memories,
+   * and delete old faded memories.
+   */
+  maintenanceIntervalMs?: number;
+
+  /**
+   * Number of clusters for K-means (default: 10).
+   *
+   * If not provided, uses heuristic: max(2, floor(sqrt(n/2))).
+   */
+  kMeansK?: number;
+
+  /**
+   * Maximum iterations for K-means convergence (default: 100).
+   */
+  kMeansMaxIterations?: number;
+
+  /**
+   * Convergence threshold for K-means (default: 0.001).
+   *
+   * K-means stops when centroid movement is below this threshold.
+   */
+  kMeansConvergenceThreshold?: number;
 }
 
 /**
