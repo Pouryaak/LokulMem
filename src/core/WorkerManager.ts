@@ -8,6 +8,7 @@
  * Main thread: Direct execution (last resort)
  */
 
+import type { ContradictionEvent, SupersessionEvent } from '../types/events.js';
 import { WorkerClient, createMainThreadPort } from './MessagePort.js';
 import { requestPersistence } from './Persistence.js';
 import type { InitPayload, ProgressMessage } from './Protocol.js';
@@ -393,5 +394,33 @@ export class WorkerManager {
     return () => {
       this.port?.removeEventListener('message', eventHandler);
     };
+  }
+
+  /**
+   * Register handler for contradiction events
+   *
+   * CRITICAL: ContradictionEvent contains IDs and metadata only per CONTEXT decision.
+   * Full content retrievable via manage().get() if needed.
+   *
+   * @param handler - Event handler
+   * @returns Unsubscribe function
+   */
+  onContradictionDetected(
+    handler: (event: ContradictionEvent) => void,
+  ): () => void {
+    return this.on('CONTRADICTION_DETECTED', (payload) => {
+      handler(payload as ContradictionEvent);
+    });
+  }
+
+  /**
+   * Register handler for memory superseded events
+   * @param handler - Event handler
+   * @returns Unsubscribe function
+   */
+  onMemorySuperseded(handler: (event: SupersessionEvent) => void): () => void {
+    return this.on('MEMORY_SUPERSEDED', (payload) => {
+      handler(payload as SupersessionEvent);
+    });
   }
 }
