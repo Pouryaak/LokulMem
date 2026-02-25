@@ -7,6 +7,20 @@
 import type { MemoryDTO } from '../types/memory.js';
 
 /**
+ * ConflictDomain - Domain for contradiction detection
+ * Memories conflict only within the same conflict domain
+ */
+export type ConflictDomain =
+  | 'identity'
+  | 'location'
+  | 'preference'
+  | 'temporal'
+  | 'relational'
+  | 'emotional'
+  | 'profession'
+  | 'project';
+
+/**
  * MemoryInternal - Internal representation with embedding
  * Extends MemoryDTO with Float32Array embedding (internal use only)
  */
@@ -16,6 +30,20 @@ export interface MemoryInternal extends Omit<MemoryDTO, 'metadata'> {
 
   /** Metadata with internal fields allowed */
   metadata: Record<string, unknown>;
+
+  /**
+   * Conflict domain for contradiction checking
+   * Maps memory type to conflict domain:
+   * - 'identity': identity facts
+   * - 'location': location facts
+   * - 'profession': profession facts
+   * - 'preference': preference facts
+   * - 'temporal': time-based facts
+   * - 'relational': relationship facts
+   * - 'emotional': emotional states
+   * - 'project': project/task facts
+   */
+  conflictDomain: ConflictDomain;
 }
 
 /**

@@ -4,7 +4,7 @@
  */
 
 import type { MemoryDTO, MemoryType } from '../types/memory.js';
-import type { MemoryInternal } from './types.js';
+import type { ConflictDomain, MemoryInternal } from './types.js';
 
 /**
  * Convert internal memory to public DTO (removes embedding)
@@ -38,6 +38,7 @@ export function fromMemoryDTO(
   return {
     ...dto,
     embedding,
+    conflictDomain: inferConflictDomain(dto.types),
   };
 }
 
@@ -80,5 +81,36 @@ export function createMemoryInternal(
     fadedAt: overrides?.fadedAt ?? null,
     metadata: overrides?.metadata ?? {},
     embedding,
+    conflictDomain: overrides?.conflictDomain ?? inferConflictDomain(types),
   };
+}
+
+/**
+ * Infer conflict domain from memory types
+ * @param types - Memory types
+ * @returns Inferred conflict domain
+ */
+function inferConflictDomain(types: MemoryType[]): ConflictDomain {
+  // Map memory types to conflict domains
+  // Priority order for conflict domains when multiple types present
+  const domainMapping: Partial<Record<MemoryType, ConflictDomain>> = {
+    identity: 'identity',
+    location: 'location',
+    profession: 'profession',
+    preference: 'preference',
+    temporal: 'temporal',
+    relational: 'relational',
+    emotional: 'emotional',
+    project: 'project',
+  };
+
+  // Return the first mapped conflict domain, or 'preference' as default
+  for (const type of types) {
+    const domain = domainMapping[type];
+    if (domain) {
+      return domain;
+    }
+  }
+
+  return 'preference';
 }
