@@ -1,9 +1,9 @@
 # State: LokulMem
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
-**Current Phase:** 6
-**Current Plan:** Not started
-**Status:** Milestone complete
+**Current Phase:** 7
+**Current Plan:** 07-02 (Temporal Marker Tracking)
+**Status:** Ready for execution
 **Updated:** 2026-02-25
 
 ---
@@ -32,18 +32,87 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 
 ```
 [██████████] 100% - Phase 1: Foundation (Complete)
-[██████████] 100% - Phase 2: Worker Infrastructure (Complete - 5 of 5 plans)
+[██████████] 100% - Phase 2: Worker Infrastructure (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 3: Storage Layer (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 4: Embedding Engine (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 5: Memory Store & Retrieval (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 6: Lifecycle & Decay (Complete - 4 of 4 plans)
-[░░░░░░░░░░] 0% - Phase 7: Extraction & Contradiction (Not started)
+[███░░░░░░░] 25% - Phase 7: Extraction & Contradiction (1 of 4 plans complete)
 [░░░░░░░░░░] 0% - Phase 8: Public API & Demo (Not started)
 ```
 
 ### Active Work
 
-**Plan 06-03b Complete!** Integrated lifecycle system with worker and public API:
+**Plan 07-01 Complete!** Extraction quality pipeline implemented in 6 minutes:
+
+**Implemented:**
+- SpecificityNER class with regex-based entity extraction (7 entity types)
+- NoveltyCalculator using VectorSearch with k=1 for efficient novelty computation
+- RecurrenceTracker for session-based recurrence detection with content hashing
+- QualityScorer computing E(s) = 0.35×novelty + 0.45×specificity + 0.20×recurrence
+- Extraction threshold default 0.55 (configurable with type-specific overrides)
+- Entity, ExtractionScore, ExtractionConfig types added to memory.ts
+
+**Committed:**
+- d249585: feat(07-01): add extraction types to type definitions
+- 5ad448b: feat(07-01): implement SpecificityNER class
+- 6282d12: feat(07-01): implement NoveltyCalculator class
+- e7cc572: feat(07-01): implement RecurrenceTracker class
+- 0b70890: feat(07-01): implement QualityScorer class
+- 88de710: feat(07-01): create extraction barrel file
+
+**Deviations:** 3 issues (unused variables and possibly undefined array access - all resolved)
+
+**Next Action:** Execute Plan 07-02: Temporal Marker Tracking
+
+---
+
+**Phase 7 Planning:** 4 plans created for Extraction & Contradiction phase
+
+**Plan 07-02: Temporal Marker Tracking** (Wave 2 - Integration)
+- TemporalMarkerDetector class with 16 temporal patterns
+- Temporal classification: past, former, change, correction
+- Change type inference from content keywords
+- Conflict domain mapping (8 domains)
+- Requirements: CONTRA-02, CONTRA-03
+
+**Plan 07-03: Contradiction Detection Engine** (Wave 3 - Integration)
+- Database schema v2 with deletedAt field and supersededAt index
+- MemoryRepository supersession methods (supersede, findExpiredSuperseded, stripToTombstone, getSupersessionChain)
+- VectorSearch.searchByConflictDomain() for candidate retrieval
+- ContradictionDetector with similarity > 0.80 threshold, 7 candidates
+- SupersessionManager with 30-day tombstone retention
+- IPC protocol extensions (CONTRADICTION_DETECTED, MEMORY_SUPERSEDED)
+- Public API callbacks (onContradictionDetected, onMemorySuperseded)
+- Requirements: CONTRA-01, CONTRA-04, CONTRA-05, CONTRA-06
+
+**Implementation Decisions:**
+
+**Extraction Quality Scoring:**
+- Default threshold: E(s) ≥ 0.55 (moderate - balanced for general use)
+- Configurable: expose `extractionThreshold` in LokulMem constructor
+- Type-specific thresholds: stricter for identity facts, more lenient for preferences/emotional states
+- Minimum novelty gate: require novelty ≥ 0.15 (configurable) to prevent near-duplicates
+- Novelty computation: MUST use vectorSearch.search(embed(s), k=1) to avoid O(N) loops
+
+**Contradiction Detection:**
+- Similarity threshold: Cosine ≥ 0.80 (moderate - catches conflicts without over-flagging)
+- Candidate retrieval: 7 candidates (balanced performance vs thoroughness)
+- Resolution mode: Configurable - support both manual resolution and auto-resolution (typed-attribute matching)
+- Type restriction: Conflict-domain based - check contradictions within same conflict domain, not exact memory type
+- Detection timing: Run synchronously during every `learn()` call (not batched)
+
+**Supersession Chains:**
+- Retention period: 30-day tombstone retention
+- Day 0-30: Superseded memory kept with full content (searchable with flag)
+- After 30 days: Strip embedding and content, keep tombstone record only
+- Status representation: 'superseded' status (separate from 'faded' or 'archived')
+- Event emission: Emit onMemorySuperseded callback when memory is superseded
+- Reversibility: No - supersession is one-way only (users can re-learn if needed)
+
+---
+
+**Previous Phase 6 Complete!** All 4 plans executed successfully.
 
 **Worker Integration:**
 - LifecycleManager initialized in worker after VectorSearch is ready
@@ -76,12 +145,10 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 
 ### Next Action
 
-**Phase 6 Complete!** All 4 plans executed successfully.
-
-**Next Phase:** Phase 7 - Extraction & Contradiction
-- Plan 07-01: Structured Attribute Extraction
-- Plan 07-02: Temporal Marker Tracking
-- Plan 07-03: Contradiction Detection Engine
+Execute Phase 7 plans in wave order:
+- Wave 1: Plan 07-01 - Structured Attribute Extraction (autonomous)
+- Wave 2: Plan 07-02 - Temporal Marker Tracking (autonomous)
+- Wave 3: Plan 07-03 - Contradiction Detection Engine (autonomous)
 
 **Implementation Decisions:**
 
@@ -184,6 +251,7 @@ All 3 plans executed successfully:
 | Phase 04 | All plans | 3 plans, 15 tasks | ✅ Complete |
 | Phase 05 P03 | 167 | 6 tasks | 6 files |
 | Phase 06 P06-01 | 3min | 5 tasks | 5 files |
+| Phase 07 P01 | 342 | 6 tasks | 6 files |
 
 ### Benchmarks
 
@@ -197,6 +265,11 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 
 | Date | Decision | Rationale | Status |
 |------|----------|-----------|--------|
+| 2026-02-25 | Possession NOT a separate entity type | Possessions tracked via memory flag, prevents Entity.type union pollution | **Implemented** ✅ (07-01 complete) |
+| 2026-02-25 | Empty memoryTypes array fallback | When no types detected, QualityScorer uses base threshold - doesn't poison contradiction domains with 'preference' default | **Implemented** ✅ (07-01 complete) |
+| 2026-02-25 | Content hashing for RecurrenceTracker keys | Avoids paraphrase false negatives and large string keys, efficient Map-based storage | **Implemented** ✅ (07-01 complete) |
+| 2026-02-25 | Weighted E(s) quality scoring | 0.35×novelty + 0.45×specificity + 0.20×recurrence with configurable thresholds and type-specific overrides | **Implemented** ✅ (07-01 complete) |
+| 2026-02-25 | Novelty via VectorSearch k=1 | Uses vectorSearch.search(content, { k: 1 }) for efficient O(N) novelty = 1 - top1_similarity | **Implemented** ✅ (07-01 complete) |
 | 2026-02-23 | Brute-force search for v0.1 | O(N) acceptable until 3,000 memories; HNSW adds complexity | **Validated** ✅ (05-01 complete) |
 | 2026-02-23 | DTO pattern for IPC | Float32Arrays don't serialize well; embeddings internal-only | Validated ✅ |
 | 2026-02-23 | SharedWorker primary | Multi-tab sync, model sharing across tabs | Validated ✅ (worker loads correctly) |

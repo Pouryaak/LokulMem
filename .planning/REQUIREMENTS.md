@@ -35,13 +35,13 @@
 
 ### Extraction Layer
 
-- [ ] **EXTRACT-01**: Specificity NER detects: names (0.3), places (0.25), numbers (0.2), preferences (0.25), dates (0.2), negations (0.2), first-person possession (0.10); clamp sum to 1.0
-- [ ] **EXTRACT-02**: Novelty computed via `1 - top1_similarity` using vector search
-- [ ] **EXTRACT-03**: Recurrence tracked within session (cosine > 0.85)
-- [ ] **EXTRACT-04**: E(s) = 0.35×novelty + 0.45×specificity + 0.20×recurrence
-- [ ] **EXTRACT-05**: Extraction threshold default 0.55 (configurable)
-- [ ] **EXTRACT-06**: Memory types classified (identity, location, profession, preference, project, temporal, relational, emotional)
-- [ ] **EXTRACT-07**: Entities extracted and stored with memory
+- [x] **EXTRACT-01**: Specificity NER detects: names (0.3), places (0.25), numbers (0.2), preferences (0.25), dates (0.2), negations (0.2), first-person possession (0.10); clamp sum to 1.0
+- [x] **EXTRACT-02**: Novelty computed via `1 - top1_similarity` using vector search
+- [x] **EXTRACT-03**: Recurrence tracked within session (cosine > 0.85)
+- [x] **EXTRACT-04**: E(s) = 0.35×novelty + 0.45×specificity + 0.20×recurrence
+- [x] **EXTRACT-05**: Extraction threshold default 0.55 (configurable)
+- [x] **EXTRACT-06**: Memory types classified (identity, location, profession, preference, project, temporal, relational, emotional)
+- [x] **EXTRACT-07**: Entities extracted and stored with memory
 
 ### Contradiction Detection
 
