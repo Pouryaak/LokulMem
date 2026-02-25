@@ -233,4 +233,62 @@ export interface LifecycleConfig {
 
   /** Optional progress callback for maintenance operations */
   onProgress?: (stage: string, progress: number) => void;
+
+  // K-means clustering configuration
+  /** Number of clusters for K-means (auto-calculated if not specified) */
+  kMeansK?: number;
+  /** Maximum iterations for K-means algorithm */
+  kMeansMaxIterations: number;
+  /** Convergence threshold for K-means algorithm */
+  kMeansConvergenceThreshold: number;
+}
+
+// ============================================================================
+// K-means Clustering Configuration
+// ============================================================================
+
+/**
+ * KMeansConfig - Configuration for K-means clustering algorithm
+ *
+ * Controls how memories are organized into semantic clusters
+ */
+export interface KMeansConfig {
+  /**
+   * Number of clusters (k)
+   * If not specified, auto-calculated as max(2, floor(sqrt(n/2)))
+   */
+  k?: number;
+
+  /**
+   * Maximum number of iterations for Lloyd's algorithm
+   * Default: 100
+   */
+  maxIterations: number;
+
+  /**
+   * Convergence threshold for centroid movement
+   * Algorithm stops when all centroids shift less than this amount
+   * Default: 0.001
+   */
+  convergenceThreshold: number;
+}
+
+/**
+ * ClusterResult - Result of K-means clustering operation
+ *
+ * Contains the clustering results including memory-to-cluster assignments
+ * and final centroid positions
+ */
+export interface ClusterResult {
+  /** Map of memory ID to cluster ID (e.g., 'cluster-0', 'cluster-1') */
+  clusters: Map<string, string>;
+
+  /** Map of cluster ID to centroid vector */
+  centroids: Map<string, Float32Array>;
+
+  /** Number of iterations performed */
+  iterations: number;
+
+  /** Whether algorithm converged before hitting max iterations */
+  converged: boolean;
 }
