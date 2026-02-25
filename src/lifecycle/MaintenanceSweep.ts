@@ -117,6 +117,10 @@ export class MaintenanceSweep {
         const memory = allMemories[i];
         const result = decayResults[i];
 
+        if (!memory || !result) {
+          continue;
+        }
+
         // Update current strength
         memory.currentStrength = result.newStrength;
 

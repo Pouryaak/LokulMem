@@ -43,7 +43,8 @@ import type {
  */
 export class LifecycleManager {
   private readonly repository: MemoryRepository;
-  private readonly vectorSearch: VectorSearch;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private readonly _vectorSearch: VectorSearch; // Stored for future use
 
   // Lifecycle components
   private readonly decayCalculator: DecayCalculator;
@@ -73,7 +74,7 @@ export class LifecycleManager {
     config: LifecycleConfig,
   ) {
     this.repository = repository;
-    this.vectorSearch = vectorSearch;
+    this._vectorSearch = vectorSearch;
 
     // Extract decay config
     const decayConfig: DecayConfig = {
@@ -91,15 +92,15 @@ export class LifecycleManager {
 
     // Extract maintenance config
     const maintenanceConfig: MaintenanceConfig = {
-      sweepIntervalMs: config.maintenanceIntervalMs,
-      onProgress: config.onProgress,
+      sweepIntervalMs: config.maintenanceIntervalMs ?? 3600000,
+      onProgress: config.onProgress ?? (() => {}),
     };
 
     // Extract K-means config
     const kMeansConfig: KMeansConfig = {
-      k: config.kMeansK,
-      maxIterations: config.kMeansMaxIterations,
-      convergenceThreshold: config.kMeansConvergenceThreshold,
+      k: config.kMeansK ?? 10,
+      maxIterations: config.kMeansMaxIterations ?? 100,
+      convergenceThreshold: config.kMeansConvergenceThreshold ?? 0.001,
     };
 
     // Initialize components
@@ -291,8 +292,10 @@ export class LifecycleManager {
    * @returns Promise<number> with recommended K value
    *
    * Uses heuristic: max(2, floor(sqrt(n/2)))
+   * @deprecated Reserved for future use
    */
-  private async calculateOptimalK(): Promise<number> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private async _calculateOptimalK(): Promise<number> {
     const count = await this.repository.count();
     return Math.max(2, Math.floor(Math.sqrt(count / 2)));
   }

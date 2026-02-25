@@ -27,6 +27,8 @@ import type {
   SearchPayload,
   SemanticSearchPayload,
 } from '../ipc/protocol-types.js';
+import { LifecycleManager } from '../lifecycle/_index.js';
+import type { LifecycleConfig } from '../lifecycle/types.js';
 import { QueryEngine } from '../search/QueryEngine.js';
 import { VectorSearch } from '../search/VectorSearch.js';
 import { LokulDatabase } from '../storage/Database.js';
@@ -80,6 +82,11 @@ let vectorSearch: VectorSearch | null = null;
  * Singleton query engine instance
  */
 let queryEngine: QueryEngine | null = null;
+
+/**
+ * Singleton lifecycle manager instance
+ */
+let lifecycleManager: LifecycleManager | null = null;
 
 /**
  * Calculate overall progress based on current stage and stage progress
@@ -376,6 +383,14 @@ async function handleGet(
     const payload = request.payload as GetPayload;
     const memory = await queryEngine.get(payload.id, payload.includeEmbedding);
 
+    // Reinforce memory access if lifecycle manager is available
+    if (memory && lifecycleManager && repository) {
+      const internalMemory = await repository.getById(memory.id);
+      if (internalMemory) {
+        await lifecycleManager.recordAccess(internalMemory);
+      }
+    }
+
     const response: ResponseMessage = {
       id: request.id,
       type: MessageTypeConst.GET,
@@ -481,6 +496,22 @@ async function handleSemanticSearch(
       payload.options,
     );
 
+    // Reinforce memories from semantic search if lifecycle manager is available
+    // When composite scoring is enabled, results are already ranked by relevance
+    if (
+      payload.options?.useCompositeScoring !== false &&
+      lifecycleManager &&
+      repository
+    ) {
+      // Reinforce all returned memories (they are already filtered and ranked)
+      for (const dto of memories) {
+        const memory = await repository.getById(dto.id);
+        if (memory) {
+          await lifecycleManager.recordAccess(memory);
+        }
+      }
+    }
+
     const response: ResponseMessage = {
       id: request.id,
       type: MessageTypeConst.SEMANTIC_SEARCH,
@@ -501,6 +532,18 @@ async function handleSemanticSearch(
     };
     port.postMessage(response);
   }
+}
+
+/**
+ * Initialize lifecycle management
+ */
+async function initializeLifecycle(config: LifecycleConfig): Promise<void> {
+  if (!embeddingEngine || !repository || !vectorSearch) {
+    throw new Error('Dependencies not ready');
+  }
+  lifecycleManager = new LifecycleManager(repository, vectorSearch, config);
+  await lifecycleManager.initialize();
+  // Note: Progress will be reported by the caller (handleInit)
 }
 
 /**
@@ -529,9 +572,13 @@ async function handleInit(
     // Stage 3.5: Query engine initialization (part of storage stage)
     await initializeQueryEngine();
 
-    // Stage 4: Maintenance (stub for future phase)
+    // Stage 4: Maintenance - initialize lifecycle if configured
     reportProgress(port, 'maintenance', 0);
-    await runMaintenance();
+    if (payload.lifecycleConfig) {
+      await initializeLifecycle(payload.lifecycleConfig);
+    } else {
+      await runMaintenance();
+    }
     reportProgress(port, 'maintenance', 100);
 
     // Stage 5: Ready

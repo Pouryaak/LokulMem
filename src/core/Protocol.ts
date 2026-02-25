@@ -3,6 +3,7 @@
  * Defines the message format for request/response correlation and progress reporting
  */
 
+import type { LifecycleConfig } from '../lifecycle/types.js';
 import type { InitStage } from '../types/api.js';
 
 /**
@@ -110,6 +111,8 @@ export interface InitPayload {
   persistenceGranted: boolean;
   /** Model configuration */
   modelConfig?: ModelConfig | undefined;
+  /** Lifecycle configuration */
+  lifecycleConfig?: LifecycleConfig | undefined;
   /** Custom worker URL (passed through for reference) */
   workerUrl?: string | undefined;
 }
