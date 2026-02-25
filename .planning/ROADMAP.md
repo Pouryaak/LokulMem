@@ -176,7 +176,15 @@ Plans:
   12. Demo visualizes debug object from augment() in real-time
   13. Demo shows reactive memory list using manage().list()
   14. Demo does not pollute root package.json with React dependencies
-**Plans:** TBD
+**Plans:** 6/6 plans complete
+
+Plans:
+- [x] 08-01-PLAN.md — augment() API with prepend-system injection and token-aware dynamic K
+- [x] 08-02-PLAN.md — learn() API with extraction pipeline and synchronous cache updates
+- [x] 08-03-PLAN.md — manage() namespace with 16+ inspection and manipulation methods
+- [x] 08-04-PLAN.md — Event system with IDs-only payloads and optional verbose mode
+- [x] 08-05-PLAN.md — Worker RPC integration for augment/learn/manage APIs
+- [x] 08-06-PLAN.md — React demo app with isolated workspace
 
 ---
 
