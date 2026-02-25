@@ -14,8 +14,8 @@
  */
 
 import type { MemoryInternal } from '../internal/types.js';
-import type { MemoryRepository } from '../storage/MemoryRepository.js';
 import type { VectorSearch } from '../search/VectorSearch.js';
+import type { MemoryRepository } from '../storage/MemoryRepository.js';
 import type { ClusterResult, KMeansConfig } from './types.js';
 
 /**
@@ -145,16 +145,23 @@ export class KMeansClusterer {
 
     // First centroid: random choice
     const firstIndex = Math.floor(Math.random() * embeddings.length);
-    centroids.push(embeddings[firstIndex]);
+    const firstEmbedding = embeddings[firstIndex];
+    if (firstEmbedding) {
+      centroids.push(firstEmbedding);
+    }
 
     // Remaining centroids: choose with probability proportional to squared distance
     for (let i = 1; i < k; i++) {
-      const distances = new Array<number>(embeddings.length);
+      const distances: number[] = [];
 
       // Calculate minimum distance to any existing centroid
-      for (let j = 0; j < embeddings.length; j++) {
-        const embedding = embeddings[j]!;
-        let minDistance = Infinity;
+      for (const embedding of embeddings) {
+        if (!embedding) {
+          distances.push(0);
+          continue;
+        }
+
+        let minDistance = Number.POSITIVE_INFINITY;
 
         for (const centroid of centroids) {
           const distance = this.euclideanDistance(embedding, centroid);
@@ -164,7 +171,7 @@ export class KMeansClusterer {
         }
 
         // Square the distance for probability weighting
-        distances[j] = minDistance * minDistance;
+        distances.push(minDistance * minDistance);
       }
 
       // Choose next centroid with probability proportional to squared distance
@@ -173,14 +180,17 @@ export class KMeansClusterer {
       let selectedIndex = 0;
 
       for (let j = 0; j < distances.length; j++) {
-        random -= distances[j]!;
+        random -= distances[j] ?? 0;
         if (random <= 0) {
           selectedIndex = j;
           break;
         }
       }
 
-      centroids.push(embeddings[selectedIndex]!);
+      const selectedEmbedding = embeddings[selectedIndex];
+      if (selectedEmbedding) {
+        centroids.push(selectedEmbedding);
+      }
     }
 
     return centroids;
@@ -204,15 +214,19 @@ export class KMeansClusterer {
     const clusters = new Map<string, string>();
 
     for (let i = 0; i < embeddings.length; i++) {
-      const embedding = embeddings[i]!;
-      const memoryId = memoryIds[i]!;
+      const embedding = embeddings[i];
+      const memoryId = memoryIds[i];
 
-      let minDistance = Infinity;
+      if (!embedding || !memoryId) continue;
+
+      let minDistance = Number.POSITIVE_INFINITY;
       let nearestCentroidIndex = 0;
 
       // Find nearest centroid
       for (let j = 0; j < centroids.length; j++) {
-        const centroid = centroids[j]!;
+        const centroid = centroids[j];
+        if (!centroid) continue;
+
         const distance = this.euclideanDistance(embedding, centroid);
 
         if (distance < minDistance) {
@@ -249,20 +263,30 @@ export class KMeansClusterer {
   ): Float32Array[] {
     const newCentroids: Float32Array[] = [];
     const k = oldCentroids.length;
-    const embeddingDim = embeddings[0]!.length;
+
+    // Get embedding dimension from first centroid
+    const firstCentroid = oldCentroids[0];
+    if (!firstCentroid) {
+      return newCentroids;
+    }
+    const embeddingDim = firstCentroid.length;
 
     // Group memory IDs by cluster
     const clusterGroups = new Map<string, number[]>();
     for (let i = 0; i < memoryIds.length; i++) {
-      const memoryId = memoryIds[i]!;
+      const memoryId = memoryIds[i];
+      if (!memoryId) continue;
+
       const clusterId = clusters.get(memoryId);
       if (!clusterId) continue;
 
-      const clusterIndex = parseInt(clusterId.split('-')[1]!, 10);
       if (!clusterGroups.has(clusterId)) {
         clusterGroups.set(clusterId, []);
       }
-      clusterGroups.get(clusterId)!.push(i);
+      const group = clusterGroups.get(clusterId);
+      if (group) {
+        group.push(i);
+      }
     }
 
     // Calculate new centroid for each cluster
@@ -279,15 +303,20 @@ export class KMeansClusterer {
       // Calculate mean embedding
       const meanEmbedding = new Float32Array(embeddingDim).fill(0);
       for (const index of indices) {
-        const embedding = embeddings[index]!;
+        const embedding = embeddings[index];
+        if (!embedding) continue;
+
         for (let d = 0; d < embeddingDim; d++) {
-          meanEmbedding[d]! += embedding[d]!;
+          const existingValue = meanEmbedding[d] ?? 0;
+          const embeddingValue = embedding[d] ?? 0;
+          meanEmbedding[d] = existingValue + embeddingValue;
         }
       }
 
       // Divide by count to get mean
       for (let d = 0; d < embeddingDim; d++) {
-        meanEmbedding[d]! /= indices.length;
+        const value = meanEmbedding[d] ?? 0;
+        meanEmbedding[d] = value / indices.length;
       }
 
       newCentroids.push(meanEmbedding);
@@ -310,7 +339,12 @@ export class KMeansClusterer {
     newCentroids: Float32Array[],
   ): boolean {
     for (let i = 0; i < oldCentroids.length; i++) {
-      const shift = this.euclideanDistance(oldCentroids[i]!, newCentroids[i]!);
+      const oldCentroid = oldCentroids[i];
+      const newCentroid = newCentroids[i];
+
+      if (!oldCentroid || !newCentroid) continue;
+
+      const shift = this.euclideanDistance(oldCentroid, newCentroid);
       if (shift > this.config.convergenceThreshold) {
         return false;
       }
@@ -330,7 +364,9 @@ export class KMeansClusterer {
   private euclideanDistance(a: Float32Array, b: Float32Array): number {
     let sum = 0;
     for (let i = 0; i < a.length; i++) {
-      const diff = a[i]! - b[i]!;
+      const aValue = a[i] ?? 0;
+      const bValue = b[i] ?? 0;
+      const diff = aValue - bValue;
       sum += diff * diff;
     }
     return Math.sqrt(sum);
@@ -372,7 +408,10 @@ export class KMeansClusterer {
     const map = new Map<string, Float32Array>();
     for (let i = 0; i < centroids.length; i++) {
       const clusterId = `cluster-${i}`;
-      map.set(clusterId, centroids[i]!);
+      const centroid = centroids[i];
+      if (centroid) {
+        map.set(clusterId, centroid);
+      }
     }
     return map;
   }
