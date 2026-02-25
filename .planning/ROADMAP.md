@@ -13,10 +13,10 @@
 - [x] **Phase 1: Foundation** - Project scaffolding, TypeScript build system, and core types (completed 2026-02-23)
 - [x] **Phase 2: Worker Infrastructure** - SharedWorker coordination with graceful fallback chain (completed 2026-02-23)
 - [x] **Phase 3: Storage Layer** - Dexie.js schema with memories, episodes, edges, clusters stores (completed 2026-02-23)
-- [ ] **Phase 4: Embedding Engine** - Transformers.js MiniLM with LRU cache and airgap support
+- [x] **Phase 4: Embedding Engine** - Transformers.js MiniLM with LRU cache and airgap support (completed 2026-02-24)
 - [x] **Phase 5: Memory Store & Retrieval** - Brute-force vector search with composite relevance scoring (completed 2026-02-24)
-- [x] **Phase 6: Lifecycle & Decay** - Ebbinghaus decay model with per-category lambda values
-- [x] **Phase 7: Extraction & Contradiction** - Fact extraction scoring and contradiction detection pipeline (3 plans created) (completed 2026-02-25)
+- [x] **Phase 6: Lifecycle & Decay** - Ebbinghaus decay model with per-category lambda values (completed 2026-02-25)
+- [x] **Phase 7: Extraction & Contradiction** - Fact extraction scoring and contradiction detection pipeline (completed 2026-02-25)
 - [ ] **Phase 8: Public API & Demo** - Complete augment/learn/manage APIs with React demo app
 
 ---
@@ -92,8 +92,8 @@ Plans:
 
 Plans:
 - [x] 04-03-PLAN.md — Vite WASM bundling and workerUrl support (Wave 1 - Foundation)
-- [ ] 04-01-PLAN.md — Transformers.js integration with CDN and airgap modes (Wave 2)
-- [ ] 04-02-PLAN.md — LRU cache and concurrency queue (Wave 2)
+- [x] 04-01-PLAN.md — Transformers.js integration with CDN and airgap modes (Wave 2)
+- [x] 04-02-PLAN.md — LRU cache and concurrency queue (Wave 2)
 
 ### Phase 5: Memory Store & Retrieval
 **Goal:** Vector search retrieves relevant memories using composite scoring with token-aware dynamic K selection.
@@ -107,7 +107,7 @@ Plans:
   5. Only memories with R > 0.3 are considered for injection
   6. Management query methods work: list, get, getByConversation, getRecent, getTop, getPinned, search, semanticSearch, getTimeline, getGrouped, getInjectionPreview
   7. Active memory embeddings loaded into in-memory cache; cache stays in sync with mutations
-**Plans:** 5/3 plans complete
+**Plans:** 3/3 plans complete
 
 ### Phase 6: Lifecycle & Decay
 **Goal:** Memories decay according to Ebbinghaus forgetting curve with per-category rates, pinned memories exempt from decay.
@@ -155,7 +155,7 @@ Plans:
 - [x] 07-01-PLAN.md — Structured Attribute Extraction (Wave 1)
 - [x] 07-02-PLAN.md — Temporal Marker Tracking (Wave 2)
 - [x] 07-03a-PLAN.md — Database Schema for Supersession (Wave 3)
-- [ ] 07-03b-PLAN.md — Contradiction Detection Engine (Wave 4)
+- [x] 07-03b-PLAN.md — Contradiction Detection Engine (Wave 4)
 
 ### Phase 8: Public API & Demo
 **Goal:** Complete public API surface with augment/learn/manage methods, event system, and working React demo application.
