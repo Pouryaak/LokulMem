@@ -123,7 +123,13 @@ Plans:
   7. K-means clustering runs synchronously in worker to organize memories
   8. `fadedAt` timestamp field records when memory transitioned to faded status
   9. Faded memory deletion runs during session-start maintenance sweep
-**Plans:** TBD
+**Plans:** 2/4 plans complete
+
+Plans:
+- [x] 06-01-PLAN.md — Decay calculator and reinforcement tracker (Wave 1)
+- [x] 06-02-PLAN.md — Maintenance sweep and event emitter (Wave 2)
+- [ ] 06-03a-PLAN.md — K-means clustering and worker integration (Wave 2)
+- [ ] 06-03b-PLAN.md — Public API event callbacks (Wave 2)
 
 ### Phase 7: Extraction & Contradiction
 **Goal:** Facts are extracted from conversations with quality scoring, contradictions detected and resolved with supersession chains.
@@ -175,9 +181,9 @@ Plans:
 | 1. Foundation | 3/3 | Complete    | 2026-02-23 |
 | 2. Worker Infrastructure | 3/3 | Complete    | 2026-02-23 |
 | 3. Storage Layer | 3/3 | Complete | 2026-02-23 |
-| 4. Embedding Engine | 1/3 | In Progress | - |
-| 5. Memory Store & Retrieval | 0/2 | Complete    | 2026-02-24 |
-| 6. Lifecycle & Decay | 0/1 | Not started | - |
+| 4. Embedding Engine | 3/3 | Complete | 2026-02-24 |
+| 5. Memory Store & Retrieval | 3/3 | Complete    | 2026-02-24 |
+| 6. Lifecycle & Decay | 2/4 | In Progress | - |
 | 7. Extraction & Contradiction | 0/2 | Not started | - |
 | 8. Public API & Demo | 0/3 | Not started | - |
 

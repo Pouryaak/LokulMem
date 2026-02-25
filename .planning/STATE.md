@@ -36,62 +36,60 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 3: Storage Layer (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 4: Embedding Engine (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 5: Memory Store & Retrieval (Complete - 3 of 3 plans)
-[██░░░░░░░░] 25% - Phase 6: Lifecycle & Decay (06-01 complete, 3 plans remaining)
+[█████░░░░░] 50% - Phase 6: Lifecycle & Decay (06-01, 06-02 complete, 2 plans remaining)
 [░░░░░░░░░░] 0% - Phase 7: Extraction & Contradiction (Not started)
 [░░░░░░░░░░] 0% - Phase 8: Public API & Demo (Not started)
 ```
 
 ### Active Work
 
-**Plan 06-01 Complete!** Implemented Ebbinghaus decay calculator and reinforcement tracker:
+**Plan 06-02 Complete!** Implemented maintenance sweep, event emitter, and lifecycle manager:
 
-**DecayCalculator:**
-- Ebbinghaus forgetting curve: strength(t) = base × e^(-λ × t)
-- Per-category lambda values (identity: 0.0001, temporal: 0.02, etc.)
-- Pinned memories get lambda = 0 (no decay)
-- Age calculation using lastAccessedAt with createdAt fallback
-- Validation: all lambda values must be non-negative
+**MaintenanceSweep:**
+- Session-start sweep (synchronous, blocks init)
+- Periodic sweeps (async, at configurable interval)
+- isSweepRunning flag prevents concurrent sweeps (race protection)
+- Flushes reinforcements → calculates decay → marks faded → deletes old
+- 30-day deletion threshold for faded memories
+- Progress callbacks via onProgress
 
-**ReinforcementTracker:**
-- Category-based reinforcement amounts (default 0.3 per category)
-- Debounced writes with configurable window (default 5 seconds)
-- Hard cap at 3.0 prevents unlimited strengthening
-- Automatic lastAccessedAt and mentionCount updates
-- Efficient batch updates via repository.bulkUpdateStrengths()
+**LifecycleEventEmitter:**
+- Event emission for lifecycle transitions
+- Handler registration returns unsubscribe function
+- Converts MemoryInternal to MemoryDTO (excludes embedding)
+- Error isolation (handler errors don't break sweep)
 
-**Type Definitions:**
-- DecayConfig, ReinforcementConfig, LifecycleConfig
-- DecayResult, ReinforcementTask
-- All types properly documented and exported
+**LifecycleManager:**
+- Main orchestrator combining all components
+- initialize(): runs session-start sweep, starts periodic sweeps
+- recordAccess(): delegates to ReinforcementTracker
+- getStats(): returns total/active/faded counts, sweep times
+- Event handlers delegate to event emitter
+- shutdown(): stops sweeps and flushes reinforcements
 
 **Committed:**
-- 1c3a3bd: feat(06-01): create lifecycle types and interfaces
-- 577e65e: feat(06-01): implement Ebbinghaus decay calculator
-- 96d49c8: feat(06-01): implement reinforcement tracker with debounced writes
-- 14b5b64: feat(06-01): create lifecycle barrel export
-- c10f519: feat(06-01): add bulkUpdateStrengths to MemoryRepository
-- e470503: fix(06-01): fix TypeScript type error in DecayCalculator
+- 0a28cbb: feat(06-02): extend lifecycle types with maintenance and event interfaces
+- be5f9b3: feat(06-02): implement LifecycleEventEmitter
+- 0bb6631: feat(06-02): implement MaintenanceSweep class
+- 17aae5e: feat(06-02): add bulkUpdateCurrentStrengths to MemoryRepository
+- 1391ba9: feat(06-02): implement LifecycleManager orchestrator
+- eb4bac3: feat(06-02): update lifecycle barrel export
 
-**Duration:** 3 minutes
-**Deviations:** 1 auto-fix (TypeScript type error - Rule 1 - Bug)
+**Duration:** 2 min 47 sec
+**Deviations:** 1 auto-fix (TypeScript lint error - Rule 3 - Blocking)
 
 ### Next Action
 
-Execute Plan 06-02: Maintenance Sweep & Event Emitter (Wave 2)
-- Types: DecayConfig, ReinforcementConfig, DecayResult, etc.
-- Requirements: DECAY-01, DECAY-02, DECAY-03, DECAY-04, DECAY-08
-
-**06-02: Maintenance Sweep & Event Emitter (Wave 2)**
-- MaintenanceSweep: Session + periodic maintenance with decay/fade/delete
-- LifecycleEventEmitter: Event callbacks with unsubscribe support
-- LifecycleManager: Orchestrator combining all components
-- Requirements: DECAY-05, DECAY-06, DECAY-09, EVENT-03, EVENT-04
-
-**06-03: K-means Clustering & Worker Integration (Wave 2)**
+Execute Plan 06-03a: K-means Clustering & Worker Integration
 - KMeansClusterer: Lloyd's algorithm with k-means++ initialization
 - Worker integration: recordAccess in get() and semanticSearch()
-- Public API: onMemoryFaded, onMemoryDeleted event callbacks
-- Requirements: DECAY-07, EVENT-01, EVENT-02, EVENT-05, EVENT-06, EVENT-07
+- LifecycleManager integration: run K-means after sweep
+- Requirements: DECAY-07, EVENT-01, EVENT-02
+
+**06-03b: Public API Event Callbacks**
+- onMemoryFaded, onMemoryDeleted public API methods
+- Event callback registration through LokulMem
+- Requirements: EVENT-05, EVENT-06, EVENT-07
 
 **Implementation Decisions:**
 - Decay calculation: Hybrid (session batch + incremental for frequent access)
