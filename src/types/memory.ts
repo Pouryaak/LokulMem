@@ -83,3 +83,74 @@ export interface MemoryDTO {
   /** Additional metadata (flexible extension point) */
   metadata: Record<string, unknown>;
 }
+
+/**
+ * Entity - Named entity extracted from memory content
+ * Entities are typed with optional confidence scores
+ *
+ * NOTE: 'possession' is NOT a separate entity type - possessions are tracked
+ * via a boolean flag on memories, not as entities. This prevents Entity.type
+ * union from needing 'possession' which would violate the type contract.
+ */
+export interface Entity {
+  /** Entity type (person, place, number, date, preference, negation) */
+  type: 'person' | 'place' | 'number' | 'date' | 'preference' | 'negation';
+
+  /** Extracted value (normalized form) */
+  value: string;
+
+  /** Raw text as it appeared in content */
+  raw: string;
+
+  /** Number of times this entity appears across all memories */
+  count: number;
+
+  /** Optional confidence score (0-1) from extraction pattern */
+  confidence?: number;
+}
+
+/**
+ * ExtractionScore - Quality score for memory extraction
+ */
+export interface ExtractionScore {
+  /** Overall extraction quality score (0-1) */
+  score: number;
+
+  /** Novelty component (0-1) */
+  novelty: number;
+
+  /** Specificity component (0-1) */
+  specificity: number;
+
+  /** Recurrence component (0-1) */
+  recurrence: number;
+
+  /** Whether score meets extraction threshold */
+  meetsThreshold: boolean;
+}
+
+/**
+ * ExtractionConfig - Configuration for extraction quality scoring
+ */
+export interface ExtractionConfig {
+  /** Default extraction threshold (0-1) - default: 0.55 */
+  threshold: number;
+
+  /** Minimum novelty gate - default: 0.15 */
+  minNovelty: number;
+
+  /** Weight for novelty component - default: 0.35 */
+  noveltyWeight: number;
+
+  /** Weight for specificity component - default: 0.45 */
+  specificityWeight: number;
+
+  /** Weight for recurrence component - default: 0.20 */
+  recurrenceWeight: number;
+
+  /** Recurrence detection threshold (cosine similarity) - default: 0.85 */
+  recurrenceThreshold: number;
+
+  /** Type-specific thresholds (optional) */
+  thresholdsByType?: Partial<Record<MemoryType, number>>;
+}
