@@ -6,30 +6,34 @@
  * - ReinforcementTracker for access-based strengthening
  * - MaintenanceSweep for periodic maintenance
  * - LifecycleEventEmitter for event callbacks
- * - KMeansClusterer (added in next plan)
+ * - KMeansClusterer for semantic memory organization
  *
  * Key features:
  * - Synchronous initialization with session-start sweep
+ * - K-means clustering after maintenance sweep
  * - Automatic periodic sweeps at configured interval
  * - Event handler registration for lifecycle callbacks
  * - Stats aggregation for monitoring
  */
 
-import type { MemoryRepository } from '../storage/MemoryRepository.js';
-import type { VectorSearch } from '../search/VectorSearch.js';
 import type { MemoryInternal } from '../internal/types.js';
-import type {
-  LifecycleConfig,
-  LifecycleStats,
-  LifecycleEventHandlers,
-  DecayConfig,
-  ReinforcementConfig,
-  MaintenanceConfig,
-} from './types.js';
+import type { VectorSearch } from '../search/VectorSearch.js';
+import type { MemoryRepository } from '../storage/MemoryRepository.js';
 import { DecayCalculator } from './DecayCalculator.js';
-import { ReinforcementTracker } from './ReinforcementTracker.js';
-import { MaintenanceSweep } from './MaintenanceSweep.js';
 import { LifecycleEventEmitter } from './EventEmitter.js';
+import { KMeansClusterer } from './KMeansClusterer.js';
+import { MaintenanceSweep } from './MaintenanceSweep.js';
+import { ReinforcementTracker } from './ReinforcementTracker.js';
+import type {
+  ClusterResult,
+  DecayConfig,
+  KMeansConfig,
+  LifecycleConfig,
+  LifecycleEventHandlers,
+  LifecycleStats,
+  MaintenanceConfig,
+  ReinforcementConfig,
+} from './types.js';
 
 /**
  * LifecycleManager - Orchestrates all memory lifecycle operations
@@ -46,12 +50,13 @@ export class LifecycleManager {
   private readonly reinforcementTracker: ReinforcementTracker;
   private readonly maintenanceSweep: MaintenanceSweep;
   private readonly eventEmitter: LifecycleEventEmitter;
-
-  // K-means clusterer will be added in next plan (06-03)
-  // private kMeansClusterer: KMeansClusterer | null = null;
+  private readonly kMeansClusterer: KMeansClusterer | null;
 
   /** Timestamp of last maintenance sweep */
   private lastSweepTime = 0;
+
+  /** Timestamp of last clustering run */
+  private lastClusterTime = 0;
 
   /** Initialization flag */
   private isInitialized = false;
@@ -59,7 +64,7 @@ export class LifecycleManager {
   /**
    * Create a new LifecycleManager instance
    * @param repository - MemoryRepository for data access
-   * @param vectorSearch - VectorSearch for K-means clustering (future use)
+   * @param vectorSearch - VectorSearch for K-means clustering
    * @param config - LifecycleConfig for all components
    */
   constructor(
@@ -90,6 +95,13 @@ export class LifecycleManager {
       onProgress: config.onProgress,
     };
 
+    // Extract K-means config
+    const kMeansConfig: KMeansConfig = {
+      k: config.kMeansK,
+      maxIterations: config.kMeansMaxIterations,
+      convergenceThreshold: config.kMeansConvergenceThreshold,
+    };
+
     // Initialize components
     this.decayCalculator = new DecayCalculator(decayConfig);
     this.reinforcementTracker = new ReinforcementTracker(
@@ -105,15 +117,19 @@ export class LifecycleManager {
       this.eventEmitter,
     );
 
-    // K-means clusterer will be initialized in next plan (06-03)
-    // this.kMeansClusterer = null;
+    // Initialize K-means clusterer
+    this.kMeansClusterer = new KMeansClusterer(
+      repository,
+      vectorSearch,
+      kMeansConfig,
+    );
   }
 
   /**
    * Initialize the lifecycle manager
    *
-   * Runs a synchronous maintenance sweep at session start, then starts
-   * periodic sweeps. K-means clustering will be added in next plan.
+   * Runs a synchronous maintenance sweep at session start, then runs
+   * K-means clustering, then starts periodic sweeps.
    *
    * @returns Promise that resolves when initialization is complete
    */
@@ -133,9 +149,14 @@ export class LifecycleManager {
       `LifecycleManager: Sweep complete - decayed: ${sweepResult.decayedCount}, faded: ${sweepResult.fadedCount}, deleted: ${sweepResult.deletedCount}`,
     );
 
-    // Step 2: K-means clustering will be added in next plan (06-03)
-    // console.log('LifecycleManager: Running K-means clustering');
-    // await this.runKMeansClustering();
+    // Step 2: Run K-means clustering
+    console.log('LifecycleManager: Running K-means clustering');
+    const clusterResult = await this.runClustering();
+    if (clusterResult) {
+      console.log(
+        `LifecycleManager: Clustering complete - memories: ${clusterResult.clusters.size}, clusters: ${clusterResult.centroids.size}, converged: ${clusterResult.converged}, iterations: ${clusterResult.iterations}`,
+      );
+    }
 
     // Step 3: Start periodic sweeps
     this.maintenanceSweep.startPeriodicSweeps();
@@ -201,7 +222,9 @@ export class LifecycleManager {
    *
    * Delegates to LifecycleEventEmitter.
    */
-  onMemoryFaded(handler: (memory: import('../types/memory.js').MemoryDTO) => void): () => void {
+  onMemoryFaded(
+    handler: (memory: import('../types/memory.js').MemoryDTO) => void,
+  ): () => void {
     return this.eventEmitter.onMemoryFaded(handler);
   }
 
@@ -214,6 +237,39 @@ export class LifecycleManager {
    */
   onMemoryDeleted(handler: (memoryId: string) => void): () => void {
     return this.eventEmitter.onMemoryDeleted(handler);
+  }
+
+  /**
+   * Run K-means clustering manually
+   * @returns Promise<ClusterResult | null> with clustering result or null if not available
+   *
+   * Allows manual re-clustering outside of initialization.
+   */
+  async runClustering(): Promise<ClusterResult | null> {
+    if (!this.kMeansClusterer) {
+      console.warn('LifecycleManager: K-means clusterer not available');
+      return null;
+    }
+
+    this.lastClusterTime = Date.now();
+    return await this.kMeansClusterer.cluster();
+  }
+
+  /**
+   * Get clustering statistics
+   * @returns Object with k value and last clustering timestamp
+   *
+   * Provides information about K-means clustering state.
+   */
+  getClusterStats(): { k: number | null; lastClusterTime: number | null } {
+    if (!this.kMeansClusterer) {
+      return { k: null, lastClusterTime: null };
+    }
+
+    return {
+      k: this.kMeansClusterer.getK(),
+      lastClusterTime: this.lastClusterTime > 0 ? this.lastClusterTime : null,
+    };
   }
 
   /**
@@ -235,7 +291,6 @@ export class LifecycleManager {
    * @returns Promise<number> with recommended K value
    *
    * Uses heuristic: max(2, floor(sqrt(n/2)))
-   * K-means will be implemented in next plan (06-03).
    */
   private async calculateOptimalK(): Promise<number> {
     const count = await this.repository.count();
