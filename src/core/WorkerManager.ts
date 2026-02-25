@@ -341,4 +341,42 @@ export class WorkerManager {
 
     await this.client.request('init', initPayload, config.initTimeoutMs);
   }
+
+  /**
+   * Register an event handler for specific message types
+   * Used for lifecycle events that are sent asynchronously from the worker
+   *
+   * @param messageType - The message type to listen for (e.g., 'MEMORY_FADED', 'MEMORY_DELETED')
+   * @param handler - Callback function that receives the event payload
+   * @returns Unsubscribe function to remove the handler
+   */
+  on(messageType: string, handler: (payload: unknown) => void): () => void {
+    if (!this.port) {
+      throw new Error('Worker not initialized');
+    }
+
+    // Create a wrapper that only handles messages of the specified type
+    const eventHandler = (event: MessageEvent): void => {
+      const message = event.data;
+      if (
+        message &&
+        typeof message === 'object' &&
+        'type' in message &&
+        message.type === messageType
+      ) {
+        handler(message.payload);
+      }
+    };
+
+    // Add the event listener
+    this.port.addEventListener('message', eventHandler);
+    if (this.port.start) {
+      this.port.start();
+    }
+
+    // Return unsubscribe function
+    return () => {
+      this.port?.removeEventListener('message', eventHandler);
+    };
+  }
 }

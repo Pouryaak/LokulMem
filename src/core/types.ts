@@ -2,6 +2,7 @@
  * Core type definitions for worker management
  */
 
+import type { LifecycleConfig } from '../lifecycle/types.js';
 import type { ModelConfig } from './Protocol.js';
 
 /**
@@ -25,6 +26,8 @@ export interface WorkerConfig {
   dbName: string;
   /** Model configuration */
   modelConfig?: ModelConfig | undefined;
+  /** Lifecycle configuration */
+  lifecycleConfig?: LifecycleConfig | undefined;
   /** Per-operation timeout in milliseconds (default: 5000) */
   requestTimeoutMs?: number;
 }

@@ -15,8 +15,10 @@
  */
 
 import type { InitStage, LokulMemConfig } from '../types/api.js';
+import type { MemoryDTO } from '../types/memory.js';
 import type { WorkerClient } from './MessagePort.js';
 import type { ModelConfig } from './Protocol.js';
+import { MessageType as MessageTypeConst } from './Protocol.js';
 import { WorkerManager } from './WorkerManager.js';
 import type { PersistenceStatus } from './types.js';
 import type { WorkerType } from './types.js';
@@ -70,8 +72,28 @@ export class LokulMem {
     reservedForResponseTokens?: number;
     tokenOverheadPerMessage?: number;
     tokenCounter?: (text: string) => number;
+    // Lifecycle config (sent to worker during init)
+    lambdaByCategory?: Partial<
+      Record<import('../types/memory.js').MemoryType, number>
+    >;
+    pinnedLambda?: number;
+    fadedThreshold?: number;
+    reinforcementByCategory?: Partial<
+      Record<import('../types/memory.js').MemoryType, number>
+    >;
+    maxBaseStrength?: number;
+    reinforcementDebounceMs?: number;
+    maintenanceIntervalMs?: number;
+    kMeansK?: number;
+    kMeansMaxIterations?: number;
+    kMeansConvergenceThreshold?: number;
   };
   private isInitialized = false;
+
+  // Lifecycle event handlers
+  private fadedHandlers: Array<(memory: MemoryDTO) => void> = [];
+  private deletedHandlers: Array<(memoryId: string) => void> = [];
+  private lifecycleUnsubscribers: Array<() => void> = [];
 
   /**
    * Creates a new LokulMem instance
@@ -118,6 +140,39 @@ export class LokulMem {
     if (config.tokenCounter !== undefined) {
       this.config.tokenCounter = config.tokenCounter;
     }
+
+    // Store lifecycle config (sent to worker during init)
+    if (config.lambdaByCategory !== undefined) {
+      this.config.lambdaByCategory = config.lambdaByCategory;
+    }
+    if (config.pinnedLambda !== undefined) {
+      this.config.pinnedLambda = config.pinnedLambda;
+    }
+    if (config.fadedThreshold !== undefined) {
+      this.config.fadedThreshold = config.fadedThreshold;
+    }
+    if (config.reinforcementByCategory !== undefined) {
+      this.config.reinforcementByCategory = config.reinforcementByCategory;
+    }
+    if (config.maxBaseStrength !== undefined) {
+      this.config.maxBaseStrength = config.maxBaseStrength;
+    }
+    if (config.reinforcementDebounceMs !== undefined) {
+      this.config.reinforcementDebounceMs = config.reinforcementDebounceMs;
+    }
+    if (config.maintenanceIntervalMs !== undefined) {
+      this.config.maintenanceIntervalMs = config.maintenanceIntervalMs;
+    }
+    if (config.kMeansK !== undefined) {
+      this.config.kMeansK = config.kMeansK;
+    }
+    if (config.kMeansMaxIterations !== undefined) {
+      this.config.kMeansMaxIterations = config.kMeansMaxIterations;
+    }
+    if (config.kMeansConvergenceThreshold !== undefined) {
+      this.config.kMeansConvergenceThreshold =
+        config.kMeansConvergenceThreshold;
+    }
   }
 
   /**
@@ -137,6 +192,91 @@ export class LokulMem {
 
     // Only return config if at least one property was set
     return Object.keys(config).length > 0 ? config : undefined;
+  }
+
+  /**
+   * Build LifecycleConfig from LokulMemConfig options
+   * Only includes properties that are explicitly set
+   */
+  private buildLifecycleConfig():
+    | import('../lifecycle/types.js').LifecycleConfig
+    | undefined {
+    const config: import('../lifecycle/types.js').LifecycleConfig = {};
+
+    if (this.config.lambdaByCategory !== undefined) {
+      config.lambdaByCategory = this.config.lambdaByCategory;
+    }
+
+    if (this.config.pinnedLambda !== undefined) {
+      config.pinnedLambda = this.config.pinnedLambda;
+    }
+
+    if (this.config.fadedThreshold !== undefined) {
+      config.fadedThreshold = this.config.fadedThreshold;
+    }
+
+    if (this.config.reinforcementByCategory !== undefined) {
+      config.reinforcementByCategory = this.config.reinforcementByCategory;
+    }
+
+    if (this.config.maxBaseStrength !== undefined) {
+      config.maxBaseStrength = this.config.maxBaseStrength;
+    }
+
+    if (this.config.reinforcementDebounceMs !== undefined) {
+      config.reinforcementDebounceMs = this.config.reinforcementDebounceMs;
+    }
+
+    if (this.config.maintenanceIntervalMs !== undefined) {
+      config.maintenanceIntervalMs = this.config.maintenanceIntervalMs;
+    }
+
+    if (this.config.kMeansK !== undefined) {
+      config.kMeansK = this.config.kMeansK;
+    }
+
+    if (this.config.kMeansMaxIterations !== undefined) {
+      config.kMeansMaxIterations = this.config.kMeansMaxIterations;
+    }
+
+    if (this.config.kMeansConvergenceThreshold !== undefined) {
+      config.kMeansConvergenceThreshold =
+        this.config.kMeansConvergenceThreshold;
+    }
+
+    // Only return config if at least one property was set
+    return Object.keys(config).length > 0 ? config : undefined;
+  }
+
+  /**
+   * Set up lifecycle event listeners after worker initialization
+   */
+  private setupLifecycleEventListeners(): void {
+    // Listen for MEMORY_FADED events
+    const unfade = this.workerManager.on(
+      MessageTypeConst.MEMORY_FADED,
+      (payload: unknown) => {
+        const memory = payload as MemoryDTO;
+        // Notify all registered handlers
+        for (const handler of this.fadedHandlers) {
+          handler(memory);
+        }
+      },
+    );
+    this.lifecycleUnsubscribers.push(unfade);
+
+    // Listen for MEMORY_DELETED events
+    const undelete = this.workerManager.on(
+      MessageTypeConst.MEMORY_DELETED,
+      (payload: unknown) => {
+        const data = payload as { memoryId: string };
+        // Notify all registered handlers
+        for (const handler of this.deletedHandlers) {
+          handler(data.memoryId);
+        }
+      },
+    );
+    this.lifecycleUnsubscribers.push(undelete);
   }
 
   /**
@@ -163,9 +303,13 @@ export class LokulMem {
           maxRetries: this.config.maxRetries,
           dbName: this.config.dbName,
           modelConfig: this.buildModelConfig(),
+          lifecycleConfig: this.buildLifecycleConfig(),
         },
         this.config.onProgress,
       );
+
+      // Set up lifecycle event listeners after initialization
+      this.setupLifecycleEventListeners();
 
       this.isInitialized = true;
     } catch (error) {
@@ -216,6 +360,74 @@ export class LokulMem {
   terminate(): void {
     this.workerManager.terminate();
     this.isInitialized = false;
+    // Clear lifecycle event handlers
+    this.fadedHandlers = [];
+    this.deletedHandlers = [];
+    // Unsubscribe from lifecycle events
+    for (const unsubscribe of this.lifecycleUnsubscribers) {
+      unsubscribe();
+    }
+    this.lifecycleUnsubscribers = [];
+  }
+
+  /**
+   * Register a callback for memory faded events
+   *
+   * Fired when a memory's strength drops below the faded threshold.
+   * The memory is marked as faded and will be deleted after 30 days.
+   *
+   * @param handler - Callback function that receives the faded memory
+   * @returns Unsubscribe function to remove the handler
+   *
+   * @example
+   * ```typescript
+   * const unsubscribe = lokul.onMemoryFaded((memory) => {
+   *   console.log('Memory faded:', memory.content);
+   * });
+   *
+   * // Later, to stop listening:
+   * unsubscribe();
+   * ```
+   */
+  onMemoryFaded(handler: (memory: MemoryDTO) => void): () => void {
+    this.fadedHandlers.push(handler);
+    // Return unsubscribe function
+    return () => {
+      const index = this.fadedHandlers.indexOf(handler);
+      if (index > -1) {
+        this.fadedHandlers.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Register a callback for memory deleted events
+   *
+   * Fired when a memory is permanently deleted from storage.
+   * This happens 30 days after a memory is marked as faded.
+   *
+   * @param handler - Callback function that receives the deleted memory ID
+   * @returns Unsubscribe function to remove the handler
+   *
+   * @example
+   * ```typescript
+   * const unsubscribe = lokul.onMemoryDeleted((memoryId) => {
+   *   console.log('Memory deleted:', memoryId);
+   * });
+   *
+   * // Later, to stop listening:
+   * unsubscribe();
+   * ```
+   */
+  onMemoryDeleted(handler: (memoryId: string) => void): () => void {
+    this.deletedHandlers.push(handler);
+    // Return unsubscribe function
+    return () => {
+      const index = this.deletedHandlers.indexOf(handler);
+      if (index > -1) {
+        this.deletedHandlers.splice(index, 1);
+      }
+    };
   }
 
   /**
