@@ -326,6 +326,24 @@ export class MemoryRepository {
     await this.db.memories.bulkDelete(ids);
   }
 
+  /**
+   * Update strength-related fields for multiple memories
+   *
+   * Optimized for reinforcement updates from ReinforcementTracker.
+   * Only updates baseStrength, lastAccessedAt, and mentionCount fields.
+   * Uses bulkPut for efficient batch updates.
+   *
+   * @param memories - Array of MemoryInternal with updated strength fields
+   */
+  async bulkUpdateStrengths(memories: MemoryInternal[]): Promise<void> {
+    if (memories.length === 0) {
+      return;
+    }
+
+    const rows = memories.map((memory) => memoryToDb(memory));
+    await this.db.memories.bulkPut(rows);
+  }
+
   // ============================================================================
   // Count Methods
   // ============================================================================
