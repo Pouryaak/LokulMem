@@ -344,6 +344,24 @@ export class MemoryRepository {
     await this.db.memories.bulkPut(rows);
   }
 
+  /**
+   * Update cluster IDs for multiple memories
+   *
+   * Optimized for K-means clustering updates.
+   * Only updates the clusterId field using partial update.
+   *
+   * @param updates - Array of objects with id and clusterId fields
+   */
+  async bulkUpdateClusterIds(
+    updates: Array<{ id: string; clusterId: string }>,
+  ): Promise<void> {
+    if (updates.length === 0) {
+      return;
+    }
+
+    await this.db.memories.bulkUpdate(updates, ['clusterId']);
+  }
+
   // ============================================================================
   // Count Methods
   // ============================================================================
