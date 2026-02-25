@@ -553,4 +553,123 @@ export class MemoryRepository {
 
     return rows.map((row) => memoryFromDb(row));
   }
+
+  // ============================================================================
+  // Supersession Methods
+  // ============================================================================
+
+  /**
+   * Supersede a memory with a new version
+   * Sets existing memory to 'superseded' status with metadata
+   *
+   * @param oldMemoryId - ID of memory to supersede
+   * @param newMemoryId - ID of replacement memory
+   */
+  async supersede(oldMemoryId: string, newMemoryId: string): Promise<void> {
+    const now = Date.now();
+    await this.db.memories.update(oldMemoryId, {
+      status: 'superseded',
+      supersededBy: newMemoryId,
+      supersededAt: now,
+    });
+  }
+
+  /**
+   * Find superseded memories older than 30 days
+   * Used for tombstone cleanup
+   *
+   * @returns Array of superseded memories to strip
+   */
+  async findExpiredSuperseded(): Promise<MemoryInternal[]> {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const rows = await this.db.memories
+      .where('supersededAt')
+      .below(thirtyDaysAgo)
+      .and(
+        (memory) => memory.status === 'superseded' && memory.deletedAt === null,
+      )
+      .toArray();
+
+    return rows.map((row) => memoryFromDb(row));
+  }
+
+  /**
+   * Strip memory content to create tombstone
+   * Removes embedding and content, keeps metadata only
+   *
+   * CRITICAL: Keep minimal metadata for traceability:
+   * - types, conflictDomain, supersededAt/by, validFrom/validTo
+   * - sourceConversationIds, contentHash (for deduplication)
+   * Do NOT strip all metadata to 0/[] - this destroys chain traceability
+   *
+   * @param memoryId - ID of memory to strip
+   */
+  async stripToTombstone(memoryId: string): Promise<void> {
+    const row = await this.db.memories.get(memoryId);
+    if (!row) return;
+
+    const now = Date.now();
+    const contentHash = this.hashContent(row.content);
+
+    await this.db.memories.update(memoryId, {
+      // Strip heavy data
+      content: '',
+      embeddingBytes: new ArrayBuffer(0),
+      // CRITICAL: Keep minimal metadata, not empty arrays
+      entities: row.entities, // Keep entities for chain traceability
+      deletedAt: now,
+      // Keep strength metadata for history
+      currentStrength: 0,
+      baseStrength: row.baseStrength, // Keep original strength
+      // Add contentHash for deduplication
+      metadata: {
+        ...row.metadata,
+        contentHash,
+      },
+    });
+  }
+
+  /**
+   * Generate content hash for tombstone deduplication
+   * @param content - Content to hash
+   * @returns Hash string
+   */
+  private hashContent(content: string): string {
+    // Simple hash - use crypto.subtle in production
+    let hash = 0;
+    for (let i = 0; i < content.length; i++) {
+      const char = content.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
+    }
+    return hash.toString(36);
+  }
+
+  /**
+   * Get full supersession chain for a memory
+   * Traces A -> B -> C relationships
+   *
+   * @param memoryId - Starting memory ID
+   * @returns Array of memories in chain order
+   */
+  async getSupersessionChain(memoryId: string): Promise<MemoryInternal[]> {
+    const chain: MemoryInternal[] = [];
+    let currentId = memoryId;
+
+    while (currentId) {
+      const row = await this.db.memories.get(currentId);
+      if (!row) break;
+
+      chain.push(memoryFromDb(row));
+
+      // Follow supersededBy pointer forward
+      if (row.supersededBy) {
+        currentId = row.supersededBy;
+      } else {
+        break;
+      }
+    }
+
+    return chain;
+  }
 }
