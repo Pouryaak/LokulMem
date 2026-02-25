@@ -11,4 +11,5 @@ export { ReinforcementTracker } from './ReinforcementTracker.js';
 export { MaintenanceSweep } from './MaintenanceSweep.js';
 export { LifecycleEventEmitter } from './EventEmitter.js';
 export { LifecycleManager } from './LifecycleManager.js';
+export { KMeansClusterer } from './KMeansClusterer.js';
 export * from './types.js';
