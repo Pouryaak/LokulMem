@@ -2,8 +2,8 @@
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
 **Current Phase:** 06
-**Current Plan:** 06-03b
-**Status:** Executing Phase 6 plans
+**Current Plan:** 06-03b (Complete)
+**Status:** Phase 6 complete
 **Updated:** 2026-02-25
 
 ---
@@ -36,14 +36,54 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 3: Storage Layer (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 4: Embedding Engine (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 5: Memory Store & Retrieval (Complete - 3 of 3 plans)
-[████████░░] 75% - Phase 6: Lifecycle & Decay (06-01, 06-02, 06-03a complete, 1 plan remaining)
+[██████████] 100% - Phase 6: Lifecycle & Decay (Complete - 4 of 4 plans)
 [░░░░░░░░░░] 0% - Phase 7: Extraction & Contradiction (Not started)
 [░░░░░░░░░░] 0% - Phase 8: Public API & Demo (Not started)
 ```
 
 ### Active Work
 
-**Plan 06-03a Complete!** Implemented K-means clustering with LifecycleManager integration:
+**Plan 06-03b Complete!** Integrated lifecycle system with worker and public API:
+
+**Worker Integration:**
+- LifecycleManager initialized in worker after VectorSearch is ready
+- recordAccess() called after get() operations
+- recordAccess() called for semanticSearch results when using composite scoring
+- Maintenance progress reported via onProgress callback
+- Lifecycle config passed through InitPayload
+
+**IPC Protocol Extensions:**
+- MEMORY_FADED and MEMORY_DELETED message types added
+- MemoryFadedEvent interface with MemoryDTO payload
+- MemoryDeletedEvent interface with memoryId payload
+
+**Public API:**
+- All lifecycle configuration fields added to LokulMemConfig
+- onMemoryFaded(handler) method with unsubscribe support
+- onMemoryDeleted(handler) method with unsubscribe support
+- WorkerManager.on(messageType, handler) for event registration
+- Events forwarded from worker through WorkerManager to user handlers
+
+**Committed:**
+- e3ac35f: feat(06-03b): integrate lifecycle with worker
+- 4565e80: feat(06-03b): extend IPC protocol for lifecycle events
+- 3addbcd: feat(06-03b): extend LokulMemConfig with lifecycle options
+- f39caa7: feat(06-03b): integrate lifecycle events in LokulMem
+- 827825e: feat(06-03b): update lifecycle barrel export
+
+**Duration:** 21 min
+**Deviations:** 3 issues (TypeScript config handling, unused variables, semantic search score approximation - all resolved)
+
+### Next Action
+
+**Phase 6 Complete!** All 4 plans executed successfully.
+
+**Next Phase:** Phase 7 - Extraction & Contradiction
+- Plan 07-01: Structured Attribute Extraction
+- Plan 07-02: Temporal Marker Tracking
+- Plan 07-03: Contradiction Detection Engine
+
+**Implementation Decisions:**
 
 **KMeansClusterer:**
 - K-means++ initialization for better centroid starting positions

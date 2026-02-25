@@ -15,7 +15,7 @@
 - [x] **Phase 3: Storage Layer** - Dexie.js schema with memories, episodes, edges, clusters stores (completed 2026-02-23)
 - [ ] **Phase 4: Embedding Engine** - Transformers.js MiniLM with LRU cache and airgap support
 - [x] **Phase 5: Memory Store & Retrieval** - Brute-force vector search with composite relevance scoring (completed 2026-02-24)
-- [ ] **Phase 6: Lifecycle & Decay** - Ebbinghaus decay model with per-category lambda values
+- [x] **Phase 6: Lifecycle & Decay** - Ebbinghaus decay model with per-category lambda values
 - [ ] **Phase 7: Extraction & Contradiction** - Fact extraction scoring and contradiction detection pipeline
 - [ ] **Phase 8: Public API & Demo** - Complete augment/learn/manage APIs with React demo app
 
@@ -123,13 +123,13 @@ Plans:
   7. K-means clustering runs synchronously in worker to organize memories
   8. `fadedAt` timestamp field records when memory transitioned to faded status
   9. Faded memory deletion runs during session-start maintenance sweep
-**Plans:** 3/4 plans complete
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 06-01-PLAN.md — Decay calculator and reinforcement tracker (Wave 1)
 - [x] 06-02-PLAN.md — Maintenance sweep and event emitter (Wave 2)
 - [x] 06-03a-PLAN.md — K-means clustering and worker integration (Wave 2)
-- [ ] 06-03b-PLAN.md — Public API event callbacks (Wave 2)
+- [x] 06-03b-PLAN.md — Public API event callbacks (Wave 2)
 
 ### Phase 7: Extraction & Contradiction
 **Goal:** Facts are extracted from conversations with quality scoring, contradictions detected and resolved with supersession chains.
