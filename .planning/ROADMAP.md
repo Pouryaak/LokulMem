@@ -16,7 +16,7 @@
 - [ ] **Phase 4: Embedding Engine** - Transformers.js MiniLM with LRU cache and airgap support
 - [x] **Phase 5: Memory Store & Retrieval** - Brute-force vector search with composite relevance scoring (completed 2026-02-24)
 - [x] **Phase 6: Lifecycle & Decay** - Ebbinghaus decay model with per-category lambda values
-- [ ] **Phase 7: Extraction & Contradiction** - Fact extraction scoring and contradiction detection pipeline
+- [ ] **Phase 7: Extraction & Contradiction** - Fact extraction scoring and contradiction detection pipeline (3 plans created)
 - [ ] **Phase 8: Public API & Demo** - Complete augment/learn/manage APIs with React demo app
 
 ---
@@ -149,7 +149,13 @@ Plans:
   11. Typed attribute conflicts mark existing memory as superseded
   12. Contradiction events emitted via callback with full details
   13. Supersession chains preserved with supersededBy and supersededAt fields
-**Plans:** TBD
+**Plans:** 4/4 plans created
+
+Plans:
+- [ ] 07-01-PLAN.md — Structured Attribute Extraction (Wave 1)
+- [ ] 07-02-PLAN.md — Temporal Marker Tracking (Wave 2)
+- [ ] 07-03a-PLAN.md — Database Schema for Supersession (Wave 3)
+- [ ] 07-03b-PLAN.md — Contradiction Detection Engine (Wave 4)
 
 ### Phase 8: Public API & Demo
 **Goal:** Complete public API surface with augment/learn/manage methods, event system, and working React demo application.
@@ -183,8 +189,8 @@ Plans:
 | 3. Storage Layer | 3/3 | Complete | 2026-02-23 |
 | 4. Embedding Engine | 3/3 | Complete | 2026-02-24 |
 | 5. Memory Store & Retrieval | 3/3 | Complete    | 2026-02-24 |
-| 6. Lifecycle & Decay | 2/4 | Complete    | 2026-02-25 |
-| 7. Extraction & Contradiction | 0/2 | Not started | - |
+| 6. Lifecycle & Decay | 4/4 | Complete    | 2026-02-25 |
+| 7. Extraction & Contradiction | 3/3 | Ready for execution | - |
 | 8. Public API & Demo | 0/3 | Not started | - |
 
 ---
