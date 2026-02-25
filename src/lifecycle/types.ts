@@ -5,9 +5,11 @@
  * - Ebbinghaus decay calculation with per-category lambda values
  * - Reinforcement tracking with debounced writes
  * - Memory lifecycle management
+ * - Maintenance sweep and event emission
  */
 
 import type { MemoryType } from '../types/memory.js';
+import type { MemoryDTO } from '../types/memory.js';
 
 // ============================================================================
 // Decay Configuration
@@ -121,10 +123,91 @@ export interface ReinforcementTask {
 // Unified Lifecycle Configuration
 // ============================================================================
 
+// ============================================================================
+// Maintenance Configuration
+// ============================================================================
+
+/**
+ * MaintenanceConfig - Configuration for maintenance sweep operations
+ *
+ * Controls how often and how maintenance sweeps are performed
+ */
+export interface MaintenanceConfig {
+  /**
+   * Interval between periodic maintenance sweeps (milliseconds)
+   * Default: 3600000 (1 hour)
+   */
+  sweepIntervalMs: number;
+
+  /**
+   * Optional progress callback for maintenance operations
+   * Called with stage name and progress percentage (0-100)
+   */
+  onProgress?: (stage: string, progress: number) => void;
+}
+
+/**
+ * SweepResult - Result of a maintenance sweep operation
+ *
+ * Tracks the effects of a single maintenance sweep
+ */
+export interface SweepResult {
+  /** Number of memories whose strength was decayed */
+  decayedCount: number;
+
+  /** Number of memories marked as faded */
+  fadedCount: number;
+
+  /** Number of old faded memories permanently deleted */
+  deletedCount: number;
+}
+
+/**
+ * LifecycleStats - Statistics about memory lifecycle system
+ *
+ * Provides visibility into the state of the lifecycle system
+ */
+export interface LifecycleStats {
+  /** Total number of memories in the system */
+  totalMemories: number;
+
+  /** Number of active (non-faded) memories */
+  activeMemories: number;
+
+  /** Number of faded memories */
+  fadedMemories: number;
+
+  /** Timestamp of the last maintenance sweep */
+  lastSweepTime: number;
+
+  /** Timestamp of the next scheduled sweep (null if not scheduled) */
+  nextSweepTime: number | null;
+
+  /** Number of pending reinforcements waiting to be flushed */
+  pendingReinforcements: number;
+}
+
+/**
+ * LifecycleEventHandlers - Event handler callbacks for lifecycle events
+ *
+ * Defines the signature for lifecycle event callbacks
+ */
+export interface LifecycleEventHandlers {
+  /** Called when a memory fades below threshold */
+  onMemoryFaded?: (memory: MemoryDTO) => void;
+
+  /** Called when a memory is permanently deleted */
+  onMemoryDeleted?: (memoryId: string) => void;
+}
+
+// ============================================================================
+// Unified Lifecycle Configuration
+// ============================================================================
+
 /**
  * LifecycleConfig - Unified configuration for memory lifecycle
  *
- * Combines decay and reinforcement configuration into a single interface
+ * Combines decay, reinforcement, and maintenance configuration into a single interface
  * for convenient initialization and type safety.
  */
 export interface LifecycleConfig {
@@ -143,4 +226,11 @@ export interface LifecycleConfig {
   maxBaseStrength: number;
   /** Debounce window for reinforcement writes (ms) */
   reinforcementDebounceMs: number;
+
+  // Maintenance configuration
+  /** Interval between periodic maintenance sweeps (ms) */
+  maintenanceIntervalMs: number;
+
+  /** Optional progress callback for maintenance operations */
+  onProgress?: (stage: string, progress: number) => void;
 }
