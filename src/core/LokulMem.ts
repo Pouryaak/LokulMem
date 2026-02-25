@@ -15,6 +15,7 @@
  */
 
 import type { InitStage, LokulMemConfig } from '../types/api.js';
+import type { ContradictionEvent, SupersessionEvent } from '../types/events.js';
 import type { MemoryDTO, MemoryType } from '../types/memory.js';
 import type { WorkerClient } from './MessagePort.js';
 import type { ModelConfig } from './Protocol.js';
@@ -93,6 +94,9 @@ export class LokulMem {
   // Lifecycle event handlers
   private fadedHandlers: Array<(memory: MemoryDTO) => void> = [];
   private deletedHandlers: Array<(memoryId: string) => void> = [];
+  private contradictionHandlers: Array<(event: ContradictionEvent) => void> =
+    [];
+  private supersededHandlers: Array<(event: SupersessionEvent) => void> = [];
   private lifecycleUnsubscribers: Array<() => void> = [];
 
   /**
@@ -303,6 +307,32 @@ export class LokulMem {
       },
     );
     this.lifecycleUnsubscribers.push(undelete);
+
+    // Listen for CONTRADICTION_DETECTED events
+    const uncontradict = this.workerManager.on(
+      MessageTypeConst.CONTRADICTION_DETECTED,
+      (payload: unknown) => {
+        const event = payload as ContradictionEvent;
+        // Notify all registered handlers
+        for (const handler of this.contradictionHandlers) {
+          handler(event);
+        }
+      },
+    );
+    this.lifecycleUnsubscribers.push(uncontradict);
+
+    // Listen for MEMORY_SUPERSEDED events
+    const unsupersede = this.workerManager.on(
+      MessageTypeConst.MEMORY_SUPERSEDED,
+      (payload: unknown) => {
+        const event = payload as SupersessionEvent;
+        // Notify all registered handlers
+        for (const handler of this.supersededHandlers) {
+          handler(event);
+        }
+      },
+    );
+    this.lifecycleUnsubscribers.push(unsupersede);
   }
 
   /**
@@ -389,6 +419,8 @@ export class LokulMem {
     // Clear lifecycle event handlers
     this.fadedHandlers = [];
     this.deletedHandlers = [];
+    this.contradictionHandlers = [];
+    this.supersededHandlers = [];
     // Unsubscribe from lifecycle events
     for (const unsubscribe of this.lifecycleUnsubscribers) {
       unsubscribe();
@@ -454,6 +486,58 @@ export class LokulMem {
         this.deletedHandlers.splice(index, 1);
       }
     };
+  }
+
+  /**
+   * Register callback for contradiction detection
+   *
+   * CRITICAL: ContradictionEvent contains IDs and metadata only per CONTEXT decision.
+   * Full content retrievable via manage().get() if needed.
+   *
+   * Fired when a new memory contradicts an existing memory.
+   * The event includes similarity scores, temporal markers, and resolution mode.
+   *
+   * @param handler - Callback function that receives the contradiction event
+   * @returns Unsubscribe function to remove the handler
+   *
+   * @example
+   * ```typescript
+   * const unsubscribe = lokul.onContradictionDetected((event) => {
+   *   console.log('Contradiction:', event.newMemoryId, 'vs', event.conflictingMemoryId);
+   *   console.log('Resolution:', event.resolution);
+   * });
+   *
+   * // Later, to stop listening:
+   * unsubscribe();
+   * ```
+   */
+  onContradictionDetected(
+    handler: (event: ContradictionEvent) => void,
+  ): () => void {
+    return this.workerManager.onContradictionDetected(handler);
+  }
+
+  /**
+   * Register callback for memory superseded events
+   *
+   * Fired when a memory is superseded by a newer version.
+   * The old memory is marked as 'superseded' and linked to the new memory.
+   *
+   * @param handler - Callback function that receives the supersession event
+   * @returns Unsubscribe function to remove the handler
+   *
+   * @example
+   * ```typescript
+   * const unsubscribe = lokul.onMemorySuperseded((event) => {
+   *   console.log('Superseded:', event.oldMemoryId, '->', event.newMemoryId);
+   * });
+   *
+   * // Later, to stop listening:
+   * unsubscribe();
+   * ```
+   */
+  onMemorySuperseded(handler: (event: SupersessionEvent) => void): () => void {
+    return this.workerManager.onMemorySuperseded(handler);
   }
 
   /**
