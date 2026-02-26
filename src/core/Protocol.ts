@@ -86,6 +86,11 @@ export const MessageType = {
   AUGMENT: 'augment',
   /** Learn from conversation */
   LEARN: 'learn',
+  /** Memory mutation operations */
+  MEMORY_UPDATE: 'MEMORY_UPDATE',
+  MEMORY_PIN: 'MEMORY_PIN',
+  MEMORY_UNPIN: 'MEMORY_UNPIN',
+  MEMORY_DELETE: 'MEMORY_DELETE',
 } as const;
 
 /**

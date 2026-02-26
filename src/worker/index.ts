@@ -11,7 +11,6 @@
 import { Augmenter } from '../api/Augmenter.js';
 import { EventManager } from '../api/EventManager.js';
 import { Learner } from '../api/Learner.js';
-import { Manager } from '../api/Manager.js';
 import type {
   EmbedBatchPayload,
   EmbedBatchResponsePayload,
@@ -112,12 +111,6 @@ let augmenter: Augmenter | null = null;
 let learner: Learner | null = null;
 
 /**
- * Singleton manager instance
- */
-// biome-ignore lint/correctness/noUnusedVariables: Used for Manager RPC wrapper (Task 6)
-let manager: Manager | null = null;
-
-/**
  * Calculate overall progress based on current stage and stage progress
  */
 function calculateOverallProgress(
@@ -193,6 +186,18 @@ function setupPort(port: PortLike): void {
         break;
       case MessageTypeConst.LEARN:
         await handleLearn(port, request);
+        break;
+      case MessageTypeConst.MEMORY_UPDATE:
+        await handleMemoryUpdate(port, request);
+        break;
+      case MessageTypeConst.MEMORY_PIN:
+        await handleMemoryPin(port, request);
+        break;
+      case MessageTypeConst.MEMORY_UNPIN:
+        await handleMemoryUnpin(port, request);
+        break;
+      case MessageTypeConst.MEMORY_DELETE:
+        await handleMemoryDelete(port, request);
         break;
       default:
         console.warn('Unknown message type:', request.type);
@@ -670,6 +675,193 @@ async function handleLearn(
 }
 
 /**
+ * Handle MEMORY_UPDATE request
+ */
+async function handleMemoryUpdate(
+  port: PortLike,
+  request: RequestMessage,
+): Promise<void> {
+  if (!queryEngine || !repository) {
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'NOT_INITIALIZED',
+        message: 'Query engine not initialized',
+      },
+    };
+    port.postMessage(response);
+    return;
+  }
+
+  try {
+    const payload = request.payload as { id: string; updates: unknown };
+    await queryEngine.update(
+      payload.id,
+      payload.updates as import('../api/types.js').MemoryUpdate,
+    );
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.MEMORY_UPDATE,
+      payload: { id: payload.id, status: 'updated' },
+    };
+    port.postMessage(response);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'MEMORY_UPDATE_FAILED',
+        message: errorMessage,
+      },
+    };
+    port.postMessage(response);
+  }
+}
+
+/**
+ * Handle MEMORY_PIN request
+ */
+async function handleMemoryPin(
+  port: PortLike,
+  request: RequestMessage,
+): Promise<void> {
+  if (!queryEngine || !repository) {
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'NOT_INITIALIZED',
+        message: 'Query engine not initialized',
+      },
+    };
+    port.postMessage(response);
+    return;
+  }
+
+  try {
+    const payload = request.payload as { id: string };
+    await queryEngine.pin(payload.id);
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.MEMORY_PIN,
+      payload: { id: payload.id, status: 'pinned' },
+    };
+    port.postMessage(response);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'MEMORY_PIN_FAILED',
+        message: errorMessage,
+      },
+    };
+    port.postMessage(response);
+  }
+}
+
+/**
+ * Handle MEMORY_UNPIN request
+ */
+async function handleMemoryUnpin(
+  port: PortLike,
+  request: RequestMessage,
+): Promise<void> {
+  if (!queryEngine || !repository) {
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'NOT_INITIALIZED',
+        message: 'Query engine not initialized',
+      },
+    };
+    port.postMessage(response);
+    return;
+  }
+
+  try {
+    const payload = request.payload as { id: string };
+    await queryEngine.unpin(payload.id);
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.MEMORY_UNPIN,
+      payload: { id: payload.id, status: 'unpinned' },
+    };
+    port.postMessage(response);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'MEMORY_UNPIN_FAILED',
+        message: errorMessage,
+      },
+    };
+    port.postMessage(response);
+  }
+}
+
+/**
+ * Handle MEMORY_DELETE request
+ */
+async function handleMemoryDelete(
+  port: PortLike,
+  request: RequestMessage,
+): Promise<void> {
+  if (!queryEngine || !repository) {
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'NOT_INITIALIZED',
+        message: 'Query engine not initialized',
+      },
+    };
+    port.postMessage(response);
+    return;
+  }
+
+  try {
+    const payload = request.payload as { id: string };
+    await queryEngine.delete(payload.id);
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.MEMORY_DELETE,
+      payload: { id: payload.id, status: 'deleted' },
+    };
+    port.postMessage(response);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'MEMORY_DELETE_FAILED',
+        message: errorMessage,
+      },
+    };
+    port.postMessage(response);
+  }
+}
+
+/**
  * Initialize lifecycle management
  */
 async function initializeLifecycle(config: LifecycleConfig): Promise<void> {
@@ -920,8 +1112,8 @@ async function initializeAPIComponents(): Promise<void> {
     );
   }
 
-  // Initialize Manager
-  manager = new Manager(queryEngine, repository, eventManager);
+  // Note: Manager is not instantiated in worker
+  // Manager lives on main thread and communicates via WorkerClient
 
   console.log('[Worker] API components initialized');
 }
