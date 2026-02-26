@@ -8,6 +8,10 @@
  * - Storage operations via Dexie.js
  */
 
+import { Augmenter } from '../api/Augmenter.js';
+import { EventManager } from '../api/EventManager.js';
+import { Learner } from '../api/Learner.js';
+import { Manager } from '../api/Manager.js';
 import type {
   EmbedBatchPayload,
   EmbedBatchResponsePayload,
@@ -87,6 +91,30 @@ let queryEngine: QueryEngine | null = null;
  * Singleton lifecycle manager instance
  */
 let lifecycleManager: LifecycleManager | null = null;
+
+/**
+ * Singleton event manager instance
+ */
+// biome-ignore lint/correctness/noUnusedVariables: Used in subsequent tasks
+let eventManager: EventManager | null = null;
+
+/**
+ * Singleton augmenter instance
+ */
+// biome-ignore lint/correctness/noUnusedVariables: Used in subsequent tasks
+let augmenter: Augmenter | null = null;
+
+/**
+ * Singleton learner instance
+ */
+// biome-ignore lint/correctness/noUnusedVariables: Used in subsequent tasks
+let learner: Learner | null = null;
+
+/**
+ * Singleton manager instance
+ */
+// biome-ignore lint/correctness/noUnusedVariables: Used in subsequent tasks
+let manager: Manager | null = null;
 
 /**
  * Calculate overall progress based on current stage and stage progress
@@ -572,6 +600,9 @@ async function handleInit(
     // Stage 3.5: Query engine initialization (part of storage stage)
     await initializeQueryEngine();
 
+    // Stage 3.6: API components initialization (after all dependencies ready)
+    await initializeAPIComponents();
+
     // Stage 4: Maintenance - initialize lifecycle if configured
     reportProgress(port, 'maintenance', 0);
     if (payload.lifecycleConfig) {
@@ -717,6 +748,75 @@ async function initializeQueryEngine(): Promise<void> {
   // Create query engine
   queryEngine = new QueryEngine(repository, vectorSearch, embeddingEngine);
   console.log('[Worker] Query engine initialized');
+}
+
+/**
+ * Initialize API components (Augmenter, Learner, Manager)
+ */
+async function initializeAPIComponents(): Promise<void> {
+  if (!queryEngine || !vectorSearch || !repository || !embeddingEngine) {
+    throw new Error('Dependencies not ready');
+  }
+
+  // Initialize EventManager first (needed by other components)
+  eventManager = new EventManager({
+    verboseEvents: false, // Can be configured via InitPayload if needed
+  });
+
+  // Check for extraction dependencies (needed for Learner)
+  const {
+    ContradictionDetector,
+    QualityScorer,
+    SupersessionManager,
+    SpecificityNER,
+    NoveltyCalculator,
+    RecurrenceTracker,
+  } = await import('../extraction/_index.js');
+
+  // Create temporary instances for extraction pipeline
+  const qualityScorer = new QualityScorer(embeddingEngine);
+  const specificityNER = new SpecificityNER();
+  const noveltyCalculator = new NoveltyCalculator();
+  const recurrenceTracker = new RecurrenceTracker();
+  const contradictionDetector = new ContradictionDetector(
+    repository,
+    vectorSearch,
+    specificityNER,
+  );
+  const supersessionManager = new SupersessionManager(repository);
+
+  // Initialize Augmenter
+  augmenter = new Augmenter(queryEngine, eventManager, {
+    tokenCounter: undefined, // Use default
+    contextWindowTokens: undefined, // From request
+    reservedForResponseTokens: undefined, // From request
+  });
+
+  // Initialize Learner (with all dependencies)
+  if (lifecycleManager) {
+    learner = new Learner(
+      queryEngine,
+      vectorSearch,
+      repository,
+      qualityScorer,
+      contradictionDetector,
+      supersessionManager,
+      lifecycleManager,
+      specificityNER,
+      noveltyCalculator,
+      recurrenceTracker,
+      embeddingEngine,
+      eventManager,
+      {
+        extractionThreshold: 0.55, // Default
+      },
+    );
+  }
+
+  // Initialize Manager
+  manager = new Manager(queryEngine, repository, eventManager);
+
+  console.log('[Worker] API components initialized');
 }
 
 /**
