@@ -188,4 +188,73 @@ describe('SpecificityNER heuristics', () => {
 
     expect(result.memoryTypes).not.toContain('relational');
   });
+
+  it('extracts named spouse relations', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze("My wife's name is Parastoo");
+    const personValues = result.entities
+      .filter((entity) => entity.type === 'person')
+      .map((entity) => entity.value);
+
+    expect(result.memoryTypes).toContain('relational');
+    expect(personValues).toContain('parastoo');
+  });
+
+  it('captures unlabeled relation mentions without requiring names', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('My wife loves steak');
+
+    expect(result.memoryTypes).toContain('relational');
+  });
+
+  it('captures lowercase residence locations from natural chat', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('i live in denmark');
+    const placeValues = result.entities
+      .filter((entity) => entity.type === 'place')
+      .map((entity) => entity.value);
+
+    expect(result.memoryTypes).toContain('location');
+    expect(placeValues).toContain('denmark');
+  });
+
+  it('rejects non-location idioms in location patterns', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I live in fear');
+    const placeValues = result.entities
+      .filter((entity) => entity.type === 'place')
+      .map((entity) => entity.value);
+
+    expect(placeValues).not.toContain('fear');
+  });
+
+  it('does not classify work industries as locations', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I work in tech');
+    const placeValues = result.entities
+      .filter((entity) => entity.type === 'place')
+      .map((entity) => entity.value);
+
+    expect(placeValues).not.toContain('tech');
+  });
 });
