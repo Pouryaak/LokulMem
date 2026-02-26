@@ -26,7 +26,11 @@ import type {
 import { MessageType as MessageTypeConst } from '../core/Protocol.js';
 import type { PortLike } from '../core/types.js';
 import type {
+  AugmentPayload,
+  AugmentResponsePayload,
   GetPayload,
+  LearnPayload,
+  LearnResponsePayload,
   ListPayload,
   SearchPayload,
   SemanticSearchPayload,
@@ -95,25 +99,22 @@ let lifecycleManager: LifecycleManager | null = null;
 /**
  * Singleton event manager instance
  */
-// biome-ignore lint/correctness/noUnusedVariables: Used in subsequent tasks
 let eventManager: EventManager | null = null;
 
 /**
  * Singleton augmenter instance
  */
-// biome-ignore lint/correctness/noUnusedVariables: Used in subsequent tasks
 let augmenter: Augmenter | null = null;
 
 /**
  * Singleton learner instance
  */
-// biome-ignore lint/correctness/noUnusedVariables: Used in subsequent tasks
 let learner: Learner | null = null;
 
 /**
  * Singleton manager instance
  */
-// biome-ignore lint/correctness/noUnusedVariables: Used in subsequent tasks
+// biome-ignore lint/correctness/noUnusedVariables: Used for Manager RPC wrapper (Task 6)
 let manager: Manager | null = null;
 
 /**
@@ -186,6 +187,12 @@ function setupPort(port: PortLike): void {
         break;
       case MessageTypeConst.SEMANTIC_SEARCH:
         await handleSemanticSearch(port, request);
+        break;
+      case MessageTypeConst.AUGMENT:
+        await handleAugment(port, request);
+        break;
+      case MessageTypeConst.LEARN:
+        await handleLearn(port, request);
         break;
       default:
         console.warn('Unknown message type:', request.type);
@@ -556,6 +563,106 @@ async function handleSemanticSearch(
         code: 'SEMANTIC_SEARCH_FAILED',
         message: errorMessage,
         details: { recoveryHint: 'Check query text and options' },
+      },
+    };
+    port.postMessage(response);
+  }
+}
+
+/**
+ * Handle AUGMENT request for memory augmentation
+ */
+async function handleAugment(
+  port: PortLike,
+  request: RequestMessage,
+): Promise<void> {
+  if (!augmenter) {
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'NOT_INITIALIZED',
+        message: 'Augmenter not initialized',
+      },
+    };
+    port.postMessage(response);
+    return;
+  }
+
+  try {
+    const payload = request.payload as AugmentPayload;
+    const result = await augmenter.augment(
+      payload.userMessage,
+      payload.history,
+      payload.options,
+    );
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.AUGMENT,
+      payload: result as AugmentResponsePayload,
+    };
+    port.postMessage(response);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'AUGMENT_ERROR',
+        message: errorMessage,
+      },
+    };
+    port.postMessage(response);
+  }
+}
+
+/**
+ * Handle LEARN request for memory extraction
+ */
+async function handleLearn(
+  port: PortLike,
+  request: RequestMessage,
+): Promise<void> {
+  if (!learner) {
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'NOT_INITIALIZED',
+        message: 'Learner not initialized',
+      },
+    };
+    port.postMessage(response);
+    return;
+  }
+
+  try {
+    const payload = request.payload as LearnPayload;
+    const result = await learner.learn(
+      payload.userMessage,
+      payload.assistantResponse,
+      payload.options,
+    );
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.LEARN,
+      payload: result as LearnResponsePayload,
+    };
+    port.postMessage(response);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'LEARN_ERROR',
+        message: errorMessage,
       },
     };
     port.postMessage(response);
