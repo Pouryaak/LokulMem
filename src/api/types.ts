@@ -1,206 +1,127 @@
 /**
- * Augment API types for LokulMem
+ * Management API types for LokulMem
  *
- * Provides types for the augment() API which retrieves relevant memories
- * and injects them into LLM context.
+ * These types define the manage() namespace API including:
+ * - Bulk operation results with detailed feedback
+ * - Export/import formats and modes
+ * - Single operation status responses
+ * - Clear and stats results
  */
-
-import type { MemoryDTO } from '../types/memory.js';
 
 /**
- * ChatMessage - Message in a conversation
- *
- * Used for augment() history parameter and return value.
+ * BulkOperationResult - Result of bulk operations (deleteMany, pinMany, etc.)
+ * Provides detailed feedback on succeeded and failed operations
  */
-export interface ChatMessage {
-  /** Message role: system, user, or assistant */
-  role: 'system' | 'user' | 'assistant';
-
-  /** Message content */
-  content: string;
-
-  /** Optional timestamp (used by learn(), not by augment) */
-  timestamp?: number;
-}
-
-/**
- * AugmentOptions - Configuration options for augment()
- *
- * Controls memory retrieval, token budgeting, and debug output.
- */
-export interface AugmentOptions {
-  /**
-   * LLM context window size in tokens
-   *
-   * NO default - user must specify this for accurate token budgeting.
-   * Can be set globally in LokulMem config or per-call.
-   *
-   * @example 8192 for Claude 3, 128000 for GPT-4
-   */
-  contextWindowTokens?: number;
-
-  /**
-   * Tokens to reserve for LLM response
-   *
-   * @default 512
-   */
-  reservedForResponseTokens?: number;
-
-  /**
-   * Override max tokens directly (bypasses budget calculation)
-   *
-   * If set, skips contextWindowTokens calculation and uses this value
-   * as the maximum tokens for memory injection.
-   */
-  maxTokens?: number;
-
-  /**
-   * Enable debug mode
-   *
-   * Debug object is LAZY-COMPUTED - only when debug=true.
-   * Default: false (must be explicitly enabled for performance).
-   *
-   * @default false
-   */
-  debug?: boolean;
-}
-
-/**
- * AugmentResult - Result of augment() operation
- *
- * Returns LLM-ready messages with injected memories and metadata.
- */
-export interface AugmentResult {
-  /**
-   * LLM-ready messages array with injected memories
-   *
-   * If memories were found, first message is a system message with
-   * memory block prepended. Otherwise, returns original messages.
-   */
-  messages: ChatMessage[];
-
-  /**
-   * Metadata about the memory injection
-   */
-  metadata: {
-    /** Number of memories injected */
-    injectedCount: number;
-
-    /**
-     * Flag: no relevant memories found
-     *
-     * true if search returned no results or all memories were below
-     * the relevance threshold.
-     */
-    noMemoriesFound: boolean;
-
-    /**
-     * Tokens used before injection
-     *
-     * Sum of system prompt + history + user message tokens.
-     */
-    usedTokensBeforeInjection: number;
-
-    /**
-     * Tokens used for injected memories
-     *
-     * Estimated tokens for the memory block that was injected.
-     */
-    injectionTokens: number;
-
-    /**
-     * Remaining tokens after injection
-     *
-     * Budget remaining after injecting memories (before LLM response).
-     */
-    remainingTokensAfterInjection: number;
+export interface BulkOperationResult {
+  /** IDs that succeeded */
+  succeeded: string[];
+  /** IDs that failed with error messages */
+  failed: Array<{ id: string; error: string }>;
+  /** Total operations attempted */
+  total: number;
+  /** Count summary */
+  counts: {
+    succeeded: number;
+    failed: number;
   };
-
-  /**
-   * Debug object (only if options.debug = true)
-   *
-   * Undefined when debug=false (lazy computation for performance).
-   */
-  debug?: LokulMemDebug;
 }
 
 /**
- * LokulMemDebug - Debug information for augment()
- *
- * Provides detailed information about memory retrieval, scoring,
- * token usage, and performance. Only computed when debug=true.
+ * ExportFormat - Export format options
+ * - json: Structured JSON with base64-encoded embeddings
+ * - markdown: Human-readable markdown format
  */
-export interface LokulMemDebug {
-  /**
-   * Memories that were injected
-   *
-   * Full MemoryDTO objects with all metadata.
-   */
-  injectedMemories: MemoryDTO[];
+export type ExportFormat = 'json' | 'markdown';
 
-  /**
-   * Relevance scores with breakdowns
-   *
-   * Shows the composite score and individual components for each
-   * injected memory.
-   */
-  scores: Array<{
-    /** Memory ID */
-    memoryId: string;
+/**
+ * ImportMode - Import behavior modes
+ * - replace: Clear all existing memories before importing
+ * - merge: Add new memories, skip existing IDs
+ */
+export type ImportMode = 'replace' | 'merge';
 
-    /** Final composite relevance score (0-1) */
-    relevance: number;
+/**
+ * ImportResult - Result of import operation
+ */
+export interface ImportResult {
+  /** Number of memories imported */
+  imported: number;
+  /** Number of memories skipped (merge mode) */
+  skipped: number;
+  /** Number of errors encountered */
+  errors: number;
+}
 
-    /** Individual score components */
-    breakdown: {
-      /** Semantic similarity component */
-      semantic: number;
+/**
+ * ClearResult - Result of clear operation
+ */
+export interface ClearResult {
+  /** Status indicator */
+  status: 'cleared';
+  /** Number of memories cleared */
+  count: number;
+}
 
-      /** Recency decay component */
-      recency: number;
+/**
+ * SingleOperationResult - Result of single operation (update, pin, delete, etc.)
+ * Lightweight response with ID and status only
+ */
+export interface SingleOperationResult {
+  /** Memory ID */
+  id: string;
+  /** Operation status */
+  status: 'updated' | 'pinned' | 'unpinned' | 'archived' | 'active' | 'deleted';
+}
 
-      /** Memory strength component */
-      strength: number;
-
-      /** Session continuity component */
-      continuity: number;
-    };
+/**
+ * LokulMemExport - Export data structure for JSON format
+ * Contains memories with base64-encoded embeddings for serialization
+ */
+export interface LokulMemExport {
+  /** Export format version */
+  version: string;
+  /** Export timestamp */
+  exportedAt: number;
+  /** Memories with base64-encoded embeddings */
+  memories: Array<{
+    id: string;
+    content: string;
+    types: string[];
+    status: string;
+    createdAt: number;
+    updatedAt: number;
+    validFrom: number;
+    validTo: number | null;
+    baseStrength: number;
+    currentStrength: number;
+    pinned: boolean;
+    mentionCount: number;
+    lastAccessedAt: number;
+    clusterId: string | null;
+    entities: string[];
+    sourceConversationIds: string[];
+    supersededBy: string | null;
+    supersededAt: number | null;
+    fadedAt: number | null;
+    metadata: Record<string, unknown>;
+    /** Base64-encoded embedding for JSON serialization */
+    embeddingBase64: string;
   }>;
+}
 
-  /**
-   * Candidates excluded and why
-   *
-   * Memories that were considered but excluded from injection,
-   * with the reason for exclusion.
-   */
-  excludedCandidates: Array<{
-    /** Memory ID */
-    memoryId: string;
-
-    /** Reason for exclusion */
-    reason: 'low_relevance' | 'floor_threshold' | 'token_budget';
-  }>;
-
-  /**
-   * Token usage breakdown
-   *
-   * Detailed token accounting for the entire operation.
-   */
-  tokenUsage: {
-    /** Tokens used for prompt (messages + injected memories) */
-    prompt: number;
-
-    /** Tokens reserved for LLM completion */
-    completion: number;
-
-    /** Total tokens (prompt + completion) */
-    total: number;
-  };
-
-  /**
-   * Latency in milliseconds
-   *
-   * Total time for the augment() operation from start to finish.
-   */
-  latencyMs: number;
+/**
+ * MemoryUpdate - Memory update fields for single operations
+ * Subset of MemoryDTO fields that can be updated
+ */
+export interface MemoryUpdate {
+  content?: string;
+  types?: string[];
+  status?: string;
+  validFrom?: number;
+  validTo?: number | null;
+  baseStrength?: number;
+  pinned?: boolean;
+  clusterId?: string | null;
+  entities?: string[];
+  metadata?: Record<string, unknown>;
 }
