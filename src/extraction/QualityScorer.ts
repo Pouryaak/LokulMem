@@ -54,97 +54,49 @@ export class QualityScorer {
   async score(input: QualityInput): Promise<ExtractionScore> {
     const { content, embedding } = input;
 
-    try {
-      // DEBUG: Log config
-      console.log(
-        '[QualityScorer] Starting score for:',
-        content.substring(0, 30),
-      );
-      console.log('[QualityScorer] Config:', {
-        threshold: this.config.threshold,
-        minNovelty: this.config.minNovelty,
-        noveltyWeight: this.config.noveltyWeight,
-        specificityWeight: this.config.specificityWeight,
-        recurrenceWeight: this.config.recurrenceWeight,
-      });
+    // Compute specificity
+    const specificityResult = this.specificityNER.analyze(content);
+    const specificity = specificityResult.score;
 
-      // Compute specificity
-      const specificityResult = this.specificityNER.analyze(content);
-      const specificity = specificityResult.score;
+    // Compute novelty (requires vector search)
+    const novelty = await this.noveltyCalculator.compute(content);
 
-      console.log('[QualityScorer] Specificity result:', {
-        score: specificity.toFixed(3),
-        memoryTypes: specificityResult.memoryTypes,
-        entities: specificityResult.entities.length,
-      });
+    // Compute recurrence (session-based)
+    const recurrence = this.recurrenceTracker.checkRecurrence(
+      content,
+      embedding,
+      this.config.recurrenceThreshold ?? 0.85,
+    );
 
-      // Compute novelty (requires vector search)
-      console.log('[QualityScorer] About to compute novelty...');
-      const novelty = await this.noveltyCalculator.compute(content);
-      console.log('[QualityScorer] Novelty computed:', novelty.toFixed(3));
+    // Track in session
+    this.recurrenceTracker.track(content, embedding);
 
-      // Compute recurrence (session-based)
-      const recurrence = this.recurrenceTracker.checkRecurrence(
-        content,
-        embedding,
-        this.config.recurrenceThreshold ?? 0.85,
-      );
+    // Compute weighted E(s)
+    const score =
+      (this.config.noveltyWeight ?? 0.35) * novelty +
+      (this.config.specificityWeight ?? 0.45) * specificity +
+      (this.config.recurrenceWeight ?? 0.2) * recurrence;
 
-      // Track in session
-      this.recurrenceTracker.track(content, embedding);
+    // Check threshold - use base threshold when no types detected
+    // CRITICAL: Don't default to 'preference' when memoryTypes is empty
+    // This prevents poisoning contradiction domains
+    const memoryType = specificityResult.memoryTypes[0];
+    const threshold =
+      memoryType !== undefined
+        ? (this.config.thresholdsByType?.[memoryType] ?? this.config.threshold)
+        : this.config.threshold;
 
-      console.log('[QualityScorer] Recurrence:', recurrence.toFixed(3));
+    const minNoveltyCheck = novelty >= (this.config.minNovelty ?? 0.15);
+    const scoreCheck = score >= threshold;
+    const meetsThreshold = scoreCheck && minNoveltyCheck;
 
-      // Compute weighted E(s)
-      const score =
-        (this.config.noveltyWeight ?? 0.35) * novelty +
-        (this.config.specificityWeight ?? 0.45) * specificity +
-        (this.config.recurrenceWeight ?? 0.2) * recurrence;
-
-      console.log('[QualityScorer] Weighted score:', score.toFixed(3), {
-        novelty: novelty.toFixed(3),
-        specificity: specificity.toFixed(3),
-        recurrence: recurrence.toFixed(3),
-      });
-
-      // Check threshold - use base threshold when no types detected
-      // CRITICAL: Don't default to 'preference' when memoryTypes is empty
-      // This prevents poisoning contradiction domains
-      const memoryType = specificityResult.memoryTypes[0];
-      const threshold =
-        memoryType !== undefined
-          ? (this.config.thresholdsByType?.[memoryType] ??
-            this.config.threshold)
-          : this.config.threshold;
-
-      const minNoveltyCheck = novelty >= (this.config.minNovelty ?? 0.15);
-      const scoreCheck = score >= threshold;
-
-      console.log('[QualityScorer] Threshold check:', {
-        score: score.toFixed(3),
-        threshold: threshold.toFixed(3),
-        scorePass: scoreCheck,
-        novelty: novelty.toFixed(3),
-        minNovelty: (this.config.minNovelty ?? 0.15).toFixed(3),
-        noveltyPass: minNoveltyCheck,
-        meetsThreshold: scoreCheck && minNoveltyCheck,
-      });
-
-      const meetsThreshold = scoreCheck && minNoveltyCheck;
-
-      console.log('[QualityScorer] ✓ Score complete, returning');
-
-      return {
-        score,
-        novelty,
-        specificity,
-        recurrence,
-        meetsThreshold,
-      };
-    } catch (error) {
-      console.error('[QualityScorer] ERROR during scoring:', error);
-      throw error;
-    }
+    return {
+      score,
+      novelty,
+      specificity,
+      recurrence,
+      meetsThreshold,
+    };
   }
 
   /**

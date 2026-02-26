@@ -42,11 +42,11 @@ export class Augmenter {
       reservedForResponseTokens?: number;
     } = {},
   ) {
-    // Set default context window if not provided (4096 is common for many LLMs)
+    // Set default context window if not provided
+    // 8192 is a reasonable default that works well for GPT-4 and most modern LLMs
     if (this.config.contextWindowTokens === undefined) {
-      this.config.contextWindowTokens = 4096;
+      this.config.contextWindowTokens = 8192;
     }
-    // Note: Augmenter does NOT emit events during augment()
     // Note: Augmenter does NOT emit events during augment()
     // Events are emitted at point of mutation (reinforcement writes from Phase 6)
     // This eventManager reference is for future use
@@ -77,7 +77,7 @@ export class Augmenter {
     const reservedForResponseTokens =
       options.reservedForResponseTokens ??
       this.config.reservedForResponseTokens ??
-      512;
+      1024;
 
     const budgetConfig: {
       contextWindowTokens?: number;
@@ -146,16 +146,29 @@ export class Augmenter {
         },
       );
 
-      // Create candidates list for excluded tracking
-      const allCandidates = debugSearchResults.map((memory) => ({
-        memory,
-        score: 0, // Will be populated by computeDebug
-        reason: undefined as string | undefined,
-      })) as Array<{
+      // Build injected set for quick lookup
+      const injectedIds = new Set(searchResults.map((m) => m.id));
+
+      // Track actual exclusion reasons:
+      // - Memories in debug results but NOT in injected → excluded by token_budget
+      //   (they passed relevance/threshold but didn't fit in the budget)
+      // - Memories not in debug results at all would be low_relevance/floor_threshold
+      //   (but we can only see what semanticSearch returned)
+      const allCandidates: Array<{
         memory: MemoryDTO;
         score: number;
         reason?: string;
-      }>;
+      }> = debugSearchResults.map((memory) => {
+        const candidate: { memory: MemoryDTO; score: number; reason?: string } =
+          {
+            memory,
+            score: 0,
+          };
+        if (!injectedIds.has(memory.id)) {
+          candidate.reason = 'token_budget';
+        }
+        return candidate;
+      });
 
       debugObj = await this.computeDebug(
         searchResults as Array<

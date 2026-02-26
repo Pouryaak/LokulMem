@@ -132,6 +132,8 @@ export interface InitPayload {
   lifecycleConfig?: LifecycleConfig | undefined;
   /** Custom worker URL (passed through for reference) */
   workerUrl?: string | undefined;
+  /** Extraction threshold (0-1) for memory quality scoring - default: 0.45 */
+  extractionThreshold?: number | undefined;
 }
 
 /**

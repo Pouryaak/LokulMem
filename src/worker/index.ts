@@ -102,6 +102,11 @@ let lifecycleManager: LifecycleManager | null = null;
 let eventManager: EventManager | null = null;
 
 /**
+ * Extraction threshold from init config (default: 0.45)
+ */
+let configuredExtractionThreshold = 0.45;
+
+/**
  * Singleton augmenter instance
  */
 let augmenter: Augmenter | null = null;
@@ -997,6 +1002,11 @@ async function handleInit(
   const payload = request.payload as InitPayload;
 
   try {
+    // Store extraction threshold from config
+    if (payload.extractionThreshold !== undefined) {
+      configuredExtractionThreshold = payload.extractionThreshold;
+    }
+
     // Stage 1: Worker initialization (complete - we're running)
     reportProgress(port, 'worker', 100);
 
@@ -1196,7 +1206,7 @@ async function initializeAPIComponents(): Promise<void> {
     noveltyCalculator,
     recurrenceTracker,
     {
-      threshold: 0.55,
+      threshold: configuredExtractionThreshold,
       minNovelty: 0.15,
       noveltyWeight: 0.35,
       specificityWeight: 0.45,
@@ -1239,7 +1249,7 @@ async function initializeAPIComponents(): Promise<void> {
     embeddingEngine,
     eventManager,
     {
-      extractionThreshold: 0.55, // Default
+      extractionThreshold: configuredExtractionThreshold,
     },
   );
 

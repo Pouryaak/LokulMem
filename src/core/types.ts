@@ -30,6 +30,8 @@ export interface WorkerConfig {
   lifecycleConfig?: LifecycleConfig | undefined;
   /** Per-operation timeout in milliseconds (default: 5000) */
   requestTimeoutMs?: number;
+  /** Extraction threshold (0-1) for memory quality scoring */
+  extractionThreshold?: number | undefined;
 }
 
 /**

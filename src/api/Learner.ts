@@ -117,27 +117,13 @@ export class Learner {
         embedding,
       });
 
-      // DEBUG: Log extraction score details
-      console.log('[Learner] Extraction score for:', source.substring(0, 50));
-      console.log('[Learner] Score details:', {
-        novelty: scoreResult.novelty.toFixed(3),
-        specificity: scoreResult.specificity.toFixed(3),
-        recurrence: scoreResult.recurrence.toFixed(3),
-        total: scoreResult.score.toFixed(3),
-        meetsThreshold: scoreResult.meetsThreshold,
-      });
-
-      // Apply threshold
+      // Apply threshold - use per-call override or configured threshold
+      // Note: We check score directly instead of relying on scoreResult.meetsThreshold,
+      // because meetsThreshold uses QualityScorer's internal threshold which may differ
+      // from the configured extractionThreshold.
       const threshold = learnThreshold ?? this.config.extractionThreshold;
-      console.log('[Learner] Threshold check:', {
-        score: scoreResult.score.toFixed(3),
-        threshold: threshold.toFixed(3),
-        passes: scoreResult.score >= threshold,
-      });
 
-      if (scoreResult.meetsThreshold && scoreResult.score >= threshold) {
-        console.log('[Learner] ✓ Memory extracted!');
-        // Extract entities for memory creation
+      if (scoreResult.score >= threshold) {
         const specificityResult = this.specificityNER.analyze(source);
         candidates.push(
           this.createMemory(
@@ -149,8 +135,6 @@ export class Learner {
             embedding,
           ),
         );
-      } else {
-        console.log('[Learner] ✗ Memory below threshold, skipping');
       }
     }
 

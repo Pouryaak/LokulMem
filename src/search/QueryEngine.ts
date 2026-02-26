@@ -361,7 +361,13 @@ export class QueryEngine {
     // Ensure non-negative budget
     injectionBudget = Math.max(0, injectionBudget);
 
-    const results = await this.semanticSearch(query, { k: 50 });
+    // Use composite scoring for injection to consider recency, strength, and continuity
+    // alongside semantic similarity. This ensures recently mentioned or strong memories
+    // are prioritized even if they're not the closest semantic match.
+    const results = await this.semanticSearch(query, {
+      k: 50,
+      useCompositeScoring: true,
+    });
 
     // Dynamic K based on token budget
     const limitedMemories: MemoryDTO[] = [];

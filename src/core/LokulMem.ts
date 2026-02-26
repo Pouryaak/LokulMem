@@ -53,7 +53,7 @@ const DEFAULT_CONFIG: {
   workerType: 'auto',
   initTimeoutMs: 10000,
   maxRetries: 1, // Per Phase 2 decisions: default 1 retry per mode
-  extractionThreshold: 0.5,
+  extractionThreshold: 0.45, // Lowered from 0.50 to capture more valuable facts (preferences, dates, contact info)
 };
 
 /**
@@ -387,6 +387,7 @@ export class LokulMem {
           dbName: this.config.dbName,
           modelConfig: this.buildModelConfig(),
           lifecycleConfig: this.buildLifecycleConfig(),
+          extractionThreshold: this.config.extractionThreshold,
         },
         this.config.onProgress,
       );
@@ -459,7 +460,9 @@ export class LokulMem {
         assistantResponse,
         options: {
           conversationId: options.conversationId,
-          extractFrom: options.extractFrom ?? 'both',
+          // CRITICAL: Let Learner class handle extractFrom default ('user')
+          // Previously defaulted to 'both' here, causing assistant messages to be extracted
+          extractFrom: options.extractFrom,
           runMaintenance: options.runMaintenance ?? false,
           learnThreshold: options.learnThreshold,
           autoAssociate: options.autoAssociate ?? false,
@@ -732,7 +735,7 @@ export class LokulMem {
           reservedForResponseTokens:
             options.reservedForResponseTokens ??
             this.config.reservedForResponseTokens ??
-            512,
+            1024,
           maxTokens: options.maxTokens,
           debug: options.debug ?? false,
         },

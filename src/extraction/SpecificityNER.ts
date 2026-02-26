@@ -68,6 +68,16 @@ export class SpecificityNER {
     const negations = this.extractNegations(content);
     entities.push(...negations);
 
+    // Email patterns (weight: 0.25) - contact information
+    const emails = this.extractEmails(content);
+    entities.push(...emails);
+    if (emails.length > 0) memoryTypes.push('identity');
+
+    // "Named X" patterns (weight: 0.25) - pet names, proper nouns after "named"
+    const namedEntities = this.extractNamedEntities(content);
+    entities.push(...namedEntities);
+    if (namedEntities.length > 0) memoryTypes.push('relational');
+
     // First-person possession (weight: 0.10) - tracked via entity extraction only
     // Possessions do NOT create a 'possession' entity type - they're extracted
     // as entities but kept separate from memory types to avoid type pollution
@@ -90,6 +100,8 @@ export class SpecificityNER {
       preferences: 0.25,
       dates: 0.2,
       negations: 0.2,
+      emails: 0.25,
+      namedEntities: 0.25,
       possessions: 0.1,
     };
 
@@ -101,6 +113,8 @@ export class SpecificityNER {
       (preferences.length > 0 ? weights.preferences : 0) +
       (dates.length > 0 ? weights.dates : 0) +
       (negations.length > 0 ? weights.negations : 0) +
+      (emails.length > 0 ? weights.emails : 0) +
+      (namedEntities.length > 0 ? weights.namedEntities : 0) +
       (possessions.length > 0 ? weights.possessions : 0);
 
     return {
@@ -336,6 +350,39 @@ export class SpecificityNER {
       }
     }
 
+    // Pattern: "My/Your favorite [X] is [Y]" (e.g., "My favorite color is blue")
+    const myFavoritePattern = /(?:my|your)\s+favorite\s+\w+\s+is\s+([^.!?]+)/gi;
+    const myFavoriteMatches = content.matchAll(myFavoritePattern);
+    for (const match of myFavoriteMatches) {
+      if (match[1]) {
+        const value = match[1].trim();
+        if (value.length > 0 && value.length < 100) {
+          entities.push({
+            type: 'preference',
+            value: value.toLowerCase(),
+            raw: value,
+            count: 1,
+            confidence: 0.9,
+          });
+        }
+      }
+    }
+
+    // Pattern: "I prefer [X] over/to [Y]" (comparison preferences)
+    const comparePattern = /i\s+prefer\s+(\w+)\s+(?:over|to)\s+(\w+)/gi;
+    const compareMatches = content.matchAll(comparePattern);
+    for (const match of compareMatches) {
+      if (match[1] && match[2]) {
+        entities.push({
+          type: 'preference',
+          value: `${match[1].toLowerCase()} over ${match[2].toLowerCase()}`,
+          raw: match[0],
+          count: 1,
+          confidence: 0.9,
+        });
+      }
+    }
+
     return entities;
   }
 
@@ -357,6 +404,22 @@ export class SpecificityNER {
           raw: match[1],
           count: 1,
           confidence: 0.95,
+        });
+      }
+    }
+
+    // Pattern: Month name dates ("March 15th", "January 1st", "December 25, 2023")
+    const monthPattern =
+      /\b((?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?)\b/gi;
+    const monthMatches = content.matchAll(monthPattern);
+    for (const match of monthMatches) {
+      if (match[1]) {
+        entities.push({
+          type: 'date',
+          value: match[1].toLowerCase(),
+          raw: match[1],
+          count: 1,
+          confidence: 0.9,
         });
       }
     }
@@ -419,6 +482,57 @@ export class SpecificityNER {
           raw: match[0],
           count: 1,
           confidence: 0.7,
+        });
+      }
+    }
+
+    return entities;
+  }
+
+  /**
+   * Extract email addresses
+   * Matches: user@domain.com patterns
+   */
+  private extractEmails(content: string): Entity[] {
+    const entities: Entity[] = [];
+
+    const emailPattern =
+      /\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/g;
+    const matches = content.matchAll(emailPattern);
+    for (const match of matches) {
+      if (match[1]) {
+        entities.push({
+          type: 'person',
+          value: match[1].toLowerCase(),
+          raw: match[1],
+          count: 1,
+          confidence: 0.95,
+        });
+      }
+    }
+
+    return entities;
+  }
+
+  /**
+   * Extract entities after "named" keyword
+   * Matches: "named [Name]", "called [Name]" - for pets, people, things
+   */
+  private extractNamedEntities(content: string): Entity[] {
+    const entities: Entity[] = [];
+
+    // Pattern: "named [Name]" or "called [Name]"
+    const namedPattern =
+      /\b(?:named|called)\s+([A-Z][a-z]+(?:\s+(?:and\s+)?[A-Z][a-z]+)*)/g;
+    const matches = content.matchAll(namedPattern);
+    for (const match of matches) {
+      if (match[1]) {
+        entities.push({
+          type: 'person',
+          value: match[1].toLowerCase(),
+          raw: match[1],
+          count: 1,
+          confidence: 0.85,
         });
       }
     }

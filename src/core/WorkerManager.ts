@@ -352,6 +352,7 @@ export class WorkerManager {
       modelConfig: config.modelConfig,
       persistenceGranted: this.persistenceStatus?.persisted ?? false,
       workerUrl: config.workerUrl,
+      extractionThreshold: config.extractionThreshold,
     };
 
     await this.client.request('init', initPayload, config.initTimeoutMs);

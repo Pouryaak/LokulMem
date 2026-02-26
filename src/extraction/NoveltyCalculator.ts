@@ -22,44 +22,17 @@ export class NoveltyCalculator {
    * @returns Novelty score (0-1), where 1 = completely novel
    */
   async compute(content: string): Promise<number> {
-    console.log(
-      '[NoveltyCalculator] Computing novelty for:',
-      content.substring(0, 30),
-    );
+    // Use k=1 to get only the top match
+    const results = await this.vectorSearch.search(content, { k: 1 });
 
-    try {
-      // Use k=1 to get only the top match
-      console.log('[NoveltyCalculator] About to call vectorSearch.search...');
-      const results = await this.vectorSearch.search(content, { k: 1 });
-      console.log(
-        '[NoveltyCalculator] Search returned:',
-        results.length,
-        'results',
-      );
-
-      if (results.length === 0) {
-        // No existing memories = completely novel
-        console.log(
-          '[NoveltyCalculator] No existing memories, returning novelty = 1.0',
-        );
-        return 1.0;
-      }
-
-      // Novelty = 1 - similarity to closest match
-      const topSimilarity = results[0]?.similarity ?? 0;
-      const novelty = Math.max(0, 1 - topSimilarity);
-      console.log(
-        '[NoveltyCalculator] ✓ Novelty computed:',
-        novelty.toFixed(3),
-        '(similarity:',
-        topSimilarity.toFixed(3),
-        ')',
-      );
-      return novelty;
-    } catch (error) {
-      console.error('[NoveltyCalculator] ERROR:', error);
-      throw error;
+    if (results.length === 0) {
+      // No existing memories = completely novel
+      return 1.0;
     }
+
+    // Novelty = 1 - similarity to closest match
+    const topSimilarity = results[0]?.similarity ?? 0;
+    return Math.max(0, 1 - topSimilarity);
   }
 
   /**
