@@ -1,0 +1,29 @@
+{
+  "id": "noisy-variants",
+  "category": "noise",
+  "description": "Chatty/noise turns should not produce persisted memory.",
+  "turns": [
+    {
+      "user": "Good morning!",
+      "assistant": "Hello!",
+      "expect": {
+        "maxExtracted": 0
+      }
+    },
+    {
+      "user": "I love you so much.",
+      "assistant": "Thanks.",
+      "expect": {
+        "maxExtracted": 0,
+        "forbiddenExtractedIncludes": ["i love you"]
+      }
+    },
+    {
+      "user": "Thanks, that helps a lot.",
+      "assistant": "Happy to help.",
+      "expect": {
+        "maxExtracted": 0
+      }
+    }
+  ]
+}

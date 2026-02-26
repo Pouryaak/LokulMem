@@ -1,0 +1,11 @@
+{
+  "meaningfulRecall": 0.9,
+  "noiseFalsePositiveRate": 0.05,
+  "assistantContaminationRate": 0,
+  "supersessionCorrectness": 0.9,
+  "canonicalizationAccuracy": 0.95,
+  "entityLinkAccuracy": 0.85,
+  "temporalStateAccuracy": 0.9,
+  "policyDecisionAccuracy": 0.88,
+  "decisionStability": 1
+}

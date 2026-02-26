@@ -1,0 +1,25 @@
+{
+  "id": "temporal-transitions",
+  "category": "temporal",
+  "description": "Temporal transitions should map to transition bucket and supersede prior state.",
+  "turns": [
+    {
+      "user": "I live in Denver.",
+      "assistant": "Noted.",
+      "expect": {
+        "requiredExtractedIncludes": ["i live in denver"],
+        "requiredPolicyActions": ["ADD"],
+        "expectedTemporalBuckets": ["unspecified"]
+      }
+    },
+    {
+      "user": "I used to live in Denver but now I live in Austin.",
+      "assistant": "Thanks for the update.",
+      "expect": {
+        "requiredExtractedIncludes": ["i used to live in denver but now i live in austin"],
+        "requiredPolicyActions": ["SUPERSEDE"],
+        "expectedTemporalBuckets": ["transition"]
+      }
+    }
+  ]
+}

@@ -296,6 +296,33 @@ pnpm build
 pnpm test
 ```
 
+### Memory eval gates (P0)
+
+Run deterministic memory-quality evals locally:
+
+```bash
+npm run eval:memory:A
+npm run eval:memory:B
+npm run eval:memory:C
+```
+
+Gate policy:
+
+- `A`: bring-up metrics, hard-fail only assistant contamination
+- `B`: regression budget checks against `tests/evals/memory/baseline.json`
+- `C`: absolute quality thresholds + regression checks
+
+Current threshold targets:
+
+- meaningful recall >= 0.90
+- noise false positive <= 0.05
+- assistant contamination == 0
+- supersession correctness >= 0.90
+- canonicalization accuracy >= 0.95
+- entity-link accuracy >= 0.85
+- temporal state accuracy >= 0.90
+- policy decision accuracy >= 0.88
+
 ### Demo app (isolated workspace)
 
 ```bash

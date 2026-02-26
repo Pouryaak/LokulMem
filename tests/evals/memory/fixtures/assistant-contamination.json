@@ -1,0 +1,14 @@
+{
+  "id": "assistant-contamination-default",
+  "category": "assistant_contamination",
+  "description": "Assistant facts should not persist in default user-only extraction mode.",
+  "turns": [
+    {
+      "user": "Thanks for the help.",
+      "assistant": "My birthday is Jan 1 and I live in Paris.",
+      "expect": {
+        "maxExtracted": 0
+      }
+    }
+  ]
+}

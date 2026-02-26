@@ -1,0 +1,23 @@
+{
+  "id": "implicit-updates",
+  "category": "implicit_updates",
+  "description": "Same-predicate new values should resolve via deterministic update policy.",
+  "turns": [
+    {
+      "user": "I work at OpenAI.",
+      "assistant": "Nice.",
+      "expect": {
+        "requiredExtractedIncludes": ["i work at openai"],
+        "requiredPolicyActions": ["ADD"]
+      }
+    },
+    {
+      "user": "I work at Anthropic.",
+      "assistant": "Got it.",
+      "expect": {
+        "requiredExtractedIncludes": ["i work at anthropic"],
+        "requiredPolicyActions": ["UPDATE"]
+      }
+    }
+  ]
+}

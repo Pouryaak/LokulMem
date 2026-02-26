@@ -113,7 +113,7 @@ Done criteria:
 
 ## Phase 4: Eval Harness + CI Gates
 
-- [ ] Add `tests/evals/memory/fixtures/*.json`
+- [x] Add `tests/evals/memory/fixtures/*.json`
   - clean facts
   - noisy variants
   - chatty noise
@@ -121,10 +121,10 @@ Done criteria:
   - cross-turn linking
   - temporal transitions
   - supersession and implicit updates
-- [ ] Add `tests/evals/memory/runner.ts`
+- [x] Add `tests/evals/memory/runner.ts`
   - computes recall, noise FP, contamination, policy accuracy, link accuracy, temporal accuracy, stability
-- [ ] Add `npm run eval:memory` script in `package.json`
-- [ ] Add CI job for staged gates (A/B/C)
+- [x] Add `npm run eval:memory` script in `package.json`
+- [x] Add CI job for staged gates (A/B/C)
 
 Done criteria:
 
@@ -135,7 +135,7 @@ Done criteria:
 
 - [x] Add diagnostics fields to policy and extraction logs
 - [ ] Keep defaults plug-and-play (no required user config)
-- [ ] Document behavior and thresholds in README or docs
+- [x] Document behavior and thresholds in README or docs
 
 ## Initial Threshold Targets
 

@@ -1,0 +1,22 @@
+{
+  "id": "cross-turn-linking",
+  "category": "cross_turn_linking",
+  "description": "Entity linker should retain referent across typo-level variation in later turns.",
+  "turns": [
+    {
+      "user": "My friend's name is Sarah.",
+      "assistant": "Okay.",
+      "expect": {
+        "requiredExtractedIncludes": ["my friend's name is sarah"],
+        "requiredPolicyActions": ["ADD"]
+      }
+    },
+    {
+      "user": "My friend Sarah lives in Berlin.",
+      "assistant": "Understood.",
+      "expect": {
+        "requiredExtractedIncludes": ["my friend sarah lives in berlin"]
+      }
+    }
+  ]
+}

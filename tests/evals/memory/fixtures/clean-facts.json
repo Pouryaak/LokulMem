@@ -1,0 +1,34 @@
+{
+  "id": "clean-facts-core",
+  "category": "clean_facts",
+  "description": "High-signal user facts should be extracted and typed consistently.",
+  "turns": [
+    {
+      "user": "My name is Alice.",
+      "assistant": "Nice to meet you.",
+      "expect": {
+        "requiredExtractedIncludes": ["my name is alice"],
+        "requiredPolicyActions": ["ADD"],
+        "expectedCanonicalPredicates": ["is"]
+      }
+    },
+    {
+      "user": "I live in Copenhagen.",
+      "assistant": "Got it.",
+      "expect": {
+        "requiredExtractedIncludes": ["i live in copenhagen"],
+        "requiredPolicyActions": ["ADD"],
+        "expectedCanonicalPredicates": ["lives_in"]
+      }
+    },
+    {
+      "user": "I prefer tea over coffee.",
+      "assistant": "Noted.",
+      "expect": {
+        "requiredExtractedIncludes": ["i prefer tea over coffee"],
+        "requiredPolicyActions": ["ADD"],
+        "expectedCanonicalPredicates": ["prefers"]
+      }
+    }
+  ]
+}

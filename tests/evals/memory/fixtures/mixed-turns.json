@@ -1,0 +1,23 @@
+{
+  "id": "mixed-turns",
+  "category": "mixed_turns",
+  "description": "Mixed chat and facts should keep recall high while rejecting conversational filler.",
+  "turns": [
+    {
+      "user": "By the way, I am 29 years old.",
+      "assistant": "Got it.",
+      "expect": {
+        "requiredExtractedIncludes": ["i am 29 years old"],
+        "requiredPolicyActions": ["ADD"],
+        "expectedCanonicalPredicates": ["is"]
+      }
+    },
+    {
+      "user": "Cool, thanks.",
+      "assistant": "Anytime.",
+      "expect": {
+        "maxExtracted": 0
+      }
+    }
+  ]
+}
