@@ -9,6 +9,7 @@ import { computeTokenBudget } from '../core/TokenBudget.js';
 import type { QueryEngine } from '../search/QueryEngine.js';
 import type { TokenBudgetResult } from '../search/types.js';
 import type { MemoryDTO } from '../types/memory.js';
+import type { EventManager } from './EventManager.js';
 import type {
   AugmentOptions,
   AugmentResult,
@@ -26,10 +27,12 @@ export class Augmenter {
   /**
    * Create a new Augmenter instance
    * @param queryEngine - Query engine for semantic search
+   * @param eventManager - Event manager for emitting events
    * @param config - Augmenter configuration
    */
   constructor(
     private queryEngine: QueryEngine,
+    private eventManager: EventManager,
     private config: {
       /** Custom token counter function */
       tokenCounter?: (text: string) => number;
