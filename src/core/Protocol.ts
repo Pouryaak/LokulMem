@@ -82,6 +82,8 @@ export const MessageType = {
   CONTRADICTION_DETECTED: 'CONTRADICTION_DETECTED',
   /** Memory superseded event */
   MEMORY_SUPERSEDED: 'MEMORY_SUPERSEDED',
+  /** Augment user message with memories */
+  AUGMENT: 'augment',
   /** Learn from conversation */
   LEARN: 'learn',
 } as const;
