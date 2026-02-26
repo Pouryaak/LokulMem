@@ -312,4 +312,58 @@ describe('SpecificityNER heuristics', () => {
     expect(jokeOrgs).toHaveLength(0);
     expect(activityOrgs).toHaveLength(0);
   });
+
+  it('extracts explicit negative preference subjects', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze("I don't like mushrooms");
+    const preferenceValues = result.entities
+      .filter((entity) => entity.type === 'preference')
+      .map((entity) => entity.value);
+
+    expect(result.memoryTypes).toContain('preference');
+    expect(preferenceValues).toContain('mushrooms');
+  });
+
+  it('rejects like/love linguistic false positives', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const likeResult = ner.analyze("I'd like to travel next year");
+    const loveResult = ner.analyze('I love you');
+    const likePrefs = likeResult.entities.filter(
+      (entity) => entity.type === 'preference',
+    );
+    const lovePrefs = loveResult.entities.filter(
+      (entity) => entity.type === 'preference',
+    );
+
+    expect(likePrefs).toHaveLength(0);
+    expect(lovePrefs).toHaveLength(0);
+  });
+
+  it('rejects into-trouble and hate-to-say false positives', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const intoResult = ner.analyze("I'm into trouble again");
+    const hateResult = ner.analyze('I hate to say this, but it is true');
+
+    const intoPrefs = intoResult.entities.filter(
+      (entity) => entity.type === 'preference',
+    );
+    const hatePrefs = hateResult.entities.filter(
+      (entity) => entity.type === 'preference',
+    );
+
+    expect(intoPrefs).toHaveLength(0);
+    expect(hatePrefs).toHaveLength(0);
+  });
 });

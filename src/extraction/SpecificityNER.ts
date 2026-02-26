@@ -8,8 +8,6 @@ import {
   extractNegations,
   extractNumbers,
   extractPossessions,
-  extractPreferenceComparisons,
-  extractPreferences,
   extractTemporalChanges,
 } from './specificity/basicExtractors.js';
 import { isCommonWord, isTemporalToken } from './specificity/commonTokens.js';
@@ -26,6 +24,10 @@ import {
   extractNames,
   isLikelyNameCandidate,
 } from './specificity/nameExtractor.js';
+import {
+  type PreferenceSignal,
+  extractPreferenceSignals,
+} from './specificity/preferenceExtractor.js';
 import {
   extractJobs,
   isProfessionPhrase,
@@ -48,6 +50,7 @@ const WEIGHTS = {
   numbers: 0.2,
   preferences: 0.25,
   preferenceComparisons: 0.2,
+  preferenceSignals: 0.12,
   dates: 0.2,
   habits: 0.2,
   negations: 0.2,
@@ -94,13 +97,15 @@ export class SpecificityNER {
     const numbers = extractNumbers(content);
     entities.push(...numbers);
 
-    const preferences = extractPreferences(content);
-    entities.push(...preferences);
-    if (preferences.length > 0) memoryTypes.push('preference');
-
-    const preferenceComparisons = extractPreferenceComparisons(content);
-    entities.push(...preferenceComparisons);
-    if (preferenceComparisons.length > 0) memoryTypes.push('preference');
+    const preferenceExtraction = extractPreferenceSignals(content);
+    entities.push(...preferenceExtraction.preferenceEntities);
+    entities.push(...preferenceExtraction.comparisonEntities);
+    if (
+      preferenceExtraction.preferenceEntities.length > 0 ||
+      preferenceExtraction.comparisonEntities.length > 0
+    ) {
+      memoryTypes.push('preference');
+    }
 
     const dates = extractDates(content);
     entities.push(...dates);
@@ -136,8 +141,9 @@ export class SpecificityNER {
         places,
         jobs,
         numbers,
-        preferences,
-        preferenceComparisons,
+        preferences: preferenceExtraction.preferenceEntities,
+        preferenceComparisons: preferenceExtraction.comparisonEntities,
+        preferenceSignals: preferenceExtraction.signals,
         dates,
         habits,
         negations,
@@ -180,6 +186,7 @@ export class SpecificityNER {
     numbers: Entity[];
     preferences: Entity[];
     preferenceComparisons: Entity[];
+    preferenceSignals: PreferenceSignal[];
     dates: Entity[];
     habits: Entity[];
     negations: Entity[];
@@ -200,6 +207,7 @@ export class SpecificityNER {
       (input.preferenceComparisons.length > 0
         ? WEIGHTS.preferenceComparisons
         : 0) +
+      (input.preferenceSignals.length > 0 ? WEIGHTS.preferenceSignals : 0) +
       (input.dates.length > 0 ? WEIGHTS.dates : 0) +
       (input.habits.length > 0 ? WEIGHTS.habits : 0) +
       (input.negations.length > 0 ? WEIGHTS.negations : 0) +
