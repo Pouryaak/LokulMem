@@ -257,4 +257,59 @@ describe('SpecificityNER heuristics', () => {
 
     expect(placeValues).not.toContain('tech');
   });
+
+  it('captures degree + major + institution education statements', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I earned a BS in computer science from MIT');
+    const orgValues = result.entities
+      .filter((entity) => entity.type === 'organization')
+      .map((entity) => entity.value);
+
+    expect(result.memoryTypes).toContain('identity');
+    expect(orgValues).toContain('mit');
+    expect(result.score).toBeGreaterThanOrEqual(0.2);
+  });
+
+  it('captures current student education statements', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze(
+      "I'm currently studying machine learning at Stanford",
+    );
+    const orgValues = result.entities
+      .filter((entity) => entity.type === 'organization')
+      .map((entity) => entity.value);
+
+    expect(result.memoryTypes).toContain('identity');
+    expect(orgValues).toContain('stanford');
+  });
+
+  it('rejects education idioms and joke institutions', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const idiomResult = ner.analyze(
+      'I graduated from the school of hard knocks',
+    );
+    const jokeOrgs = idiomResult.entities
+      .filter((entity) => entity.type === 'organization')
+      .map((entity) => entity.value);
+
+    const activityResult = ner.analyze('I went to sleep early');
+    const activityOrgs = activityResult.entities
+      .filter((entity) => entity.type === 'organization')
+      .map((entity) => entity.value);
+
+    expect(jokeOrgs).toHaveLength(0);
+    expect(activityOrgs).toHaveLength(0);
+  });
 });

@@ -14,6 +14,10 @@ import {
 } from './specificity/basicExtractors.js';
 import { isCommonWord, isTemporalToken } from './specificity/commonTokens.js';
 import {
+  type EducationSignal,
+  extractEducationSignals,
+} from './specificity/educationExtractor.js';
+import {
   type IdentitySignal,
   extractIdentitySignals,
 } from './specificity/identityExtractor.js';
@@ -51,6 +55,7 @@ const WEIGHTS = {
   emails: 0.4,
   namedEntities: 0.25,
   possessions: 0.1,
+  educationSignals: 0.24,
   identitySignals: 0.2,
   relationalSignals: 0.22,
 } as const;
@@ -66,6 +71,10 @@ export class SpecificityNER {
 
     const identitySignals = extractIdentitySignals(content);
     this.applyIdentitySignals(identitySignals, memoryTypes);
+
+    const educationExtraction = extractEducationSignals(content);
+    entities.push(...educationExtraction.entities);
+    if (educationExtraction.signals.length > 0) memoryTypes.push('identity');
 
     const relationalExtraction = extractRelationalSignals(
       content,
@@ -136,6 +145,7 @@ export class SpecificityNER {
         emails,
         namedEntities,
         possessions,
+        educationSignals: educationExtraction.signals,
         identitySignals,
         relationalSignals: relationalExtraction.signals,
       }),
@@ -177,6 +187,7 @@ export class SpecificityNER {
     emails: Entity[];
     namedEntities: Entity[];
     possessions: Entity[];
+    educationSignals: EducationSignal[];
     identitySignals: IdentitySignal[];
     relationalSignals: RelationalSignal[];
   }): number {
@@ -196,6 +207,7 @@ export class SpecificityNER {
       (input.emails.length > 0 ? WEIGHTS.emails : 0) +
       (input.namedEntities.length > 0 ? WEIGHTS.namedEntities : 0) +
       (input.possessions.length > 0 ? WEIGHTS.possessions : 0) +
+      (input.educationSignals.length > 0 ? WEIGHTS.educationSignals : 0) +
       (input.identitySignals.length > 0 ? WEIGHTS.identitySignals : 0) +
       (input.relationalSignals.length > 0 ? WEIGHTS.relationalSignals : 0);
 
