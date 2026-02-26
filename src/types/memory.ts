@@ -134,6 +134,9 @@ export interface ExtractionScore {
 
   /** Whether score meets extraction threshold */
   meetsThreshold: boolean;
+
+  /** Threshold applied for this scoring decision */
+  threshold: number;
 }
 
 /**

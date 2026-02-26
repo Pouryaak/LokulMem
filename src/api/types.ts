@@ -32,7 +32,7 @@ export interface LearnOptions {
   /** Run maintenance sweep after extraction (default: false) */
   runMaintenance?: boolean;
 
-  /** Override extraction threshold (default: 0.55) */
+  /** Override extraction threshold (default: instance extractionThreshold, 0.45 by default) */
   learnThreshold?: number;
 
   /** Auto-associate with previous augment() results (default: false) */
@@ -63,6 +63,22 @@ export interface LearnResult {
 
   /** Conversation ID (provided or auto-generated) */
   conversationId: string;
+
+  /** Optional extraction diagnostics (only when LearnOptions.verbose=true) */
+  diagnostics?: LearnDiagnostic[];
+}
+
+/** Per-source diagnostic emitted by learn() in verbose mode */
+export interface LearnDiagnostic {
+  source: string;
+  score: number;
+  novelty: number;
+  specificity: number;
+  recurrence: number;
+  threshold: number;
+  accepted: boolean;
+  memoryTypes: import('../types/memory.js').MemoryType[];
+  entityCount: number;
 }
 
 /**

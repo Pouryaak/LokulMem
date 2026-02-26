@@ -17,7 +17,7 @@ Extract facts from conversations with quality scoring, detect contradictions, an
 
 ### Extraction quality thresholds
 
-- **Default threshold:** E(s) ≥ 0.55 (moderate - balanced for general use)
+- **Default threshold:** E(s) ≥ 0.45 (runtime tuned baseline)
 - **Configurable:** Yes - expose `extractionThreshold` in LokulMem constructor
 - **Type-specific thresholds:** Yes - stricter for identity facts (names, locations), more lenient for preferences/emotional states
 - **Below-threshold handling:** Three bands:
@@ -26,7 +26,7 @@ Extract facts from conversations with quality scoring, detect contradictions, an
   - E(s) ≥ threshold → store as memory
 - **Novelty scoring:** Keep novelty component (0.35 weight) and make it configurable
 - **Minimum novelty gate:** Require novelty ≥ 0.15 (configurable) to prevent near-duplicates even if specificity is high
-- **Overall approach:** Single E(s) threshold (default 0.55) + optional minimum novelty gate (default 0.15, configurable)
+- **Overall approach:** Single E(s) threshold (default 0.45) + optional minimum novelty gate (default 0.15, configurable)
 - **Edge case logging:** Log all extraction scores and threshold decisions when debug mode enabled
 - **Novelty computation requirement:** MUST use `vectorSearch.search(embed(s), k=1)` from Phase 5 to avoid redundant O(N) loops
 

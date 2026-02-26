@@ -9,7 +9,7 @@
 Phase 7 implements the extraction pipeline that evaluates what's worth remembering from conversations, classifies memories by type, extracts entities, detects contradictions, and manages temporal updates. This phase delivers the core intelligence layer that separates valuable facts from conversational noise, handles conflicting information gracefully, and maintains memory consistency over time.
 
 Key findings:
-1. **Extraction quality scoring** uses E(s) = 0.35×novelty + 0.45×specificity + 0.20×recurrence with default threshold 0.55
+1. **Extraction quality scoring** uses E(s) = 0.35×novelty + 0.45×specificity + 0.20×recurrence with runtime default threshold 0.45
 2. **Specificity NER** uses lightweight regex patterns for names, places, numbers, preferences, dates, negations, and first-person possession
 3. **Novelty computation** requires vector search with k=1: `novelty = 1 - top1_similarity` (must use Phase 5 VectorSearch, not O(N) loop)
 4. **Contradiction detection** uses cosine ≥ 0.80 threshold with 7 candidates, conflict-domain based filtering (8 domains)
@@ -27,7 +27,7 @@ Key findings:
 ### Locked Decisions
 
 **Extraction quality thresholds:**
-- Default threshold: E(s) ≥ 0.55 (moderate - balanced for general use)
+- Default threshold: E(s) ≥ 0.45 (runtime tuned baseline)
 - Configurable: Yes - expose `extractionThreshold` in LokulMem constructor
 - Type-specific thresholds: Yes - stricter for identity facts (names, locations), more lenient for preferences/emotional states
 - Below-threshold handling: Three bands:
@@ -36,7 +36,7 @@ Key findings:
   - E(s) ≥ threshold → store as memory
 - Novelty scoring: Keep novelty component (0.35 weight) and make it configurable
 - Minimum novelty gate: Require novelty ≥ 0.15 (configurable) to prevent near-duplicates even if specificity is high
-- Overall approach: Single E(s) threshold (default 0.55) + optional minimum novelty gate (default 0.15, configurable)
+- Overall approach: Single E(s) threshold (default 0.45) + optional minimum novelty gate (default 0.15, configurable)
 - Edge case logging: Log all extraction scores and threshold decisions when debug mode enabled
 - Novelty computation requirement: MUST use `vectorSearch.search(embed(s), k=1)` from Phase 5 to avoid redundant O(N) loops
 
@@ -133,7 +133,7 @@ None — discussion stayed within phase scope.
 | EXTRACT-02 | Novelty computed via `1 - top1_similarity` using vector search | Use Phase 5 VectorSearch.search() with k=1 to get top match, compute novelty |
 | EXTRACT-03 | Recurrence tracked within session (cosine > 0.85) | Session-level tracking with Set of seen facts, threshold matching |
 | EXTRACT-04 | E(s) = 0.35×novelty + 0.45×specificity + 0.20×recurrence | Weighted sum with configurable weights, default values from requirements |
-| EXTRACT-05 | Extraction threshold default 0.55 (configurable) | LokulMemConfig.extractionThreshold, type-specific overrides supported |
+| EXTRACT-05 | Extraction threshold default 0.45 (configurable) | LokulMemConfig.extractionThreshold, type-specific overrides supported |
 | EXTRACT-06 | Memory types classified (identity, location, profession, preference, project, temporal, relational, emotional) | Rule-based classification using keyword patterns and entity types |
 | EXTRACT-07 | Entities extracted and stored with memory | EntityExtractor with regex patterns, typed entities with deduplication |
 | CONTRA-01 | Retrieve topK candidates (5-10) and evaluate any with similarity > 0.80; choose best typed-attribute match | VectorSearch with k=7, similarity threshold, typed-attribute matching |

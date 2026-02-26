@@ -1,5 +1,9 @@
 # Memory Management Issues Analysis
 
+> NOTE (2026-02-26): This document is historical and partially outdated.
+> Current validated behavior and improvement plan are in
+> `MEMORY-QUALITY-FINDINGS-2026-02-26.md`.
+
 **Date:** 2026-02-26
 **Priority:** HIGH
 **Status:** Analysis Complete

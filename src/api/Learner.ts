@@ -20,7 +20,12 @@ import type { ContradictionEvent } from '../types/events.js';
 import type { Entity, MemoryDTO, MemoryType } from '../types/memory.js';
 import type { EmbeddingEngine } from '../worker/EmbeddingEngine.js';
 import type { EventManager } from './EventManager.js';
-import type { ChatMessage, LearnOptions, LearnResult } from './types.js';
+import type {
+  ChatMessage,
+  LearnDiagnostic,
+  LearnOptions,
+  LearnResult,
+} from './types.js';
 
 /**
  * Learner class for extracting memories from conversations
@@ -65,7 +70,7 @@ export class Learner {
     _recurrenceTracker: RecurrenceTracker, // Embedded in qualityScorer
     private embeddingEngine: EmbeddingEngine,
     private eventManager: EventManager,
-    private config: {
+    _config: {
       extractionThreshold: number;
     },
   ) {}
@@ -90,6 +95,7 @@ export class Learner {
       runMaintenance = false,
       learnThreshold,
       storeResponse = false,
+      verbose = false,
     } = options;
 
     const conversationId =
@@ -106,6 +112,7 @@ export class Learner {
 
     // Step 3: Extract candidates using Phase 7 pipeline
     const candidates: MemoryInternal[] = [];
+    const diagnostics: LearnDiagnostic[] = [];
 
     for (const source of sources) {
       // Generate embedding for this source
@@ -117,14 +124,33 @@ export class Learner {
         embedding,
       });
 
+      const specificityResult = this.specificityNER.analyze(source);
+
       // Apply threshold - use per-call override or configured threshold
       // Note: We check score directly instead of relying on scoreResult.meetsThreshold,
       // because meetsThreshold uses QualityScorer's internal threshold which may differ
       // from the configured extractionThreshold.
-      const threshold = learnThreshold ?? this.config.extractionThreshold;
+      const threshold = learnThreshold ?? scoreResult.threshold;
+      const accepted =
+        learnThreshold !== undefined
+          ? scoreResult.score >= learnThreshold
+          : scoreResult.meetsThreshold;
 
-      if (scoreResult.score >= threshold) {
-        const specificityResult = this.specificityNER.analyze(source);
+      if (verbose) {
+        diagnostics.push({
+          source,
+          score: scoreResult.score,
+          novelty: scoreResult.novelty,
+          specificity: scoreResult.specificity,
+          recurrence: scoreResult.recurrence,
+          threshold,
+          accepted,
+          memoryTypes: specificityResult.memoryTypes,
+          entityCount: specificityResult.entities.length,
+        });
+      }
+
+      if (accepted) {
         candidates.push(
           this.createMemory(
             source,
@@ -235,12 +261,18 @@ export class Learner {
     }
 
     // Step 9: Return result
-    return {
+    const result: LearnResult = {
       extracted: candidates.map((m) => this.toDTO(m)),
       contradictions,
       maintenance: maintenanceStats,
       conversationId,
     };
+
+    if (verbose) {
+      result.diagnostics = diagnostics;
+    }
+
+    return result;
   }
 
   /**

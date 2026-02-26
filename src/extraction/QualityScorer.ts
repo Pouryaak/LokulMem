@@ -80,11 +80,11 @@ export class QualityScorer {
     // Check threshold - use base threshold when no types detected
     // CRITICAL: Don't default to 'preference' when memoryTypes is empty
     // This prevents poisoning contradiction domains
-    const memoryType = specificityResult.memoryTypes[0];
+    const thresholds = specificityResult.memoryTypes.map(
+      (type) => this.config.thresholdsByType?.[type] ?? this.config.threshold,
+    );
     const threshold =
-      memoryType !== undefined
-        ? (this.config.thresholdsByType?.[memoryType] ?? this.config.threshold)
-        : this.config.threshold;
+      thresholds.length > 0 ? Math.min(...thresholds) : this.config.threshold;
 
     const minNoveltyCheck = novelty >= (this.config.minNovelty ?? 0.15);
     const scoreCheck = score >= threshold;
@@ -96,6 +96,7 @@ export class QualityScorer {
       specificity,
       recurrence,
       meetsThreshold,
+      threshold,
     };
   }
 

@@ -1212,6 +1212,12 @@ async function initializeAPIComponents(): Promise<void> {
       specificityWeight: 0.45,
       recurrenceWeight: 0.2,
       recurrenceThreshold: 0.85,
+      thresholdsByType: {
+        identity: 0.36,
+        preference: 0.38,
+        relational: 0.38,
+        temporal: 0.33,
+      },
     },
   );
   const contradictionDetector = new ContradictionDetector(

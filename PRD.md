@@ -133,7 +133,7 @@ Three primary methods: `augment()`, `learn()`, `manage()`. Integration in under 
 
 ### Math Is Empirical, Not Axiomatic
 
-The Ebbinghaus λ constants, the 0.55 extraction threshold, the 0.80 contradiction similarity threshold — these are informed starting points, not laws. Real-world LLM embeddings are fuzzy. User dialogue is messier than any synthetic test. Every numerical constant in this PRD must be treated as a configurable default that will require tuning during alpha testing. Build the weights as easily adjustable variables from day one. Expect to change most of them.
+The Ebbinghaus λ constants, the 0.45 extraction threshold, the 0.80 contradiction similarity threshold — these are informed starting points, not laws. Real-world LLM embeddings are fuzzy. User dialogue is messier than any synthetic test. Every numerical constant in this PRD must be treated as a configurable default that will require tuning during alpha testing. Build the weights as easily adjustable variables from day one. Expect to change most of them.
 
 ### Don't Reinvent Solved Problems
 
@@ -275,7 +275,7 @@ E(s) = α × novelty(s) + β × specificity(s) + γ × recurrence(s)
 ```
 
 **Default weights:** α = 0.35, β = 0.45, γ = 0.20
-**Default threshold:** E(s) ≥ 0.55
+**Default threshold:** E(s) ≥ 0.45
 
 **Important:** These are starting points. Expect to tune aggressively during alpha. Real dialogue is noisier than synthetic tests. The threshold and weights must be easily adjustable in init options and should be the first things changed when extraction quality is wrong.
 
@@ -493,7 +493,7 @@ const memory = new LokulMem({
   embedder: 'minilm',             // or custom EmbedderInterface
 
   // Extraction — tune these during alpha
-  extractionThreshold: 0.55,      // lower = more extracted, higher = stricter
+  extractionThreshold: 0.45,      // lower = more extracted, higher = stricter
   extractionWeights: { novelty: 0.35, specificity: 0.45, recurrence: 0.20 },
 
   // Retrieval — tune these during alpha
@@ -1368,7 +1368,7 @@ E(s) = 0.35 × (1 - top1_similarity(s))
      + 0.20 × min(1.0, 0.2 + 0.25 × occurrences(s))
 ```
 
-Threshold default: 0.55. **Treat as empirically tunable. Expect to adjust during alpha.**
+Threshold default: 0.45. **Treat as empirically tunable. Expect to adjust during alpha.**
 
 ### Composite Retrieval Score
 
@@ -1418,7 +1418,7 @@ Applied when `|valence(s)| > 0.6`. Maximum: 1.2 at `|valence| = 1.0`.
 
 ## Note on Numerical Constants
 
-Every numerical constant in this document — extraction threshold (0.55), contradiction similarity threshold (0.80), temporal coexistence threshold (0.75 for episodes), retrieval floor (0.30), Ebbinghaus λ values, scoring weights — must be treated as an empirically tunable starting point, not a fixed specification.
+Every numerical constant in this document — extraction threshold (0.45), contradiction similarity threshold (0.80), temporal coexistence threshold (0.75 for episodes), retrieval floor (0.30), Ebbinghaus λ values, scoring weights — must be treated as an empirically tunable starting point, not a fixed specification.
 
 LLM embedding spaces are noisy. Real user dialogue is messier than synthetic test data. The constants above are informed by the architecture and prior work in agent memory systems, but they will require adjustment once real users interact with real conversations.
 

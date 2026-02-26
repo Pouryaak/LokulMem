@@ -59,14 +59,29 @@ export class SpecificityNER {
     entities.push(...preferences);
     if (preferences.length > 0) memoryTypes.push('preference');
 
+    // Comparative preference patterns (weight: 0.2)
+    const preferenceComparisons = this.extractPreferenceComparisons(content);
+    entities.push(...preferenceComparisons);
+    if (preferenceComparisons.length > 0) memoryTypes.push('preference');
+
     // Date patterns (weight: 0.2)
     const dates = this.extractDates(content);
     entities.push(...dates);
     if (dates.length > 0) memoryTypes.push('temporal');
 
+    // Habit/routine patterns (weight: 0.2)
+    const habits = this.extractHabits(content);
+    entities.push(...habits);
+    if (habits.length > 0) memoryTypes.push('preference');
+
     // Negation patterns (weight: 0.2)
     const negations = this.extractNegations(content);
     entities.push(...negations);
+
+    // Temporal-change markers (weight: 0.25)
+    const temporalChanges = this.extractTemporalChanges(content);
+    entities.push(...temporalChanges);
+    if (temporalChanges.length > 0) memoryTypes.push('temporal');
 
     // Email patterns (weight: 0.25) - contact information
     const emails = this.extractEmails(content);
@@ -98,9 +113,12 @@ export class SpecificityNER {
       jobs: 0.3,
       numbers: 0.2,
       preferences: 0.25,
+      preferenceComparisons: 0.2,
       dates: 0.2,
+      habits: 0.2,
       negations: 0.2,
-      emails: 0.25,
+      temporalChanges: 0.25,
+      emails: 0.4,
       namedEntities: 0.25,
       possessions: 0.1,
     };
@@ -111,8 +129,11 @@ export class SpecificityNER {
       (jobs.length > 0 ? weights.jobs : 0) +
       (numbers.length > 0 ? weights.numbers : 0) +
       (preferences.length > 0 ? weights.preferences : 0) +
+      (preferenceComparisons.length > 0 ? weights.preferenceComparisons : 0) +
       (dates.length > 0 ? weights.dates : 0) +
+      (habits.length > 0 ? weights.habits : 0) +
       (negations.length > 0 ? weights.negations : 0) +
+      (temporalChanges.length > 0 ? weights.temporalChanges : 0) +
       (emails.length > 0 ? weights.emails : 0) +
       (namedEntities.length > 0 ? weights.namedEntities : 0) +
       (possessions.length > 0 ? weights.possessions : 0);
@@ -187,7 +208,11 @@ export class SpecificityNER {
     for (const pattern of locationPatterns) {
       const matches = content.matchAll(pattern);
       for (const match of matches) {
-        if (match[1] && !this.isCommonWord(match[1])) {
+        if (
+          match[1] &&
+          !this.isCommonWord(match[1]) &&
+          !this.isTemporalToken(match[1])
+        ) {
           entities.push({
             type: 'place',
             value: match[1].toLowerCase(),
@@ -212,6 +237,7 @@ export class SpecificityNER {
     // Pattern: "I work at/as [Company/Role]" / "I'm a [Role]" / "I am a [Role]"
     const workPatterns = [
       /i\s+(?:really\s+)?work\s+(?:at|as|for)\s+([^.!?]+)/gi,
+      /i\s+(?:usually\s+)?work\s+from\s+([^.!?]+)/gi,
       /i['m]\s+(?:a\s+)?an?\s+([^.!?]+)/gi,
       /i\s+am\s+(?:a\s+)?an?\s+([^.!?]+)/gi,
     ];
@@ -312,6 +338,7 @@ export class SpecificityNER {
     // Pattern: "I like/love/hate/enjoy [X]"
     const preferPatterns = [
       /i\s+(?:really\s+)?(?:like|love|hate|enjoy|prefer|adore|can't stand)\s+([^.!?]+)/gi,
+      /i\s+(?:usually\s+)?(?:drink|eat|use)\s+([^.!?]+)/gi,
     ];
 
     for (const pattern of preferPatterns) {
@@ -432,6 +459,7 @@ export class SpecificityNER {
       /\blast\s+week\b/gi,
       /\bin\s+(\d+)\s+days?\b/gi,
       /\b(\d+)\s+days?\s+ago\b/gi,
+      /\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?\b/gi,
     ];
 
     for (const pattern of relativePatterns) {
@@ -482,6 +510,91 @@ export class SpecificityNER {
           raw: match[0],
           count: 1,
           confidence: 0.7,
+        });
+      }
+    }
+
+    return entities;
+  }
+
+  /**
+   * Extract habit/routine markers
+   * Matches: every morning, usually, often, on Fridays, each weekend
+   */
+  private extractHabits(content: string): Entity[] {
+    const entities: Entity[] = [];
+    const patterns = [
+      /\b(?:every|each)\s+(?:morning|afternoon|evening|night|day|week|month|year|weekend)\b/gi,
+      /\b(?:usually|often|regularly|typically)\b/gi,
+      /\bon\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?\b/gi,
+    ];
+
+    for (const pattern of patterns) {
+      const matches = content.matchAll(pattern);
+      for (const match of matches) {
+        entities.push({
+          type: 'preference',
+          value: (match[0] ?? '').toLowerCase(),
+          raw: match[0] ?? '',
+          count: 1,
+          confidence: 0.75,
+        });
+      }
+    }
+
+    return entities;
+  }
+
+  /**
+   * Extract temporal change markers that imply updates/supersession.
+   */
+  private extractTemporalChanges(content: string): Entity[] {
+    const entities: Entity[] = [];
+    const patterns = [
+      /\bused to\b/gi,
+      /\bno longer\b/gi,
+      /\bnot anymore\b/gi,
+      /\bformerly\b/gi,
+      /\bpreviously\b/gi,
+      /\bbut now\b/gi,
+      /\bnow\s+i\b/gi,
+    ];
+
+    for (const pattern of patterns) {
+      const matches = content.matchAll(pattern);
+      for (const match of matches) {
+        entities.push({
+          type: 'date',
+          value: (match[0] ?? '').toLowerCase(),
+          raw: match[0] ?? '',
+          count: 1,
+          confidence: 0.8,
+        });
+      }
+    }
+
+    return entities;
+  }
+
+  /**
+   * Extract comparative preferences such as "I prefer X over Y".
+   * We treat these as higher-signal preferences because they encode
+   * both positive and negative preference direction.
+   */
+  private extractPreferenceComparisons(content: string): Entity[] {
+    const entities: Entity[] = [];
+    const comparePattern =
+      /\bi\s+prefer\s+([a-zA-Z0-9+#.-]+(?:\s+[a-zA-Z0-9+#.-]+)?)\s+(?:over|to)\s+([a-zA-Z0-9+#.-]+(?:\s+[a-zA-Z0-9+#.-]+)?)\b/gi;
+
+    const matches = content.matchAll(comparePattern);
+    for (const match of matches) {
+      if (match[1] && match[2]) {
+        entities.push({
+          type: 'preference',
+          value: `${match[1].toLowerCase()} over ${match[2].toLowerCase()}`,
+          raw: match[0] ?? '',
+          count: 1,
+          confidence: 0.9,
         });
       }
     }
@@ -818,5 +931,25 @@ export class SpecificityNER {
     ]);
 
     return commonWords.has(word.toLowerCase());
+  }
+
+  private isTemporalToken(word: string): boolean {
+    const token = word.toLowerCase().replace(/s$/, '');
+    return [
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
+      'today',
+      'tomorrow',
+      'yesterday',
+      'morning',
+      'afternoon',
+      'evening',
+      'night',
+    ].includes(token);
   }
 }

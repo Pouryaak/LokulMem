@@ -73,31 +73,33 @@ pnpm add lokulmem
 ### Drop it into your chat loop
 
 ```ts
-import { LokulMem } from "lokulmem";
+import { createLokulMem } from 'lokulmem';
 
 // 1) Init once
-const memory = await LokulMem.init({
-  debug: true,
+const lokul = await createLokulMem({
+  dbName: 'my-chat-app',
+  extractionThreshold: 0.45,
 });
 
 // 2) Before calling your LLM
-const { messages, debug } = await memory.augment({
-  userMessage: "Hey, I'm Alex. I prefer dark mode.",
-  history, // your existing messages[]
-  modelMaxTokens: 8192,
-  reservedForResponse: 1024,
-  // Optional: plug in your tokenizer for accurate budgets
-  tokenCounter: (text) => myTokenizer.count(text),
-});
+const { messages, debug } = await lokul.augment(
+  "Hey, I'm Alex. I prefer dark mode.",
+  history, // your existing ChatMessage[]
+  {
+    contextWindowTokens: 8192,
+    reservedForResponseTokens: 1024,
+    debug: true,
+  },
+);
 
 // 3) Call any model/provider
-const assistantMessage = await myLLM(messages);
+const assistantText = await myLLM(messages);
 
 // 4) After the response: learn from the turn
-await memory.learn({
-  userMessage: "Hey, I'm Alex. I prefer dark mode.",
-  assistantMessage,
-});
+await lokul.learn(
+  { role: 'user', content: "Hey, I'm Alex. I prefer dark mode." },
+  { role: 'assistant', content: assistantText },
+);
 
 // Optional: inspect why memories were injected
 console.log(debug);
@@ -127,12 +129,10 @@ LokulMem has three core surfaces:
 Returns a new `messages[]` array plus optional debug metadata.
 
 ```ts
-const { messages, debug } = await memory.augment({
-  userMessage,
-  history,
-  modelMaxTokens: 8192,
-  reservedForResponse: 1024,
-  tokenCounter, // optional
+const { messages, debug } = await lokul.augment(userMessage, history, {
+  contextWindowTokens: 8192,
+  reservedForResponseTokens: 1024,
+  debug: true,
 });
 ```
 
@@ -141,10 +141,10 @@ const { messages, debug } = await memory.augment({
 Extracts candidate memories from the last turn and writes them to IndexedDB.
 
 ```ts
-const result = await memory.learn({
-  userMessage,
-  assistantMessage,
-});
+const result = await lokul.learn(
+  { role: 'user', content: userMessage },
+  { role: 'assistant', content: assistantMessage },
+);
 
 console.log(result.extracted);
 console.log(result.contradictions);
@@ -155,14 +155,14 @@ console.log(result.contradictions);
 For UI panels and power users.
 
 ```ts
-const m = memory.manage();
+const m = lokul.manage();
 
 const items = await m.list({ status: "active" }); // returns MemoryDTO (no embeddings)
 await m.pin(items[0].id);
 
-const exported = await m.exportJSON();
+const exported = await m.export('json');
 await m.clear();
-await m.importJSON(exported, { conflictStrategy: "merge" });
+await m.import(exported, 'merge');
 ```
 
 ---
@@ -183,39 +183,32 @@ If you explicitly need embeddings (advanced), call APIs with `includeEmbedding: 
 ## ⚙️ Configuration
 
 ```ts
-const memory = await LokulMem.init({
-  debug: false,
-
-  // Worker
-  workerUrl: undefined, // override if your bundler can’t resolve it
-
-  // ONNX Runtime (CSP/offline)
-  onnxWasmBaseUrl: "/lokulmem/onnx/",
-  onnxWasmPaths: {
-    // optional explicit mapping
-    // 'ort-wasm.wasm': '/lokulmem/onnx/ort-wasm.wasm',
-  },
-
-  // Model loading
-  allowRemoteModels: true, // DX default: fetch once, cache forever
-  localModelBaseUrl: undefined, // set to enable strict airgap mode
-
-  onProgress: (p) => console.log(p),
+const lokul = await createLokulMem({
+  dbName: 'my-chat-app',
+  workerUrl: undefined,
+  onnxPaths: '/lokulmem/onnx/',
+  localModelBaseUrl: undefined,
+  extractionThreshold: 0.45,
+  contextWindowTokens: 8192,
+  reservedForResponseTokens: 1024,
+  onProgress: (stage, progress) => console.log(stage, progress),
 });
 ```
 
 ### Options
 
-| Option              |                    Type |   Default | Notes                                      |
-| ------------------- | ----------------------: | --------: | ------------------------------------------ |
-| `debug`             |               `boolean` |   `false` | Adds `LokulMemDebug` from `augment()`      |
-| `workerUrl`         |                `string` |      auto | Override worker script URL                 |
-| `onnxWasmBaseUrl`   |                `string` |      auto | Base URL/dir for ORT assets                |
-| `onnxWasmPaths`     | `Record<string,string>` |         — | Explicit ORT file mapping                  |
-| `allowRemoteModels` |               `boolean` |    `true` | Fetch-once-cache-forever DX                |
-| `localModelBaseUrl` |                `string` |         — | Airgap mode (maps to `env.localModelPath`) |
-| `tokenCounter`      |        `(text)=>number` | heuristic | Accurate token budgeting                   |
-| `onProgress`        |         `(stage)=>void` |         — | model/storage/maintenance progress         |
+| Option                       |                              Type | Default | Notes |
+| ---------------------------- | --------------------------------: | ------: | ----- |
+| `dbName`                     |                          `string` | `lokulmem-default` | IndexedDB namespace |
+| `workerType`                 |   `'auto'|'shared'|'dedicated'|'main'` | `auto` | Worker selection strategy |
+| `workerUrl`                  |                          `string` | auto | Override worker script URL |
+| `onnxPaths`                  | `string \| Record<string,string>` | — | Custom ONNX WASM asset paths |
+| `localModelBaseUrl`          |                          `string` | — | Airgap/local model base path |
+| `extractionThreshold`        |                          `number` | `0.45` | Global extraction floor |
+| `contextWindowTokens`        |                          `number` | — | LLM context size for augment budget |
+| `reservedForResponseTokens`  |                          `number` | `1024` | Response token reserve |
+| `tokenCounter`               |                 `(text)=>number` | heuristic | Custom token counting |
+| `onProgress`                 |      `(stage, progress)=>void` | — | Init progress callback |
 
 ---
 
@@ -229,12 +222,8 @@ To run in strict airgapped mode:
 2. Point LokulMem at your local base URL
 
 ```ts
-const memory = await LokulMem.init({
+const lokul = await createLokulMem({
   localModelBaseUrl: "/models/",
-  // Airgap mode sets:
-  // env.allowLocalModels = true
-  // env.allowRemoteModels = false
-  // env.localModelPath = '/models/'
 });
 ```
 
@@ -292,9 +281,9 @@ This is intentionally built so you can ship a **Memory Inspector** UI.
 - Export metadata includes `version`, `schemaVersion`, `modelName`, `embeddingDims`.
 
 ```ts
-const json = await memory.manage().exportJSON();
-await memory.manage().clear();
-await memory.manage().importJSON(json, { conflictStrategy: "merge" });
+const json = await lokul.manage().export('json');
+await lokul.manage().clear();
+await lokul.manage().import(json, 'merge');
 ```
 
 ---
@@ -326,7 +315,7 @@ pnpm dev
 
 **ONNX WASM 404 / CSP blocked**
 
-- Set `onnxWasmBaseUrl` or `onnxWasmPaths`.
+- Set `onnxPaths` to a valid local or hosted ORT asset path.
 - Confirm `ort-wasm*.wasm` and `ort-wasm*.mjs` are being served.
 
 **Airgap mode can’t find model**

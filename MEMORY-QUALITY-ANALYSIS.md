@@ -1,5 +1,9 @@
 # Memory Extraction Quality Analysis
 
+> NOTE (2026-02-26): This document is historical and partially outdated.
+> Current validated behavior and roadmap are documented in
+> `MEMORY-QUALITY-FINDINGS-2026-02-26.md`.
+
 **Date:** 2026-02-26
 **Test:** 15 diverse messages
 **System:** LokulMem v0.1

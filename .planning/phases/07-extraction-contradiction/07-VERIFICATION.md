@@ -23,7 +23,7 @@ gaps: []
 | 2 | Novelty computed via 1 - top1_similarity using VectorSearch | VERIFIED | src/extraction/NoveltyCalculator.ts lines 24-35: uses vectorSearch.search(content, { k: 1 }) and returns 1 - topSimilarity |
 | 3 | Recurrence tracked within session when cosine > 0.85 | VERIFIED | src/extraction/RecurrenceTracker.ts lines 41-56: checkRecurrence() returns similarity if > threshold (default 0.85), else 0 |
 | 4 | E(s) quality score calculated from weighted components | VERIFIED | src/extraction/QualityScorer.ts lines 59-63: computes 0.35×novelty + 0.45×specificity + 0.20×recurrence |
-| 5 | Extraction threshold filters low-quality facts (default 0.55) | VERIFIED | src/types/memory.ts line 152: ExtractionConfig.threshold default 0.55; QualityScorer.ts lines 74-75: meetsThreshold check |
+| 5 | Extraction threshold filters low-quality facts (runtime default 0.45) | VERIFIED | src/core/LokulMem.ts default extractionThreshold is 0.45; QualityScorer.ts applies threshold checks |
 | 6 | Memory types classified into 8 categories | VERIFIED | src/extraction/SpecificityNER.ts lines 427-476: classifyMemoryTypes() detects identity, location, profession, project, relational, emotional |
 | 7 | Entities extracted and stored with typed structure | VERIFIED | src/extraction/SpecificityNER.ts lines 113-416: extracts entities with type, value, raw, count, confidence; src/types/memory.ts lines 95-125: Entity interface defined |
 | 8 | Temporal markers detected (16 patterns) | VERIFIED | src/extraction/TemporalMarkerDetector.ts lines 49-93: 16 patterns across 4 types (past, former, change, correction) |
@@ -77,7 +77,7 @@ gaps: []
 | EXTRACT-02 | 07-01 | Novelty computed via 1 - top1_similarity | SATISFIED | NoveltyCalculator.ts line 35: Math.max(0, 1 - topSimilarity) |
 | EXTRACT-03 | 07-01 | Recurrence tracked within session (cosine > 0.85) | SATISFIED | RecurrenceTracker.ts lines 50-53: returns similarity if > threshold |
 | EXTRACT-04 | 07-01 | E(s) = 0.35×novelty + 0.45×specificity + 0.20×recurrence | SATISFIED | QualityScorer.ts lines 60-63: weighted score calculation |
-| EXTRACT-05 | 07-01 | Extraction threshold default 0.55 (configurable) | SATISFIED | memory.ts line 152: threshold: 0.55; QualityScorer.ts line 71: thresholdsByType support |
+| EXTRACT-05 | 07-01 | Extraction threshold default 0.45 (configurable) | SATISFIED | LokulMem default extractionThreshold 0.45; QualityScorer supports thresholdsByType |
 | EXTRACT-06 | 07-01 | Memory types classified (8 categories) | SATISFIED | SpecificityNER.ts lines 427-476: classifyMemoryTypes() with 8 types |
 | EXTRACT-07 | 07-01 | Entities extracted and stored with memory | SATISFIED | SpecificityNER.ts lines 113-416: extract methods return Entity[] |
 | CONTRA-01 | 07-03b | Retrieve topK candidates (5-10), similarity > 0.80 | SATISFIED | ContradictionDetector.ts lines 126-130: candidateK default 7; line 134: similarity < 0.80 filter |

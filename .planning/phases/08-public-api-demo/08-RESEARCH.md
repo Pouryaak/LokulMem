@@ -49,7 +49,7 @@ Key findings:
 - **Extraction timing:** Always extract (every learn() call runs extraction)
 - **Maintenance sweep:** Configurable (runMaintenance option) - user controls when maintenance runs
 - **Contradiction handling:** Follow contradiction config (auto/manual) - respect Phase 7 config
-- **Extraction source:** Configurable (extractFrom: 'user' | 'assistant' | 'both', default 'both')
+- **Extraction source:** Configurable (extractFrom: 'user' | 'assistant' | 'both', default 'user')
 - **Return structure:** Grouped by operation ({ extracted: [], contradictions: [], maintenance: {} })
 - **Cache updates:** Synchronous guarantee - **after `await learn()` resolves, the next `augment()` can retrieve the new memory**
   - DB write and cache update happen in same transaction boundary
@@ -57,7 +57,7 @@ Key findings:
   - Explicit guarantee in docs: "await learn(); await augment(); // new memory included in results"
 - **Memory details:** Configurable (verbose option) - user controls return verbosity
 - **Conversation tracking:** Optional with auto-creation (conversationId optional, generate if missing, return in result)
-- **Quality threshold:** Respect extraction threshold, allow override (default E(s) ≥ 0.55, allow learnThreshold option)
+- **Quality threshold:** Respect extraction threshold, allow override (runtime default E(s) ≥ 0.45, allow learnThreshold option)
 - **Auto-association:** Configurable (autoAssociate option) - user controls association with previous augment()
 - **Operation order:** Extract → detect contradictions → supersede (logical pipeline order)
 - **Event emissions:** Emit individual events (granular: onMemoryAdded, onMemorySuperseded, etc.)
@@ -385,7 +385,7 @@ class Learner {
   ): Promise<LearnResult> {
     const {
       conversationId: providedConversationId,
-      extractFrom = 'both',
+      extractFrom = 'user',
       runMaintenance = false,
       learnThreshold,
       autoAssociate = false,

@@ -87,9 +87,9 @@ Memory extraction API (Learner class) that extracts facts from LLM conversations
 
 - **LearnOptions interface:** Extraction configuration options
   - `conversationId?`: Optional conversation tracking (auto-generated if omitted)
-  - `extractFrom?`: Which messages to extract from ('user' | 'assistant' | 'both', default 'both')
+  - `extractFrom?`: Which messages to extract from ('user' | 'assistant' | 'both', default 'user')
   - `runMaintenance?`: Run maintenance sweep after extraction (default false)
-  - `learnThreshold?`: Override extraction threshold (default 0.55)
+  - `learnThreshold?`: Override extraction threshold (default instance `extractionThreshold`, runtime baseline 0.45)
   - `autoAssociate?`, `storeResponse?`, `verbose?`: Additional options
 
 - **LearnResult interface:** Extraction results
@@ -125,7 +125,7 @@ Constructor accepts 11 dependencies:
 
 **Step 1-2: Options and sources**
 ```typescript
-const { conversationId, extractFrom = 'both', runMaintenance, learnThreshold } = options;
+const { conversationId, extractFrom = 'user', runMaintenance, learnThreshold } = options;
 const sources = []; // Collect from userMessage and/or assistantResponse
 ```
 

@@ -140,7 +140,7 @@ Plans:
   2. Novelty computed via 1 - top1_similarity using vector search
   3. Recurrence tracked within session when cosine similarity > 0.85
   4. E(s) = 0.35×novelty + 0.45×specificity + 0.20×recurrence calculated for extraction decisions
-  5. Extraction threshold default 0.55 filters low-quality facts
+  5. Extraction threshold default 0.45 filters low-quality facts (with type-specific overrides)
   6. Memory types classified: identity, location, profession, preference, project, temporal, relational, emotional
   7. Entities extracted and stored with each memory
   8. Contradiction: retrieve topK candidates (5-10), evaluate any with similarity > 0.80, choose best typed-attribute match

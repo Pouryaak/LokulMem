@@ -124,7 +124,7 @@ Integrated augment() and learn() with worker RPC:
 **learn() implementation:**
 - Removed TODO placeholder and error
 - Implemented full RPC call with `MessageTypeConst.LEARN`
-- Added proper default values for options (extractFrom defaults to 'both', runMaintenance defaults to false)
+- Added proper default values for options (extractFrom delegated to Learner default 'user', runMaintenance defaults to false)
 - Set 60-second timeout for extraction operations
 - Imported LearnOptions and LearnResult types
 

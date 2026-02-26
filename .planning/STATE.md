@@ -224,7 +224,7 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 - NoveltyCalculator using VectorSearch with k=1 for efficient novelty computation
 - RecurrenceTracker for session-based recurrence detection with content hashing
 - QualityScorer computing E(s) = 0.35×novelty + 0.45×specificity + 0.20×recurrence
-- Extraction threshold default 0.55 (configurable with type-specific overrides)
+- Extraction threshold default 0.45 (configurable with type-specific overrides)
 - Entity, ExtractionScore, ExtractionConfig types added to memory.ts
 
 **Committed:**
@@ -263,7 +263,7 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 **Implementation Decisions:**
 
 **Extraction Quality Scoring:**
-- Default threshold: E(s) ≥ 0.55 (moderate - balanced for general use)
+- Default threshold: E(s) ≥ 0.45 (runtime tuned baseline)
 - Configurable: expose `extractionThreshold` in LokulMem constructor
 - Type-specific thresholds: stricter for identity facts, more lenient for preferences/emotional states
 - Minimum novelty gate: require novelty ≥ 0.15 (configurable) to prevent near-duplicates
