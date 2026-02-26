@@ -12,6 +12,7 @@
   <a href="#-quickstart">Quickstart</a> •
   <a href="#-why-lokulmem">Why</a> •
   <a href="#-api">API</a> •
+  <a href="#-quality--ci">Quality</a> •
   <a href="#-configuration">Config</a> •
   <a href="#-airgap--offline">Airgap</a> •
   <a href="#-architecture">Architecture</a> •
@@ -26,6 +27,8 @@
   <img alt="IndexedDB" src="https://img.shields.io/badge/Storage-IndexedDB%20%2B%20Dexie-6366f1" />
   <img alt="Workers" src="https://img.shields.io/badge/Workers-MessageChannel-8b5cf6" />
   <img alt="Embeddings" src="https://img.shields.io/badge/Embeddings-MiniLM%20384d-0ea5e9" />
+  <a href="https://github.com/Pouryaak/LokulMem/actions/workflows/memory-evals.yml"><img alt="CI" src="https://github.com/Pouryaak/LokulMem/actions/workflows/memory-evals.yml/badge.svg" /></a>
+  <a href="https://github.com/Pouryaak/LokulMem/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/Pouryaak/LokulMem/actions/workflows/codeql.yml/badge.svg" /></a>
   <img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-16a34a.svg" />
 </p>
@@ -57,6 +60,7 @@ No backend. No vendor lock-in. Works with any LLM that accepts a `messages[]` ar
 - **Inspectable by design**: optional debug output explains _why_ each memory was used.
 - **DX-first defaults**: “fetch once, cache forever” model loading.
 - **Airgap-ready**: strict local model loading via `localModelBaseUrl`.
+- **OSS quality gates**: CI enforces lint, typecheck, tests, memory evals, and package integrity.
 
 ---
 
@@ -296,7 +300,19 @@ pnpm build
 pnpm test
 ```
 
-### Memory eval gates (P0)
+## ✅ Quality & CI
+
+LokulMem is shipped with regression guards designed for open-source maintenance.
+
+### Local quality checklist
+
+```bash
+npm run ci
+npm run eval:memory:C
+npm run verify:package
+```
+
+### Memory eval gates
 
 Run deterministic memory-quality evals locally:
 
@@ -322,6 +338,14 @@ Current threshold targets:
 - entity-link accuracy >= 0.85
 - temporal state accuracy >= 0.90
 - policy decision accuracy >= 0.88
+
+### What CI enforces
+
+- Core checks on Node 20 and 22: lint, typecheck, unit tests, build
+- Memory quality gates: `A`, `B`, `C` (`tests/evals/memory`)
+- Package integrity: dist export verification + `npm pack --dry-run`
+- Security: CodeQL + dependency review + Dependabot updates
+- Nightly browser smoke (non-blocking): Playwright integration sanity check
 
 ### Demo app (isolated workspace)
 
