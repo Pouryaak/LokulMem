@@ -3,12 +3,10 @@ import {
   classifyMemoryTypes,
   extractDates,
   extractEmails,
-  extractHabits,
   extractNamedEntities,
   extractNegations,
   extractNumbers,
   extractPossessions,
-  extractTemporalChanges,
 } from './specificity/basicExtractors.js';
 import { isCommonWord, isTemporalToken } from './specificity/commonTokens.js';
 import {
@@ -36,6 +34,10 @@ import {
   type RelationalSignal,
   extractRelationalSignals,
 } from './specificity/relationalExtractor.js';
+import {
+  type RoutineSignal,
+  extractRoutineSignals,
+} from './specificity/routineExtractor.js';
 
 export interface SpecificityResult {
   score: number;
@@ -53,6 +55,7 @@ const WEIGHTS = {
   preferenceSignals: 0.12,
   dates: 0.2,
   habits: 0.2,
+  routineSignals: 0.1,
   negations: 0.2,
   temporalChanges: 0.25,
   emails: 0.4,
@@ -111,16 +114,16 @@ export class SpecificityNER {
     entities.push(...dates);
     if (dates.length > 0) memoryTypes.push('temporal');
 
-    const habits = extractHabits(content);
-    entities.push(...habits);
-    if (habits.length > 0) memoryTypes.push('preference');
+    const routineExtraction = extractRoutineSignals(content);
+    entities.push(...routineExtraction.habitEntities);
+    entities.push(...routineExtraction.temporalEntities);
+    if (routineExtraction.habitEntities.length > 0)
+      memoryTypes.push('preference');
+    if (routineExtraction.temporalEntities.length > 0)
+      memoryTypes.push('temporal');
 
     const negations = extractNegations(content);
     entities.push(...negations);
-
-    const temporalChanges = extractTemporalChanges(content);
-    entities.push(...temporalChanges);
-    if (temporalChanges.length > 0) memoryTypes.push('temporal');
 
     const emails = extractEmails(content);
     entities.push(...emails);
@@ -145,9 +148,10 @@ export class SpecificityNER {
         preferenceComparisons: preferenceExtraction.comparisonEntities,
         preferenceSignals: preferenceExtraction.signals,
         dates,
-        habits,
+        habits: routineExtraction.habitEntities,
+        routineSignals: routineExtraction.signals,
         negations,
-        temporalChanges,
+        temporalChanges: routineExtraction.temporalEntities,
         emails,
         namedEntities,
         possessions,
@@ -189,6 +193,7 @@ export class SpecificityNER {
     preferenceSignals: PreferenceSignal[];
     dates: Entity[];
     habits: Entity[];
+    routineSignals: RoutineSignal[];
     negations: Entity[];
     temporalChanges: Entity[];
     emails: Entity[];
@@ -210,6 +215,7 @@ export class SpecificityNER {
       (input.preferenceSignals.length > 0 ? WEIGHTS.preferenceSignals : 0) +
       (input.dates.length > 0 ? WEIGHTS.dates : 0) +
       (input.habits.length > 0 ? WEIGHTS.habits : 0) +
+      (input.routineSignals.length > 0 ? WEIGHTS.routineSignals : 0) +
       (input.negations.length > 0 ? WEIGHTS.negations : 0) +
       (input.temporalChanges.length > 0 ? WEIGHTS.temporalChanges : 0) +
       (input.emails.length > 0 ? WEIGHTS.emails : 0) +

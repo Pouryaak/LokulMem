@@ -366,4 +366,45 @@ describe('SpecificityNER heuristics', () => {
     expect(intoPrefs).toHaveLength(0);
     expect(hatePrefs).toHaveLength(0);
   });
+
+  it('captures routine schedules with explicit time', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I wake up at 7am');
+    const preferenceValues = result.entities
+      .filter((entity) => entity.type === 'preference')
+      .map((entity) => entity.value);
+
+    expect(result.memoryTypes).toContain('preference');
+    expect(preferenceValues).toContain('wake up');
+  });
+
+  it('rejects cognitive routine false positives', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I usually think in the morning');
+    const preferenceValues = result.entities
+      .filter((entity) => entity.type === 'preference')
+      .map((entity) => entity.value);
+
+    expect(preferenceValues).not.toContain('think');
+  });
+
+  it('captures temporal routine changes like stopped and no longer', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I stopped smoking and no longer drink soda');
+
+    expect(result.memoryTypes).toContain('temporal');
+    expect(result.score).toBeGreaterThanOrEqual(0.25);
+  });
 });
