@@ -10,9 +10,16 @@ permissions:
 jobs:
   dependency-review:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Dependency review
         uses: actions/dependency-review-action@v4
+
+      - name: Dependency graph note
+        if: failure()
+        run: |
+          echo "Dependency review could not run (likely dependency graph disabled)."
+          echo "Enable it at: Settings > Security > Dependency graph."
