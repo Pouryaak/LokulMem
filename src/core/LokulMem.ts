@@ -14,6 +14,7 @@
  * points in `build.lib.worker`. See Phase 4 final summary for details.
  */
 
+import { Manager } from '../api/Manager.js';
 import type { InitStage, LokulMemConfig } from '../types/api.js';
 import type { ContradictionEvent, SupersessionEvent } from '../types/events.js';
 import type { MemoryDTO, MemoryType } from '../types/memory.js';
@@ -58,6 +59,7 @@ const DEFAULT_CONFIG: {
  */
 export class LokulMem {
   private workerManager: WorkerManager;
+  private manager: Manager | null = null;
   private config: {
     dbName: string;
     workerType: 'auto' | 'shared' | 'dedicated' | 'main';
@@ -367,6 +369,12 @@ export class LokulMem {
       // Set up lifecycle event listeners after initialization
       this.setupLifecycleEventListeners();
 
+      // Create Manager singleton for memory inspection and manipulation
+      const client = this.workerManager.getClient();
+      if (client) {
+        this.manager = new Manager(client);
+      }
+
       this.isInitialized = true;
     } catch (error) {
       const errorMessage =
@@ -411,10 +419,32 @@ export class LokulMem {
   }
 
   /**
+   * Manager namespace for memory inspection and manipulation
+   *
+   * @returns Manager instance with 16+ methods (cached singleton)
+   * @throws Error if Manager is not available (LokulMem not initialized)
+   *
+   * @example
+   * ```typescript
+   * const lokul = await createLokulMem();
+   * await lokul.manage().pin(memoryId);
+   * const stats = await lokul.manage().stats();
+   * const exported = await lokul.manage().export('json');
+   * ```
+   */
+  manage(): Manager {
+    if (!this.manager) {
+      throw new Error('Manager not available. LokulMem not initialized.');
+    }
+    return this.manager; // Returns cached singleton, NOT new instance
+  }
+
+  /**
    * Terminate the worker and clean up resources
    */
   terminate(): void {
     this.workerManager.terminate();
+    this.manager = null;
     this.isInitialized = false;
     // Clear lifecycle event handlers
     this.fadedHandlers = [];
