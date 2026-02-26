@@ -9,10 +9,15 @@
 </p>
 
 <p align="center">
+  <a href="https://pouryaak.github.io/LokulMem/"><b>Documentation Site</b></a>
+</p>
+
+<p align="center">
   <a href="#-quickstart">Quickstart</a> •
   <a href="#-why-lokulmem">Why</a> •
   <a href="#-api">API</a> •
   <a href="#-quality--ci">Quality</a> •
+  <a href="./CHANGELOG.md">Changelog</a> •
   <a href="#-configuration">Config</a> •
   <a href="#-airgap--offline">Airgap</a> •
   <a href="#-architecture">Architecture</a> •

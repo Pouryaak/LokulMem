@@ -36,6 +36,9 @@
     "build": "vite build",
     "dev": "vite build --watch",
     "watch": "vite build --watch",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration:smoke": "playwright test tests/integration/ci-smoke.spec.ts",
@@ -64,6 +67,7 @@
     "vite": "^7.3.1",
     "vite-plugin-dts": "^4.0.0",
     "vite-plugin-static-copy": "^3.2.0",
+    "vitepress": "^1.6.4",
     "vitest": "^4.0.18"
   },
   "simple-git-hooks": {
@@ -78,5 +82,8 @@
     "@huggingface/transformers": "^3.0.0",
     "@mlc-ai/web-llm": "^0.2.79",
     "dexie": "^4.3.0"
+  },
+  "overrides": {
+    "minimatch": "10.2.3"
   }
 }

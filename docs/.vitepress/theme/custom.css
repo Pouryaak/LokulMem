@@ -1,0 +1,65 @@
+:root {
+  --vp-c-bg: #151515;
+  --vp-c-bg-soft: #1f1f1f;
+  --vp-c-bg-mute: #282828;
+  --vp-c-text-1: #efefef;
+  --vp-c-text-2: #c7c7c7;
+  --vp-c-text-3: #a3a3a3;
+  --vp-c-divider: #3a3a3a;
+
+  --vp-c-brand-1: #ff8d2a;
+  --vp-c-brand-2: #ff9f4d;
+  --vp-c-brand-3: #ff7a0e;
+
+  --vp-home-hero-name-color: #f2f2f2;
+  --vp-home-hero-image-background-image: radial-gradient(
+    circle at 30% 20%,
+    rgb(255 141 42 / 35%) 0%,
+    rgb(255 141 42 / 0%) 60%
+  );
+  --vp-home-hero-image-filter: blur(42px);
+  --vp-button-brand-bg: var(--vp-c-brand-1);
+  --vp-button-brand-text: #121212;
+  --vp-button-brand-hover-bg: var(--vp-c-brand-2);
+}
+
+body {
+  background: linear-gradient(140deg, #141414 0%, #1d1d1d 55%, #171717 100%);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.12;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+}
+
+#app {
+  position: relative;
+  z-index: 1;
+}
+
+.VPNavBar,
+.VPSidebar,
+.VPDoc,
+.VPContent {
+  background-color: transparent;
+}
+
+.VPFeature {
+  border: 1px solid #3f3f3f;
+  background: rgb(35 35 35 / 70%);
+  backdrop-filter: blur(4px);
+}
+
+.vp-doc a {
+  text-underline-offset: 3px;
+}
+
+.vp-doc h2,
+.vp-doc h3 {
+  letter-spacing: 0.01em;
+}
