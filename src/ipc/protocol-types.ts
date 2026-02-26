@@ -15,6 +15,8 @@ import type {
   QueryOptions,
   SemanticSearchOptions,
 } from '../search/types.js';
+import type { ChatMessage, LokulMemDebug } from '../types/api.js';
+import type { ContradictionEvent } from '../types/events.js';
 import type { MemoryDTO } from '../types/memory.js';
 
 /**
@@ -100,4 +102,80 @@ export interface MemoryFadedEvent {
 export interface MemoryDeletedEvent {
   type: 'MEMORY_DELETED';
   payload: { memoryId: string };
+}
+
+/**
+ * Payload for AUGMENT message type
+ * Augments user message with relevant memories
+ */
+export interface AugmentPayload {
+  /** User message to augment */
+  userMessage: string;
+  /** Conversation history */
+  history: ChatMessage[];
+  /** Augment options */
+  options: {
+    contextWindowTokens?: number;
+    reservedForResponseTokens?: number;
+    maxTokens?: number;
+    debug?: boolean;
+  };
+}
+
+/**
+ * Response payload for AUGMENT message type
+ * Returns augmented messages with metadata
+ */
+export interface AugmentResponsePayload {
+  /** Augmented messages array */
+  messages: ChatMessage[];
+  /** Augmentation metadata */
+  metadata: {
+    injectedCount: number;
+    noMemoriesFound: boolean;
+    usedTokensBeforeInjection: number;
+    injectionTokens: number;
+    remainingTokensAfterInjection: number;
+  };
+  /** Debug info (only if options.debug = true) */
+  debug?: LokulMemDebug;
+}
+
+/**
+ * Payload for LEARN message type
+ * Extracts memories from conversation
+ */
+export interface LearnPayload {
+  /** User message */
+  userMessage: ChatMessage;
+  /** Assistant response */
+  assistantResponse: ChatMessage;
+  /** Learn options */
+  options: {
+    conversationId?: string;
+    extractFrom?: 'user' | 'assistant' | 'both';
+    runMaintenance?: boolean;
+    learnThreshold?: number;
+    autoAssociate?: boolean;
+    storeResponse?: boolean;
+    verbose?: boolean;
+  };
+}
+
+/**
+ * Response payload for LEARN message type
+ * Returns extraction results
+ */
+export interface LearnResponsePayload {
+  /** Extracted memories */
+  extracted: MemoryDTO[];
+  /** Contradictions detected */
+  contradictions: ContradictionEvent[];
+  /** Maintenance results */
+  maintenance: {
+    faded: number;
+    deleted: number;
+  };
+  /** Conversation ID */
+  conversationId: string;
 }
