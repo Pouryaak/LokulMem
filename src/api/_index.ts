@@ -1,37 +1,37 @@
 /**
  * Public API exports for LokulMem
  *
- * Exports all public classes and types for the manage() namespace API.
- * This barrel file provides a clean import interface for consumers.
+ * Exports all types and classes for the augment/learn/manage API surface.
  */
 
-// Public API classes
+// Augment API
 export { Augmenter } from './Augmenter.js';
-export { Learner } from './Learner.js';
-export { Manager } from './Manager.js';
-
-// Public API types
 export type {
-  // Augment/Learn types
   AugmentOptions,
   AugmentResult,
   ChatMessage,
-  LearnOptions,
-  LearnResult,
   LokulMemDebug,
-  // Management types
+} from './types.js';
+
+// Learn API
+export { Learner } from './Learner.js';
+export type { LearnOptions, LearnResult } from './types.js';
+
+// Manage API
+export { Manager } from './Manager.js';
+export type {
   BulkOperationResult,
   ClearResult,
   ExportFormat,
   ImportMode,
   ImportResult,
-  SingleOperationResult,
+  InjectionPreviewResult,
+  ListOptions,
   LokulMemExport,
   MemoryUpdate,
-  ListOptions,
   PaginatedResult,
   SemanticSearchOptions,
+  SingleOperationResult,
   TimelineResult,
   GroupedResult,
-  InjectionPreviewResult,
 } from './types.js';
