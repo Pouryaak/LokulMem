@@ -69,23 +69,40 @@ export interface LearnResult {
  * Options for augment() operation
  */
 export interface AugmentOptions {
-  /** Maximum number of memories to inject (default: 10) */
-  maxMemories?: number;
-
-  /** Minimum relevance threshold (default: 0.6) */
-  minScore?: number;
-
-  /** Token budget for memory injection (default: from config) */
+  /**
+   * LLM context window size in tokens
+   *
+   * NO default - user must specify this for accurate token budgeting.
+   * Can be set globally in LokulMem config or per-call.
+   *
+   * @example 8192 for Claude 3, 128000 for GPT-4
+   */
   contextWindowTokens?: number;
 
-  /** Reserved tokens for response (default: from config) */
+  /**
+   * Tokens to reserve for LLM response
+   *
+   * @default 512
+   */
   reservedForResponseTokens?: number;
 
-  /** Whether to include debug information (default: false) */
-  debug?: boolean;
+  /**
+   * Override max tokens directly (bypasses budget calculation)
+   *
+   * If set, skips contextWindowTokens calculation and uses this value
+   * as the maximum tokens for memory injection.
+   */
+  maxTokens?: number;
 
-  /** Session memory IDs for continuity scoring */
-  sessionMemoryIds?: Set<string>;
+  /**
+   * Enable debug mode
+   *
+   * Debug object is LAZY-COMPUTED - only when debug=true.
+   * Default: false (must be explicitly enabled for performance).
+   *
+   * @default false
+   */
+  debug?: boolean;
 }
 
 /**
@@ -100,51 +117,123 @@ export interface AugmentResult {
     /** Number of memories injected */
     injectedCount: number;
 
-    /** Total tokens used for memory injection */
+    /**
+     * Flag: no relevant memories found
+     *
+     * true if search returned no results or all memories were below
+     * the relevance threshold.
+     */
+    noMemoriesFound: boolean;
+
+    /**
+     * Tokens used before injection
+     *
+     * Sum of system prompt + history + user message tokens.
+     */
+    usedTokensBeforeInjection: number;
+
+    /**
+     * Tokens used for injected memories
+     *
+     * Estimated tokens for the memory block that was injected.
+     */
     injectionTokens: number;
 
-    /** Remaining tokens after injection */
-    remainingTokens: number;
-
-    /** Whether any relevant memories were found */
-    foundMemories: boolean;
-
-    /** Debug information (if debug=true) */
-    debug?: LokulMemDebug;
+    /**
+     * Remaining tokens after injection
+     *
+     * Budget remaining after injecting memories (before LLM response).
+     */
+    remainingTokensAfterInjection: number;
   };
+
+  /**
+   * Debug object (only if options.debug = true)
+   *
+   * Undefined when debug=false (lazy computation for performance).
+   */
+  debug?: LokulMemDebug;
 }
 
 /**
- * Debug information for augment/learn operations
+ * Debug information for augment() operation
+ *
+ * Provides detailed information about memory retrieval, scoring,
+ * token usage, and performance. Only computed when debug=true.
  */
 export interface LokulMemDebug {
-  /** All retrieved memories with scores */
-  retrieved: Array<{
-    memory: MemoryDTO;
-    score: number;
-    reason?: string;
+  /**
+   * Memories that were injected
+   *
+   * Full DTO objects with all metadata.
+   */
+  injectedMemories: MemoryDTO[];
+
+  /**
+   * Relevance scores with breakdowns
+   *
+   * Shows the composite score and individual components for each
+   * injected memory.
+   */
+  scores: Array<{
+    /** Memory ID */
+    memoryId: string;
+
+    /** Final composite relevance score (0-1) */
+    relevance: number;
+
+    /** Individual score components */
+    breakdown: {
+      /** Semantic similarity component */
+      semantic: number;
+
+      /** Recency decay component */
+      recency: number;
+
+      /** Memory strength component */
+      strength: number;
+
+      /** Session continuity component */
+      continuity: number;
+    };
   }>;
 
-  /** Memories excluded from injection */
-  excluded: Array<{
-    memory: MemoryDTO;
-    reason: string;
+  /**
+   * Candidates excluded and why
+   *
+   * Memories that were considered but excluded from injection,
+   * with the reason for exclusion.
+   */
+  excludedCandidates: Array<{
+    /** Memory ID */
+    memoryId: string;
+
+    /** Reason for exclusion */
+    reason: 'low_relevance' | 'floor_threshold' | 'token_budget';
   }>;
 
-  /** Token usage breakdown */
-  tokens: {
-    usedBeforeInjection: number;
-    injectionCost: number;
-    remainingAfterInjection: number;
-  };
+  /**
+   * Token usage breakdown
+   *
+   * Detailed token accounting for the entire operation.
+   */
+  tokenUsage: {
+    /** Tokens used for prompt (messages + injected memories) */
+    prompt: number;
 
-  /** Timing information (ms) */
-  timing: {
-    search: number;
-    scoring: number;
-    injection: number;
+    /** Tokens reserved for LLM completion */
+    completion: number;
+
+    /** Total tokens (prompt + completion) */
     total: number;
   };
+
+  /**
+   * Latency in milliseconds
+   *
+   * Total time for the augment() operation from start to finish.
+   */
+  latencyMs: number;
 }
 
 // ============================================================================
