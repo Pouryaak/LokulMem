@@ -2,7 +2,7 @@
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
 **Current Phase:** 08
-**Current Plan:** 08-03
+**Current Plan:** 08-04
 **Status:** In progress
 **Updated:** 2026-02-26
 
@@ -38,33 +38,38 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 5: Memory Store & Retrieval (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 6: Lifecycle & Decay (Complete - 4 of 4 plans)
 [██████████] 100% - Phase 7: Extraction & Contradiction (Complete - 4 of 4 plans)
-[████░░░░░] 50% - Phase 8: Public API & Demo (3 of 6 plans complete)
+[████████░░] 66% - Phase 8: Public API & Demo (4 of 6 plans complete)
 ```
 
 ### Active Work
 
-**Plan 08-03 Complete!** Manager namespace with 16+ methods implemented in 2 minutes:
+**Plan 08-04 Complete!** Event system implemented in 4 minutes:
 
 **Implemented:**
-- Manager class with IPC-based communication pattern via WorkerClient
-- Single operation methods: update, pin, unpin, archive, unarchive, delete (return lightweight { id, status })
-- Bulk operation methods: deleteMany, pinMany, unpinMany, archiveMany, unarchiveMany (return detailed { succeeded, failed, total, counts })
-- Clear and stats methods: clear() returns { status, count }, stats() returns MemoryStats
-- Export/import methods: export(format) supports JSON (base64 embeddings) and Markdown, import(data, mode) supports replace/merge
-- Query methods delegating to worker-side QueryEngine: list, get, getByConversation, getRecent, getTop, getPinned, search, semanticSearch, getTimeline, getGrouped, getInjectionPreview
-- Management types added to api/types.ts: BulkOperationResult, ClearResult, ExportFormat, ImportMode, ImportResult, SingleOperationResult, LokulMemExport, MemoryUpdate
-- Manager namespace integrated into LokulMem with manage() method returning cached singleton
-- API barrel file (_index.ts) exporting all public classes and types
+- EventManager class with Map-based handler registry (120 lines)
+- Event types: EventConfig, MemoryEventPayload, StatsChangedPayload, EventType
+- IDs-only payloads by default (verbose mode optional via verboseEvents config)
+- 7 public API callback methods: onMemoryAdded, onMemoryUpdated, onMemoryDeleted, onMemoryFaded, onStatsChanged, onContradictionDetected, onMemorySuperseded
+- All callbacks return unsubscribe functions
+- Event emissions in Learner: MEMORY_ADDED after extraction, CONTRADICTION_DETECTED, MEMORY_SUPERSEDED, MEMORY_FADED
+- Event emissions in Manager: MEMORY_UPDATED for mutations, MEMORY_DELETED for deletions, STATS_CHANGED for stats changes
+- Event emissions at mutation points (not during queries)
+- Error isolation in handler execution
+- Embeddings never included in event payloads (per CONTEXT decision)
 
 **Committed:**
-- 99e075a: feat(08-03): add management types to api/types.ts
-- 88b1ac2: feat(08-03): create Manager class skeleton with 16+ methods
-- d808e6b: feat(08-03): integrate Manager namespace with LokulMem
-- 5d8d1fa: feat(08-03): update API barrel file with Manager exports
+- fb53a60: feat(08-04): add event system types to api/types.ts
+- fc2d63c: feat(08-04): create EventManager class
+- f978e1e: feat(08-04): integrate EventManager with LokulMem
+- fbe656e: feat(08-04): add EventManager to Augmenter
+- 4e467b3: feat(08-04): wire up event emissions in Learner
+- 440c27d: feat(08-04): wire up event emissions in Manager
+- 57baa8a: feat(08-04): update LokulMemConfig and API barrel
+- d397ea6: fix(08-04): resolve TypeScript compilation errors
 
-**Deviations:** None - plan executed exactly as written.
+**Deviations:** 1 TypeScript compilation error (type safety fixes)
 
-**Next Action:** Execute Plan 08-04: Event System
+**Next Action:** Execute Plan 08-05: Augmenter Implementation
 
 ---
 
@@ -352,6 +357,7 @@ All 3 plans executed successfully:
 | Phase 07 P03b | 3 minutes | 6 tasks | 7 files |
 | Phase 08 P03 | 178 | 9 tasks | 4 files |
 | Phase 08-public-api-demo P02 | 516 | 7 tasks | 5 files |
+| Phase 08-public-api-demo P04 | 257 | 7 tasks | 8 files |
 
 ### Benchmarks
 

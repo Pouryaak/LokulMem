@@ -113,13 +113,13 @@
 
 ### Event System
 
-- [ ] **EVENT-01**: `onMemoryAdded()` callback with MemoryDTO
-- [ ] **EVENT-02**: `onMemoryUpdated()` callback with MemoryDTO
+- [x] **EVENT-01**: `onMemoryAdded()` callback with MemoryDTO
+- [x] **EVENT-02**: `onMemoryUpdated()` callback with MemoryDTO
 - [x] **EVENT-03**: `onMemoryDeleted()` callback with id
 - [x] **EVENT-04**: `onMemoryFaded()` callback with MemoryDTO
-- [ ] **EVENT-05**: `onStatsChanged()` callback with MemoryStats
-- [ ] **EVENT-06**: `onContradictionDetected()` callback with event details
-- [ ] **EVENT-07**: All event callbacks return unsubscribe functions
+- [x] **EVENT-05**: `onStatsChanged()` callback with MemoryStats
+- [x] **EVENT-06**: `onContradictionDetected()` callback with event details
+- [x] **EVENT-07**: All event callbacks return unsubscribe functions
 
 ### TypeScript & Build
 
