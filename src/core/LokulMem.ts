@@ -14,11 +14,14 @@
  * points in `build.lib.worker`. See Phase 4 final summary for details.
  */
 
+import { EventManager } from '../api/EventManager.js';
 import { Manager } from '../api/Manager.js';
 import type {
   AugmentOptions,
   AugmentResult,
   ChatMessage,
+  MemoryEventPayload,
+  StatsChangedPayload,
 } from '../api/types.js';
 import type { InitStage, LokulMemConfig } from '../types/api.js';
 import type { ContradictionEvent, SupersessionEvent } from '../types/events.js';
@@ -65,6 +68,7 @@ const DEFAULT_CONFIG: {
 export class LokulMem {
   private workerManager: WorkerManager;
   private manager: Manager | null = null;
+  private eventManager: EventManager;
   private config: {
     dbName: string;
     workerType: 'auto' | 'shared' | 'dedicated' | 'main';
@@ -95,6 +99,8 @@ export class LokulMem {
     kMeansK?: number;
     kMeansMaxIterations?: number;
     kMeansConvergenceThreshold?: number;
+    // Event config
+    verboseEvents?: boolean;
   };
   private isInitialized = false;
 
@@ -113,6 +119,11 @@ export class LokulMem {
   constructor(config: LokulMemConfig = {}) {
     // Create WorkerManager instance first
     this.workerManager = new WorkerManager();
+
+    // Initialize EventManager with verboseEvents config
+    this.eventManager = new EventManager({
+      verboseEvents: config.verboseEvents,
+    });
 
     // Merge with defaults - handle optional properties carefully for exactOptionalPropertyTypes
     this.config = {
@@ -183,6 +194,11 @@ export class LokulMem {
     if (config.kMeansConvergenceThreshold !== undefined) {
       this.config.kMeansConvergenceThreshold =
         config.kMeansConvergenceThreshold;
+    }
+
+    // Store event config
+    if (config.verboseEvents !== undefined) {
+      this.config.verboseEvents = config.verboseEvents;
     }
   }
 
@@ -636,6 +652,30 @@ export class LokulMem {
    */
   onMemorySuperseded(handler: (event: SupersessionEvent) => void): () => void {
     return this.workerManager.onMemorySuperseded(handler);
+  }
+
+  /**
+   * Register callback for when memories are added
+   * @returns Unsubscribe function
+   */
+  onMemoryAdded(handler: (event: MemoryEventPayload) => void): () => void {
+    return this.eventManager.on('MEMORY_ADDED', handler);
+  }
+
+  /**
+   * Register callback for when memories are updated
+   * @returns Unsubscribe function
+   */
+  onMemoryUpdated(handler: (event: MemoryEventPayload) => void): () => void {
+    return this.eventManager.on('MEMORY_UPDATED', handler);
+  }
+
+  /**
+   * Register callback for when stats change
+   * @returns Unsubscribe function
+   */
+  onStatsChanged(handler: (event: StatsChangedPayload) => void): () => void {
+    return this.eventManager.on('STATS_CHANGED', handler);
   }
 
   /**
