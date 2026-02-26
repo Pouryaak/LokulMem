@@ -65,4 +65,20 @@ describe('SpecificityNER heuristics', () => {
     expect(result.memoryTypes).toContain('preference');
     expect(result.score).toBeGreaterThanOrEqual(0.4);
   });
+
+  it('does not extract lowercase intent phrases as person/place entities', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('im planning to move to australia soon');
+
+    const personOrPlaceValues = result.entities
+      .filter((entity) => entity.type === 'person' || entity.type === 'place')
+      .map((entity) => entity.value);
+
+    expect(personOrPlaceValues).not.toContain('planning to');
+    expect(personOrPlaceValues).not.toContain('move to');
+  });
 });

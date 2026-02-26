@@ -5,6 +5,7 @@
 
 import type { LifecycleConfig } from '../lifecycle/types.js';
 import type { InitStage } from '../types/api.js';
+import type { FallbackLLMConfig } from '../types/api.js';
 
 /**
  * Request message sent from main thread to worker
@@ -116,6 +117,8 @@ export interface ModelConfig {
   enableCache?: boolean;
   /** Custom ONNX Runtime WASM paths */
   onnxPaths?: string | Record<string, string>;
+  /** Optional LLM fallback extraction config */
+  fallbackLLM?: FallbackLLMConfig;
 }
 
 /**

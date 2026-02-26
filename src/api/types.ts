@@ -77,6 +77,7 @@ export interface LearnResult {
 /** Per-source diagnostic emitted by learn() in verbose mode */
 export interface LearnDiagnostic {
   source: string;
+  extractionMode?: 'deterministic' | 'fallback';
   normalizedSource?: string;
   extractionSource?: string;
   normalizationOperations?: string[];
@@ -102,6 +103,19 @@ export interface LearnDiagnostic {
     | 'LOW_CONFIDENCE_MATCH'
   >;
   policyTargetMemoryId?: string;
+  ambiguityTriggered?: boolean;
+  ambiguityReasons?: Array<
+    | 'GRAY_ZONE_SCORE'
+    | 'PRONOUN_RELATION_AMBIGUITY'
+    | 'UNRESOLVED_TEMPORAL_SHIFT'
+  >;
+  fallbackInvoked?: boolean;
+  fallbackFactCount?: number;
+  fallbackProvider?: 'pattern' | 'webllm' | 'noop';
+  fallbackModel?: string;
+  fallbackError?: string;
+  fusionAccepted?: boolean;
+  fusionAgreement?: boolean;
   processingMs?: number;
 }
 

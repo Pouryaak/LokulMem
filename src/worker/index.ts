@@ -42,6 +42,7 @@ import { VectorSearch } from '../search/VectorSearch.js';
 import { LokulDatabase } from '../storage/Database.js';
 import { MemoryRepository } from '../storage/MemoryRepository.js';
 import type { InitStage } from '../types/api.js';
+import type { FallbackLLMConfig } from '../types/api.js';
 import { EmbeddingEngine } from './EmbeddingEngine.js';
 
 /**
@@ -105,6 +106,11 @@ let eventManager: EventManager | null = null;
  * Extraction threshold from init config (default: 0.45)
  */
 let configuredExtractionThreshold = 0.45;
+
+/**
+ * Optional fallback LLM extraction config from init payload
+ */
+let configuredFallbackLLM: FallbackLLMConfig | undefined;
 
 /**
  * Singleton augmenter instance
@@ -1006,6 +1012,7 @@ async function handleInit(
     if (payload.extractionThreshold !== undefined) {
       configuredExtractionThreshold = payload.extractionThreshold;
     }
+    configuredFallbackLLM = payload.modelConfig?.fallbackLLM;
 
     // Stage 1: Worker initialization (complete - we're running)
     reportProgress(port, 'worker', 100);
@@ -1188,6 +1195,9 @@ async function initializeAPIComponents(): Promise<void> {
 
   // Check for extraction dependencies (needed for Learner)
   const {
+    ChainedFallbackExtractor,
+    WebLLMFallbackExtractor,
+    PatternFallbackExtractor,
     ContradictionDetector,
     QualityScorer,
     SupersessionManager,
@@ -1231,6 +1241,13 @@ async function initializeAPIComponents(): Promise<void> {
     },
   );
   const supersessionManager = new SupersessionManager(repository);
+  const fallbackExtractor =
+    configuredFallbackLLM && configuredFallbackLLM.enabled !== false
+      ? new ChainedFallbackExtractor(
+          new WebLLMFallbackExtractor(configuredFallbackLLM),
+          new PatternFallbackExtractor(),
+        )
+      : new PatternFallbackExtractor();
 
   // Initialize Augmenter
   augmenter = new Augmenter(
@@ -1256,6 +1273,7 @@ async function initializeAPIComponents(): Promise<void> {
     eventManager,
     {
       extractionThreshold: configuredExtractionThreshold,
+      fallbackExtractor,
     },
   );
 

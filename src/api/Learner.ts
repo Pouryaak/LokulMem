@@ -1,16 +1,18 @@
-/**
- * Learner - Memory extraction from conversations
- *
- * Implements the learn() API which extracts memories from
- * user/assistant conversations using Phase 7 extraction pipeline.
- */
-
+import { AmbiguityTrigger } from '../extraction/AmbiguityTrigger.js';
+import {
+  CandidateFusion,
+  type CandidateSource,
+} from '../extraction/CandidateFusion.js';
 import {
   type CanonicalizationResult,
   Canonicalizer,
 } from '../extraction/Canonicalizer.js';
 import type { ContradictionDetector } from '../extraction/ContradictionDetector.js';
 import { EntityLinker, type LinkedEntity } from '../extraction/EntityLinker.js';
+import {
+  type FallbackExtractor,
+  PatternFallbackExtractor,
+} from '../extraction/FallbackExtractor.js';
 import {
   type NormalizationMetadata,
   Normalizer,
@@ -41,6 +43,36 @@ import type {
   LearnResult,
 } from './types.js';
 
+interface EvaluatedCandidate {
+  origin: CandidateSource;
+  source: string;
+  normalization: NormalizationMetadata;
+  extractionContent: string;
+  matchingContent: string;
+  scoreResult: {
+    score: number;
+    novelty: number;
+    specificity: number;
+    recurrence: number;
+    meetsThreshold: boolean;
+    threshold: number;
+  };
+  specificityResult: {
+    memoryTypes: MemoryType[];
+  };
+  linkedEntities: LinkedEntity[];
+  canonicalization: CanonicalizationResult;
+  threshold: number;
+  acceptedByScore: boolean;
+  fallbackConfidence?: number;
+  riskSignals: Array<
+    'REPETITIVE_NOISE' | 'LOW_STRUCTURE_HIGH_SCORE' | 'AMBIGUOUS_TEMPORAL'
+  >;
+  accepted: boolean;
+  candidate?: MemoryInternal;
+  processingMs: number;
+}
+
 /**
  * Learner class for extracting memories from conversations
  *
@@ -60,6 +92,9 @@ export class Learner {
   private readonly entityLinker = new EntityLinker();
   private readonly riskValidator = new RiskValidator();
   private readonly writePolicyEngine = new WritePolicyEngine();
+  private readonly ambiguityTrigger = new AmbiguityTrigger();
+  private readonly candidateFusion = new CandidateFusion();
+  private readonly fallbackExtractor: FallbackExtractor;
 
   /**
    * Create a new Learner instance
@@ -90,10 +125,14 @@ export class Learner {
     _recurrenceTracker: RecurrenceTracker, // Embedded in qualityScorer
     private embeddingEngine: EmbeddingEngine,
     private eventManager: EventManager,
-    _config: {
+    config: {
       extractionThreshold: number;
+      fallbackExtractor?: FallbackExtractor;
     },
-  ) {}
+  ) {
+    this.fallbackExtractor =
+      config.fallbackExtractor ?? new PatternFallbackExtractor();
+  }
 
   /**
    * Learn from conversation by extracting memories
@@ -122,12 +161,12 @@ export class Learner {
       providedConversationId ?? this.generateConversationId();
 
     // Step 2: Collect extraction sources
-    const sources: string[] = [];
+    const sources: Array<{ role: 'user' | 'assistant'; content: string }> = [];
     if (extractFrom === 'user' || extractFrom === 'both') {
-      sources.push(userMessage.content);
+      sources.push({ role: 'user', content: userMessage.content });
     }
     if (extractFrom === 'assistant' || extractFrom === 'both') {
-      sources.push(assistantResponse.content);
+      sources.push({ role: 'assistant', content: assistantResponse.content });
     }
 
     const startedAt = performance.now();
@@ -144,137 +183,180 @@ export class Learner {
     const activeMemoriesForPolicy =
       await this.repository.findByStatus('active');
 
-    for (const source of sources) {
+    for (const sourceEntry of sources) {
       const sourceStartedAt = performance.now();
-      const normalization = this.normalizer.buildNormalizationMetadata(source);
-      const extractionContent = normalization.extractionNormalized;
-      const matchingContent = normalization.normalized;
 
-      // Generate embedding for this source
-      const embedding = await this.getEmbedding(source);
-
-      // Calculate quality score using QualityScorer (does full pipeline internally)
-      const scoreResult = await this.qualityScorer.score({
-        content: extractionContent,
-        embedding,
+      const deterministic = await this.evaluateCandidate({
+        source: sourceEntry.content,
+        origin: 'deterministic',
+        conversationId,
+        ...(learnThreshold !== undefined && { learnThreshold }),
       });
 
-      const specificityResult = this.specificityNER.analyze(extractionContent);
-      const linkedEntities = this.entityLinker.resolve(
-        specificityResult.entities,
-        {
+      const ambiguityDecision = this.ambiguityTrigger.evaluate({
+        content: deterministic.extractionContent,
+        score: deterministic.scoreResult.score,
+        threshold: deterministic.threshold,
+        memoryTypes: deterministic.specificityResult.memoryTypes,
+        entityCount: deterministic.linkedEntities.length,
+        temporalBucket: deterministic.canonicalization.temporalBucket,
+      });
+
+      const evaluations: EvaluatedCandidate[] = [deterministic];
+      let fallbackInvoked = false;
+      let fallbackFactCount = 0;
+      let fallbackProvider: 'pattern' | 'webllm' | 'noop' | undefined;
+      let fallbackModel: string | undefined;
+      let fallbackError: string | undefined;
+
+      if (
+        sourceEntry.role === 'user' &&
+        ambiguityDecision.shouldTriggerFallback
+      ) {
+        fallbackInvoked = true;
+        const fallback = await this.fallbackExtractor.extract({
+          source: sourceEntry.content,
           conversationId,
-        },
+        });
+        fallbackProvider = fallback.provider;
+        fallbackModel = fallback.model;
+        fallbackError = fallback.error;
+
+        for (const fact of fallback.facts) {
+          fallbackFactCount += 1;
+          const fallbackEvaluation = await this.evaluateCandidate({
+            source: fact.text,
+            origin: 'fallback',
+            conversationId,
+            fallbackConfidence: fact.confidence,
+            ...(learnThreshold !== undefined && { learnThreshold }),
+          });
+          evaluations.push(fallbackEvaluation);
+        }
+      }
+
+      const deduped = new Map<string, EvaluatedCandidate>();
+      for (const evaluation of evaluations) {
+        const key = `${evaluation.origin}:${evaluation.canonicalization.key}`;
+        const existing = deduped.get(key);
+        if (
+          !existing ||
+          evaluation.scoreResult.score > existing.scoreResult.score
+        ) {
+          deduped.set(key, evaluation);
+        }
+      }
+      const dedupedEvaluations = Array.from(deduped.values());
+
+      const fusionDecisions = this.candidateFusion.calibrate(
+        dedupedEvaluations.map((evaluation) => ({
+          source: evaluation.origin,
+          canonicalKey: evaluation.canonicalization.key,
+          score: evaluation.scoreResult.score,
+          threshold: evaluation.threshold,
+          accepted: evaluation.accepted,
+          ...(evaluation.fallbackConfidence !== undefined && {
+            fallbackConfidence: evaluation.fallbackConfidence,
+          }),
+        })),
       );
-      const canonicalization = this.canonicalizer.canonicalize({
-        content: matchingContent,
-        entities: linkedEntities,
-        memoryTypes: specificityResult.memoryTypes,
-        subject: 'user',
-        scope: {
-          conversationId,
-        },
-      });
 
-      // Apply threshold - use per-call override or configured threshold
-      // Note: We check score directly instead of relying on scoreResult.meetsThreshold,
-      // because meetsThreshold uses QualityScorer's internal threshold which may differ
-      // from the configured extractionThreshold.
-      const threshold = learnThreshold ?? scoreResult.threshold;
-      const accepted =
-        learnThreshold !== undefined
-          ? scoreResult.score >= learnThreshold
-          : scoreResult.meetsThreshold;
-      const riskValidation = this.riskValidator.validate({
-        content: extractionContent,
-        score: scoreResult.score,
-        threshold,
-        memoryTypes: specificityResult.memoryTypes,
-        entities: linkedEntities,
-        canonicalization,
-      });
-      const shouldAccept = accepted && riskValidation.accepted;
-      let policyAction: WritePolicyDecision['action'] | undefined;
-      let policyReasonCodes: WritePolicyDecision['reasonCodes'] | undefined;
-      let policyTargetMemoryId: string | undefined;
-
-      if (shouldAccept) {
-        const candidate = this.createMemory(
-          source,
-          linkedEntities,
-          scoreResult.score,
-          specificityResult.memoryTypes,
-          normalization,
-          canonicalization,
-          conversationId,
-          embedding,
+      for (const evaluation of dedupedEvaluations) {
+        const fusion = fusionDecisions.find(
+          (decision) =>
+            decision.canonicalKey === evaluation.canonicalization.key &&
+            decision.source === evaluation.origin,
         );
+        const fusionAccepted = Boolean(fusion?.accepted);
+        const fusionAgreement = Boolean(fusion?.agreement);
 
-        const policyDecision = this.writePolicyEngine.decide(
-          candidate,
-          activeMemoriesForPolicy,
-        );
-        policyAction = policyDecision.action;
-        policyReasonCodes = policyDecision.reasonCodes;
-        policyTargetMemoryId = policyDecision.targetMemoryId;
+        let policyAction: WritePolicyDecision['action'] | undefined;
+        let policyReasonCodes: WritePolicyDecision['reasonCodes'] | undefined;
+        let policyTargetMemoryId: string | undefined;
 
-        if (policyDecision.action !== 'IGNORE') {
-          candidates.push(candidate);
-          activeMemoriesForPolicy.push(candidate);
+        if (fusionAccepted && evaluation.candidate) {
+          const policyDecision = this.writePolicyEngine.decide(
+            evaluation.candidate,
+            activeMemoriesForPolicy,
+          );
+          policyAction = policyDecision.action;
+          policyReasonCodes = policyDecision.reasonCodes;
+          policyTargetMemoryId = policyDecision.targetMemoryId;
 
-          if (
-            (policyDecision.action === 'SUPERSEDE' ||
-              policyDecision.action === 'UPDATE') &&
-            policyDecision.targetMemoryId
-          ) {
-            policySupersessions.push({
-              newMemoryId: candidate.id,
-              targetMemoryId: policyDecision.targetMemoryId,
-              hasTemporalMarker: policyDecision.action === 'SUPERSEDE',
-            });
+          if (policyDecision.action !== 'IGNORE') {
+            candidates.push(evaluation.candidate);
+            activeMemoriesForPolicy.push(evaluation.candidate);
+
+            if (
+              (policyDecision.action === 'SUPERSEDE' ||
+                policyDecision.action === 'UPDATE') &&
+              policyDecision.targetMemoryId
+            ) {
+              policySupersessions.push({
+                newMemoryId: evaluation.candidate.id,
+                targetMemoryId: policyDecision.targetMemoryId,
+                hasTemporalMarker: policyDecision.action === 'SUPERSEDE',
+              });
+            }
           }
         }
+
+        if (verbose) {
+          const diagnostic: LearnDiagnostic = {
+            source: evaluation.source,
+            extractionMode: evaluation.origin,
+            normalizedSource: evaluation.matchingContent,
+            extractionSource: evaluation.extractionContent,
+            normalizationOperations: evaluation.normalization.operations,
+            canonicalKey: evaluation.canonicalization.key,
+            score: evaluation.scoreResult.score,
+            novelty: evaluation.scoreResult.novelty,
+            specificity: evaluation.scoreResult.specificity,
+            recurrence: evaluation.scoreResult.recurrence,
+            threshold: evaluation.threshold,
+            accepted:
+              fusionAccepted &&
+              (policyAction === undefined || policyAction !== 'IGNORE'),
+            memoryTypes: evaluation.specificityResult.memoryTypes,
+            entityCount: evaluation.linkedEntities.length,
+            linkedEntityCount: evaluation.linkedEntities.filter(
+              (entity) => entity.linkReason !== 'new',
+            ).length,
+            riskSignals: evaluation.riskSignals,
+            ambiguityTriggered: ambiguityDecision.shouldTriggerFallback,
+            ambiguityReasons: ambiguityDecision.reasons,
+            fallbackInvoked,
+            fallbackFactCount,
+            fusionAccepted,
+            fusionAgreement,
+            processingMs: evaluation.processingMs,
+          };
+
+          if (fallbackProvider !== undefined) {
+            diagnostic.fallbackProvider = fallbackProvider;
+          }
+          if (fallbackModel !== undefined) {
+            diagnostic.fallbackModel = fallbackModel;
+          }
+          if (fallbackError !== undefined) {
+            diagnostic.fallbackError = fallbackError;
+          }
+
+          if (policyAction !== undefined) {
+            diagnostic.policyAction = policyAction;
+          }
+          if (policyReasonCodes !== undefined) {
+            diagnostic.policyReasonCodes = policyReasonCodes;
+          }
+          if (policyTargetMemoryId !== undefined) {
+            diagnostic.policyTargetMemoryId = policyTargetMemoryId;
+          }
+
+          diagnostics.push(diagnostic);
+        }
       }
 
-      const sourceProcessingMs = performance.now() - sourceStartedAt;
-      perSourceMs.push(sourceProcessingMs);
-
-      if (verbose) {
-        const diagnostic: LearnDiagnostic = {
-          source,
-          normalizedSource: matchingContent,
-          extractionSource: extractionContent,
-          normalizationOperations: normalization.operations,
-          canonicalKey: canonicalization.key,
-          score: scoreResult.score,
-          novelty: scoreResult.novelty,
-          specificity: scoreResult.specificity,
-          recurrence: scoreResult.recurrence,
-          threshold,
-          accepted:
-            shouldAccept &&
-            (policyAction === undefined || policyAction !== 'IGNORE'),
-          memoryTypes: specificityResult.memoryTypes,
-          entityCount: linkedEntities.length,
-          linkedEntityCount: linkedEntities.filter(
-            (entity) => entity.linkReason !== 'new',
-          ).length,
-          riskSignals: riskValidation.signals,
-          processingMs: sourceProcessingMs,
-        };
-
-        if (policyAction !== undefined) {
-          diagnostic.policyAction = policyAction;
-        }
-        if (policyReasonCodes !== undefined) {
-          diagnostic.policyReasonCodes = policyReasonCodes;
-        }
-        if (policyTargetMemoryId !== undefined) {
-          diagnostic.policyTargetMemoryId = policyTargetMemoryId;
-        }
-
-        diagnostics.push(diagnostic);
-      }
+      perSourceMs.push(performance.now() - sourceStartedAt);
     }
 
     // Step 4: Store memories in database
@@ -339,6 +421,10 @@ export class Learner {
       const events = await this.contradictionDetector.detect(memory);
 
       for (const event of events) {
+        if (event.conflictingMemoryId === memory.id) {
+          continue;
+        }
+
         // Apply supersession if resolution is 'supersede'
         if (event.resolution === 'supersede') {
           const supersessionResult =
@@ -425,6 +511,116 @@ export class Learner {
     }
 
     return result;
+  }
+
+  private async evaluateCandidate(input: {
+    source: string;
+    origin: CandidateSource;
+    conversationId: string;
+    learnThreshold?: number;
+    fallbackConfidence?: number;
+  }): Promise<EvaluatedCandidate> {
+    const startedAt = performance.now();
+    const {
+      source,
+      origin,
+      conversationId,
+      learnThreshold,
+      fallbackConfidence,
+    } = input;
+
+    const normalization = this.normalizer.buildNormalizationMetadata(source);
+    const extractionContent = normalization.extractionNormalized;
+    const matchingContent = normalization.normalized;
+
+    const embedding = await this.getEmbedding(source);
+    const scoreResult = await this.qualityScorer.score({
+      content: extractionContent,
+      embedding,
+    });
+
+    const specificityResult = this.specificityNER.analyze(extractionContent);
+    const linkedEntities = this.entityLinker.resolve(
+      specificityResult.entities,
+      {
+        conversationId,
+      },
+    );
+    const canonicalization = this.canonicalizer.canonicalize({
+      content: matchingContent,
+      entities: linkedEntities,
+      memoryTypes: specificityResult.memoryTypes,
+      subject: 'user',
+      scope: { conversationId },
+    });
+
+    const threshold = learnThreshold ?? scoreResult.threshold;
+    const acceptedByScore =
+      learnThreshold !== undefined
+        ? scoreResult.score >= learnThreshold
+        : scoreResult.meetsThreshold;
+    const fallbackBoostAccepted =
+      origin === 'fallback' &&
+      fallbackConfidence !== undefined &&
+      fallbackConfidence >= 0.8 &&
+      specificityResult.memoryTypes.length > 0;
+    const riskValidation = this.riskValidator.validate({
+      content: extractionContent,
+      score: scoreResult.score,
+      threshold,
+      memoryTypes: specificityResult.memoryTypes,
+      entities: linkedEntities,
+      canonicalization,
+    });
+    const accepted =
+      (acceptedByScore || fallbackBoostAccepted) && riskValidation.accepted;
+
+    let candidate: MemoryInternal | undefined;
+    if (accepted) {
+      candidate = this.createMemory(
+        source,
+        linkedEntities,
+        scoreResult.score,
+        specificityResult.memoryTypes,
+        normalization,
+        canonicalization,
+        conversationId,
+        embedding,
+      );
+    }
+
+    const evaluation: EvaluatedCandidate = {
+      origin,
+      source,
+      normalization,
+      extractionContent,
+      matchingContent,
+      scoreResult: {
+        score: scoreResult.score,
+        novelty: scoreResult.novelty,
+        specificity: scoreResult.specificity,
+        recurrence: scoreResult.recurrence,
+        meetsThreshold: scoreResult.meetsThreshold,
+        threshold: scoreResult.threshold,
+      },
+      specificityResult: {
+        memoryTypes: specificityResult.memoryTypes,
+      },
+      linkedEntities,
+      canonicalization,
+      threshold,
+      acceptedByScore,
+      ...(fallbackConfidence !== undefined && { fallbackConfidence }),
+      riskSignals: riskValidation.signals,
+      accepted,
+      processingMs: performance.now() - startedAt,
+    };
+
+    if (candidate !== undefined) {
+      evaluation.candidate = candidate;
+    }
+
+    return evaluation;
   }
 
   /**

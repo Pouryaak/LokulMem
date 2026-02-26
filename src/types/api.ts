@@ -41,6 +41,25 @@ export interface EmbeddingConfig {
   enableCache?: boolean;
 }
 
+export interface FallbackLLMConfig {
+  /** Enable LLM fallback extraction (default: false) */
+  enabled?: boolean;
+  /** Fallback provider (Phase 3.1: webllm only) */
+  provider?: 'webllm';
+  /** WebLLM model identifier (must be supported by WebLLM) */
+  model: string;
+  /** Optional WebLLM generation max tokens */
+  maxTokens?: number;
+  /** Optional WebLLM top-p */
+  topP?: number;
+  /** Optional request timeout in milliseconds (default: 12000) */
+  timeoutMs?: number;
+  /** Optional sampling temperature (default: 0) */
+  temperature?: number;
+  /** Optional WebLLM appConfig passthrough */
+  appConfig?: unknown;
+}
+
 /**
  * Configuration options for LokulMem instance
  */
@@ -59,6 +78,9 @@ export interface LokulMemConfig {
 
   /** Custom ONNX Runtime WASM paths (advanced use case) */
   onnxPaths?: string | Record<string, string>;
+
+  /** Optional OpenAI-compatible LLM fallback extractor config */
+  fallbackLLM?: FallbackLLMConfig;
 
   /** Threshold for memory extraction (0-1, higher = more selective) */
   extractionThreshold?: number;

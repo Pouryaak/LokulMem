@@ -1,6 +1,28 @@
 export { SpecificityNER, type SpecificityResult } from './SpecificityNER.js';
 export { Normalizer, type NormalizationMetadata } from './Normalizer.js';
 export {
+  AmbiguityTrigger,
+  type AmbiguityDecision,
+  type AmbiguityInput,
+  type AmbiguityReason,
+} from './AmbiguityTrigger.js';
+export {
+  CandidateFusion,
+  type CandidateFusionDecision,
+  type CandidateFusionInput,
+  type CandidateSource,
+} from './CandidateFusion.js';
+export {
+  ChainedFallbackExtractor,
+  WebLLMFallbackExtractor,
+  PatternFallbackExtractor,
+  NoopFallbackExtractor,
+  type FallbackExtractor,
+  type FallbackExtractionInput,
+  type FallbackExtractionFact,
+  type FallbackExtractionResult,
+} from './FallbackExtractor.js';
+export {
   Canonicalizer,
   type CanonicalEntity,
   type CanonicalizationEntity,

@@ -68,6 +68,7 @@
     ]
   },
   "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.79",
     "@huggingface/transformers": "^3.0.0",
     "dexie": "^4.3.0"
   }

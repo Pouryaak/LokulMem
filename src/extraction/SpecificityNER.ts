@@ -157,7 +157,7 @@ export class SpecificityNER {
 
     // Pattern: "My name is [Name]" / "I'm [Name]" / "I am [Name]"
     const nameIntroPatterns = [
-      /(?:my name is|i'm|i am)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/gi,
+      /(?:my name is|i'm|i am)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/g,
     ];
     for (const pattern of nameIntroPatterns) {
       const matches = content.matchAll(pattern);
@@ -202,7 +202,7 @@ export class SpecificityNER {
 
     // Pattern: "in [City/Country]" / "at [Place]" / "from [Country]"
     const locationPatterns = [
-      /(?:in|at|from|to)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/gi,
+      /(?:in|at|from|to)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/g,
     ];
 
     for (const pattern of locationPatterns) {

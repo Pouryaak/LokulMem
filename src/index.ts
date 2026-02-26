@@ -31,6 +31,7 @@ export type {
   MemoryStatus,
   // API types
   ChatMessage,
+  FallbackLLMConfig,
   LokulMemConfig,
   InitStage,
   AugmentOptions,

@@ -1,5 +1,5 @@
 import { createLokulMem } from 'lokulmem';
-import type { LokulMem } from 'lokulmem';
+import type { LokulMem, LokulMemConfig } from 'lokulmem';
 import { useEffect, useState } from 'react';
 
 interface UseLokulMemResult {
@@ -16,12 +16,31 @@ export function useLokulMem(): UseLokulMemResult {
   useEffect(() => {
     let mounted = true;
 
-    createLokulMem({
+    const env = (
+      import.meta as ImportMeta & {
+        env?: Record<string, string | undefined>;
+      }
+    ).env;
+    const fallbackModel =
+      env?.VITE_WEBLLM_FALLBACK_MODEL ?? 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
+
+    const config: LokulMemConfig = {
       dbName: 'lokulmem-demo',
+      fallbackLLM: {
+        enabled: true,
+        provider: 'webllm',
+        model: fallbackModel,
+        temperature: 0,
+        timeoutMs: 12000,
+      },
       onProgress: (stage, progress) => {
         console.log(`[${stage}] ${progress}%`);
       },
-    })
+    };
+
+    console.log('[useLokulMem] WebLLM fallback model:', fallbackModel);
+
+    createLokulMem(config)
       .then((instance) => {
         if (mounted) {
           setLokul(instance);

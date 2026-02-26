@@ -34,7 +34,8 @@ export function ChatView({ lokul, onDebug }: ChatViewProps) {
       // Learn from conversation
       const learnResult = await lokul.learn(
         { role: 'user', content: userMessage },
-        { role: 'assistant', content: assistantResponse }
+        { role: 'assistant', content: assistantResponse },
+        { verbose: true },
       );
       console.log('[ChatView] Learn result:', JSON.stringify(learnResult, null, 2));
 

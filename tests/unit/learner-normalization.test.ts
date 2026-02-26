@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { Learner } from '../../src/api/Learner.js';
+import type { FallbackExtractor } from '../../src/extraction/FallbackExtractor.js';
 import { SpecificityNER } from '../../src/extraction/SpecificityNER.js';
 import type { MemoryInternal } from '../../src/internal/types.js';
 
@@ -40,7 +41,19 @@ function buildMemory(overrides: Partial<MemoryInternal> = {}): MemoryInternal {
   };
 }
 
-function createLearnerHarness(seed: MemoryInternal[] = []) {
+function createLearnerHarness(options?: {
+  seed?: MemoryInternal[];
+  fallbackExtractor?: FallbackExtractor;
+  scoreImpl?: (content: string) => {
+    score: number;
+    novelty: number;
+    specificity: number;
+    recurrence: number;
+    meetsThreshold: boolean;
+    threshold: number;
+  };
+}) {
+  const seed = options?.seed ?? [];
   const stored = [...seed];
 
   const vectorSearch = {
@@ -61,14 +74,17 @@ function createLearnerHarness(seed: MemoryInternal[] = []) {
   };
 
   const qualityScorer = {
-    score: vi.fn(async () => ({
-      score: 0.82,
-      novelty: 0.75,
-      specificity: 0.8,
-      recurrence: 0.0,
-      meetsThreshold: true,
-      threshold: 0.45,
-    })),
+    score: vi.fn(
+      async ({ content }: { content: string }) =>
+        options?.scoreImpl?.(content) ?? {
+          score: 0.82,
+          novelty: 0.75,
+          specificity: 0.8,
+          recurrence: 0.0,
+          meetsThreshold: true,
+          threshold: 0.45,
+        },
+    ),
   };
 
   const contradictionDetector = {
@@ -117,7 +133,12 @@ function createLearnerHarness(seed: MemoryInternal[] = []) {
     {} as never,
     embeddingEngine as never,
     eventManager as never,
-    { extractionThreshold: 0.45 },
+    {
+      extractionThreshold: 0.45,
+      ...(options?.fallbackExtractor !== undefined && {
+        fallbackExtractor: options.fallbackExtractor,
+      }),
+    },
   );
 
   return {
@@ -200,7 +221,9 @@ describe('Learner normalization and policy integration', () => {
       },
     });
     const { learner, supersessionManager, vectorSearch } = createLearnerHarness(
-      [seed],
+      {
+        seed: [seed],
+      },
     );
 
     const result = await learner.learn(
@@ -231,5 +254,111 @@ describe('Learner normalization and policy integration', () => {
     expect(result.extracted).toHaveLength(0);
     expect(result.diagnostics?.[0]?.accepted).toBe(false);
     expect(result.diagnostics?.[0]?.riskSignals).toContain('REPETITIVE_NOISE');
+  });
+
+  it('records phase3 ambiguity diagnostics and fallback invocation', async () => {
+    const { learner } = createLearnerHarness();
+
+    const result = await learner.learn(
+      { role: 'user', content: 'She might move next week' },
+      { role: 'assistant', content: 'ok' },
+      { conversationId: 'conv-phase3', verbose: true },
+    );
+
+    expect(result.diagnostics?.length).toBeGreaterThan(0);
+    const first = result.diagnostics?.[0];
+    expect(first?.ambiguityTriggered).toBe(true);
+    expect(first?.fallbackInvoked).toBe(true);
+    expect(first?.ambiguityReasons).toContain('UNRESOLVED_TEMPORAL_SHIFT');
+  });
+
+  it('accepts LLM fallback fact when deterministic candidate is below threshold', async () => {
+    const fallbackExtractor: FallbackExtractor = {
+      extract: vi.fn(async () => ({
+        facts: [{ text: 'My name is Alice', confidence: 0.8 }],
+        provider: 'webllm' as const,
+        model: 'Llama-3.2-1B-Instruct-q4f32_1-MLC',
+      })),
+    };
+
+    const { learner } = createLearnerHarness({
+      fallbackExtractor,
+      scoreImpl: (content) => {
+        if (content.includes('name is Alice')) {
+          return {
+            score: 0.74,
+            novelty: 0.8,
+            specificity: 0.7,
+            recurrence: 0,
+            meetsThreshold: true,
+            threshold: 0.45,
+          };
+        }
+
+        return {
+          score: 0.43,
+          novelty: 0.4,
+          specificity: 0.4,
+          recurrence: 0,
+          meetsThreshold: false,
+          threshold: 0.45,
+        };
+      },
+    });
+
+    const result = await learner.learn(
+      { role: 'user', content: 'Call me Alice' },
+      { role: 'assistant', content: 'ok' },
+      { conversationId: 'conv-phase31', verbose: true },
+    );
+
+    expect(result.extracted).toHaveLength(1);
+    expect(result.extracted[0]?.content).toBe('My name is Alice');
+    expect(
+      result.diagnostics?.some((item) => item.extractionMode === 'fallback'),
+    ).toBe(true);
+    const fallbackDiagnostic = result.diagnostics?.find(
+      (item) => item.extractionMode === 'fallback',
+    );
+    expect(fallbackDiagnostic?.fallbackProvider).toBe('webllm');
+    expect(fallbackDiagnostic?.fallbackModel).toBe(
+      'Llama-3.2-1B-Instruct-q4f32_1-MLC',
+    );
+  });
+
+  it('uses fallback confidence to accept same-text gray-zone facts', async () => {
+    const fallbackExtractor: FallbackExtractor = {
+      extract: vi.fn(async () => ({
+        facts: [{ text: 'I live in Denmark', confidence: 0.86 }],
+        provider: 'webllm' as const,
+        model: 'Llama-3.2-1B-Instruct-q4f32_1-MLC',
+      })),
+    };
+
+    const { learner } = createLearnerHarness({
+      fallbackExtractor,
+      scoreImpl: (content) => ({
+        score: content.toLowerCase().includes('denmark') ? 0.4 : 0.2,
+        novelty: 0.8,
+        specificity: 0.3,
+        recurrence: 0,
+        meetsThreshold: false,
+        threshold: 0.45,
+      }),
+    });
+
+    const result = await learner.learn(
+      { role: 'user', content: 'I live in Denmark' },
+      { role: 'assistant', content: 'ok' },
+      { conversationId: 'conv-denmark', verbose: true },
+    );
+
+    expect(result.extracted).toHaveLength(1);
+    expect(result.extracted[0]?.content).toBe('I live in Denmark');
+    const fallbackDiagnostic = result.diagnostics?.find(
+      (item) => item.extractionMode === 'fallback',
+    );
+    expect(fallbackDiagnostic?.fallbackFactCount).toBe(1);
+    expect(fallbackDiagnostic?.accepted).toBe(true);
   });
 });

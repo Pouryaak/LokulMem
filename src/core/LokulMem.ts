@@ -80,6 +80,7 @@ export class LokulMem {
     localModelBaseUrl?: string;
     workerUrl?: string;
     onnxPaths?: string | Record<string, string>;
+    fallbackLLM?: import('../types/api.js').FallbackLLMConfig;
     onProgress?: (stage: InitStage, progress: number) => void;
     // Token budget config (main thread only, NOT sent to worker)
     contextWindowTokens?: number;
@@ -152,6 +153,9 @@ export class LokulMem {
     if (config.onnxPaths !== undefined) {
       this.config.onnxPaths = config.onnxPaths;
     }
+    if (config.fallbackLLM !== undefined) {
+      this.config.fallbackLLM = config.fallbackLLM;
+    }
 
     // NEW: Store token budget config (main thread only, NOT sent to worker)
     if (config.contextWindowTokens !== undefined) {
@@ -219,6 +223,10 @@ export class LokulMem {
 
     if (this.config.onnxPaths !== undefined) {
       config.onnxPaths = this.config.onnxPaths;
+    }
+
+    if (this.config.fallbackLLM !== undefined) {
+      config.fallbackLLM = this.config.fallbackLLM;
     }
 
     // Only return config if at least one property was set
