@@ -515,4 +515,69 @@ describe('SpecificityNER heuristics', () => {
     expect(conditionPrefs).not.toContain('car');
     expect(medicationPrefs).not.toContain('break');
   });
+
+  it('extracts email and phone as contact identity signals', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze(
+      'You can reach me at alex.dev@example.com or (415) 628-1234',
+    );
+    const personValues = result.entities
+      .filter((entity) => entity.type === 'person')
+      .map((entity) => entity.value);
+    const numberValues = result.entities
+      .filter((entity) => entity.type === 'number')
+      .map((entity) => entity.value);
+
+    expect(result.memoryTypes).toContain('identity');
+    expect(personValues).toContain('alex.dev@example.com');
+    expect(numberValues).toContain('+14156281234');
+  });
+
+  it('rejects invalid name adjectives in contact intros', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze("I'm American");
+    const personValues = result.entities
+      .filter((entity) => entity.type === 'person')
+      .map((entity) => entity.value);
+
+    expect(personValues).not.toContain('american');
+  });
+
+  it('extracts relationship contacts as relational signals', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('John Smith is my colleague');
+    const personValues = result.entities
+      .filter((entity) => entity.type === 'person')
+      .map((entity) => entity.value);
+
+    expect(result.memoryTypes).toContain('relational');
+    expect(personValues).toContain('john smith');
+  });
+
+  it('extracts address information as location contact data', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('My address is 123 Main Street');
+    const placeValues = result.entities
+      .filter((entity) => entity.type === 'place')
+      .map((entity) => entity.value);
+
+    expect(result.memoryTypes).toContain('location');
+    expect(placeValues).toContain('123 main st');
+  });
 });

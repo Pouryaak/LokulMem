@@ -9,6 +9,10 @@ import {
 } from './specificity/basicExtractors.js';
 import { isCommonWord, isTemporalToken } from './specificity/commonTokens.js';
 import {
+  type ContactSignal,
+  extractContactSignals,
+} from './specificity/contactExtractor.js';
+import {
   type EducationSignal,
   extractEducationSignals,
 } from './specificity/educationExtractor.js';
@@ -65,6 +69,7 @@ const WEIGHTS = {
   emails: 0.4,
   namedEntities: 0.25,
   possessions: 0.1,
+  contactSignals: 0.26,
   healthSignals: 0.22,
   educationSignals: 0.24,
   identitySignals: 0.2,
@@ -82,6 +87,10 @@ export class SpecificityNER {
 
     const identitySignals = extractIdentitySignals(content);
     this.applyIdentitySignals(identitySignals, memoryTypes);
+
+    const contactExtraction = extractContactSignals(content);
+    entities.push(...contactExtraction.entities);
+    this.applyContactSignals(contactExtraction.signals, memoryTypes);
 
     const educationExtraction = extractEducationSignals(content);
     entities.push(...educationExtraction.entities);
@@ -182,6 +191,7 @@ export class SpecificityNER {
         emails,
         namedEntities,
         possessions,
+        contactSignals: contactExtraction.signals,
         healthSignals: healthExtraction.signals,
         educationSignals: educationExtraction.signals,
         identitySignals,
@@ -208,6 +218,48 @@ export class SpecificityNER {
       )
     ) {
       memoryTypes.push('relational');
+    }
+  }
+
+  private applyContactSignals(
+    signals: ContactSignal[],
+    memoryTypes: MemoryType[],
+  ): void {
+    if (signals.length > 0) {
+      memoryTypes.push('identity');
+    }
+
+    if (
+      signals.some((signal) =>
+        [
+          'streetAddress',
+          'cityStateZip',
+          'city',
+          'state',
+          'zipCode',
+          'country',
+        ].includes(signal.kind),
+      )
+    ) {
+      memoryTypes.push('location');
+    }
+
+    if (
+      signals.some((signal) =>
+        ['relationship', 'contactName', 'contactBirthday'].includes(
+          signal.kind,
+        ),
+      )
+    ) {
+      memoryTypes.push('relational');
+    }
+
+    if (
+      signals.some((signal) =>
+        ['employment', 'organization'].includes(signal.kind),
+      )
+    ) {
+      memoryTypes.push('profession');
     }
   }
 
@@ -243,6 +295,7 @@ export class SpecificityNER {
     emails: Entity[];
     namedEntities: Entity[];
     possessions: Entity[];
+    contactSignals: ContactSignal[];
     healthSignals: HealthSignal[];
     educationSignals: EducationSignal[];
     identitySignals: IdentitySignal[];
@@ -266,6 +319,7 @@ export class SpecificityNER {
       (input.emails.length > 0 ? WEIGHTS.emails : 0) +
       (input.namedEntities.length > 0 ? WEIGHTS.namedEntities : 0) +
       (input.possessions.length > 0 ? WEIGHTS.possessions : 0) +
+      (input.contactSignals.length > 0 ? WEIGHTS.contactSignals : 0) +
       (input.healthSignals.length > 0 ? WEIGHTS.healthSignals : 0) +
       (input.educationSignals.length > 0 ? WEIGHTS.educationSignals : 0) +
       (input.identitySignals.length > 0 ? WEIGHTS.identitySignals : 0) +

@@ -100,6 +100,11 @@ export function isLikelyNameCandidate(value: string): boolean {
     'new job',
     'my wife',
     'my husband',
+    'american',
+    'british',
+    'canadian',
+    'european',
+    'asian',
   ]);
   if (blockedPhrases.has(normalized)) return false;
 
