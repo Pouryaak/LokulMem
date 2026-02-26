@@ -430,3 +430,60 @@ export interface InjectionPreviewResult {
   availableTokens: number;
   usedTokens: number;
 }
+
+// ============================================================================
+// Event System Types
+// ============================================================================
+
+/**
+ * EventConfig - Event system configuration
+ */
+export interface EventConfig {
+  /** Enable verbose event payloads (default: false - IDs only) */
+  verboseEvents?: boolean;
+}
+
+/**
+ * MemoryEventPayload - Memory lifecycle event payload
+ *
+ * IDs-only by default for lightweight events.
+ * Verbose mode includes content and metadata fields.
+ * Embeddings never included in events (per CONTEXT decision).
+ */
+export interface MemoryEventPayload {
+  /** Memory ID */
+  memoryId: string;
+  /** Timestamp of event */
+  timestamp: number;
+  /** Memory types (comma-separated) */
+  type: string;
+  /** Memory status */
+  status: string;
+  /** Optional verbose fields (only if verboseEvents=true) */
+  content?: string;
+  /** Optional metadata (only if verboseEvents=true) */
+  metadata?: Record<string, unknown>;
+  /** NOTE: embedding field NEVER included (per CONTEXT decision) */
+}
+
+/**
+ * StatsChangedPayload - Stats changed event payload
+ */
+export interface StatsChangedPayload {
+  /** Updated statistics */
+  stats: import('../types/events.js').MemoryStats;
+  /** Timestamp of change */
+  timestamp: number;
+}
+
+/**
+ * EventType - All event types
+ */
+export type EventType =
+  | 'MEMORY_ADDED'
+  | 'MEMORY_UPDATED'
+  | 'MEMORY_DELETED'
+  | 'MEMORY_FADED'
+  | 'STATS_CHANGED'
+  | 'CONTRADICTION_DETECTED'
+  | 'MEMORY_SUPERSEDED';
