@@ -71,6 +71,10 @@ export interface LearnResult {
 /** Per-source diagnostic emitted by learn() in verbose mode */
 export interface LearnDiagnostic {
   source: string;
+  normalizedSource?: string;
+  extractionSource?: string;
+  normalizationOperations?: string[];
+  canonicalKey?: string;
   score: number;
   novelty: number;
   specificity: number;
@@ -79,6 +83,10 @@ export interface LearnDiagnostic {
   accepted: boolean;
   memoryTypes: import('../types/memory.js').MemoryType[];
   entityCount: number;
+  linkedEntityCount?: number;
+  riskSignals?: Array<
+    'REPETITIVE_NOISE' | 'LOW_STRUCTURE_HIGH_SCORE' | 'AMBIGUOUS_TEMPORAL'
+  >;
 }
 
 /**

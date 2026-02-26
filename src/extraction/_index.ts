@@ -1,4 +1,24 @@
 export { SpecificityNER, type SpecificityResult } from './SpecificityNER.js';
+export { Normalizer, type NormalizationMetadata } from './Normalizer.js';
+export {
+  Canonicalizer,
+  type CanonicalEntity,
+  type CanonicalizationEntity,
+  type CanonicalScope,
+  type CanonicalizationInput,
+  type CanonicalizationResult,
+} from './Canonicalizer.js';
+export {
+  EntityLinker,
+  type LinkedEntity,
+  type EntityLinkContext,
+} from './EntityLinker.js';
+export {
+  RiskValidator,
+  type RiskSignal,
+  type RiskValidationInput,
+  type RiskValidationResult,
+} from './RiskValidator.js';
 export { NoveltyCalculator } from './NoveltyCalculator.js';
 export { RecurrenceTracker } from './RecurrenceTracker.js';
 export { QualityScorer, type QualityInput } from './QualityScorer.js';

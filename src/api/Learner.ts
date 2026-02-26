@@ -5,10 +5,20 @@
  * user/assistant conversations using Phase 7 extraction pipeline.
  */
 
+import {
+  type CanonicalizationResult,
+  Canonicalizer,
+} from '../extraction/Canonicalizer.js';
 import type { ContradictionDetector } from '../extraction/ContradictionDetector.js';
+import { EntityLinker, type LinkedEntity } from '../extraction/EntityLinker.js';
+import {
+  type NormalizationMetadata,
+  Normalizer,
+} from '../extraction/Normalizer.js';
 import type { NoveltyCalculator } from '../extraction/NoveltyCalculator.js';
 import type { QualityScorer } from '../extraction/QualityScorer.js';
 import type { RecurrenceTracker } from '../extraction/RecurrenceTracker.js';
+import { RiskValidator } from '../extraction/RiskValidator.js';
 import type { SpecificityNER } from '../extraction/SpecificityNER.js';
 import type { SupersessionManager } from '../extraction/SupersessionManager.js';
 import type { MemoryInternal } from '../internal/types.js';
@@ -17,7 +27,7 @@ import type { QueryEngine } from '../search/QueryEngine.js';
 import type { VectorSearch } from '../search/VectorSearch.js';
 import type { MemoryRepository } from '../storage/MemoryRepository.js';
 import type { ContradictionEvent } from '../types/events.js';
-import type { Entity, MemoryDTO, MemoryType } from '../types/memory.js';
+import type { MemoryDTO, MemoryType } from '../types/memory.js';
 import type { EmbeddingEngine } from '../worker/EmbeddingEngine.js';
 import type { EventManager } from './EventManager.js';
 import type {
@@ -41,6 +51,11 @@ import type {
  * - Optional maintenance sweeps
  */
 export class Learner {
+  private readonly normalizer = new Normalizer();
+  private readonly canonicalizer = new Canonicalizer();
+  private readonly entityLinker = new EntityLinker();
+  private readonly riskValidator = new RiskValidator();
+
   /**
    * Create a new Learner instance
    * @param queryEngine - Query engine for semantic search
@@ -115,16 +130,35 @@ export class Learner {
     const diagnostics: LearnDiagnostic[] = [];
 
     for (const source of sources) {
+      const normalization = this.normalizer.buildNormalizationMetadata(source);
+      const extractionContent = normalization.extractionNormalized;
+      const matchingContent = normalization.normalized;
+
       // Generate embedding for this source
       const embedding = await this.getEmbedding(source);
 
       // Calculate quality score using QualityScorer (does full pipeline internally)
       const scoreResult = await this.qualityScorer.score({
-        content: source,
+        content: extractionContent,
         embedding,
       });
 
-      const specificityResult = this.specificityNER.analyze(source);
+      const specificityResult = this.specificityNER.analyze(extractionContent);
+      const linkedEntities = this.entityLinker.resolve(
+        specificityResult.entities,
+        {
+          conversationId,
+        },
+      );
+      const canonicalization = this.canonicalizer.canonicalize({
+        content: matchingContent,
+        entities: linkedEntities,
+        memoryTypes: specificityResult.memoryTypes,
+        subject: 'user',
+        scope: {
+          conversationId,
+        },
+      });
 
       // Apply threshold - use per-call override or configured threshold
       // Note: We check score directly instead of relying on scoreResult.meetsThreshold,
@@ -135,28 +169,47 @@ export class Learner {
         learnThreshold !== undefined
           ? scoreResult.score >= learnThreshold
           : scoreResult.meetsThreshold;
+      const riskValidation = this.riskValidator.validate({
+        content: extractionContent,
+        score: scoreResult.score,
+        threshold,
+        memoryTypes: specificityResult.memoryTypes,
+        entities: linkedEntities,
+        canonicalization,
+      });
+      const shouldAccept = accepted && riskValidation.accepted;
 
       if (verbose) {
         diagnostics.push({
           source,
+          normalizedSource: matchingContent,
+          extractionSource: extractionContent,
+          normalizationOperations: normalization.operations,
+          canonicalKey: canonicalization.key,
           score: scoreResult.score,
           novelty: scoreResult.novelty,
           specificity: scoreResult.specificity,
           recurrence: scoreResult.recurrence,
           threshold,
-          accepted,
+          accepted: shouldAccept,
           memoryTypes: specificityResult.memoryTypes,
-          entityCount: specificityResult.entities.length,
+          entityCount: linkedEntities.length,
+          linkedEntityCount: linkedEntities.filter(
+            (entity) => entity.linkReason !== 'new',
+          ).length,
+          riskSignals: riskValidation.signals,
         });
       }
 
-      if (accepted) {
+      if (shouldAccept) {
         candidates.push(
           this.createMemory(
             source,
-            specificityResult.entities,
+            linkedEntities,
             scoreResult.score,
             specificityResult.memoryTypes,
+            normalization,
+            canonicalization,
             conversationId,
             embedding,
           ),
@@ -295,9 +348,11 @@ export class Learner {
    */
   private createMemory(
     content: string,
-    entities: Entity[],
+    entities: LinkedEntity[],
     score: number,
     memoryTypes: MemoryType[],
+    normalization: NormalizationMetadata,
+    canonicalization: CanonicalizationResult,
     conversationId: string,
     embedding: Float32Array,
   ): MemoryInternal {
@@ -328,6 +383,17 @@ export class Learner {
       metadata: {
         extractionScore: score,
         extractedEntities: entities,
+        extractionNormalizedContent: normalization.extractionNormalized,
+        normalizedContent: normalization.normalized,
+        normalizationOperations: normalization.operations,
+        canonical: {
+          key: canonicalization.key,
+          subject: canonicalization.subject,
+          predicate: canonicalization.predicate,
+          object: canonicalization.object,
+          temporalBucket: canonicalization.temporalBucket,
+          entities: canonicalization.entities,
+        },
       },
     };
   }
