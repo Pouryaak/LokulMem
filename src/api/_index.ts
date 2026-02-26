@@ -35,3 +35,12 @@ export type {
   TimelineResult,
   GroupedResult,
 } from './types.js';
+
+// Event API
+export { EventManager } from './EventManager.js';
+export type {
+  EventConfig,
+  MemoryEventPayload,
+  StatsChangedPayload,
+  EventType,
+} from './types.js';

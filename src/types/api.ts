@@ -206,6 +206,18 @@ export interface LokulMemConfig {
    * K-means stops when centroid movement is below this threshold.
    */
   kMeansConvergenceThreshold?: number;
+
+  // === Event Configuration (optional) ===
+
+  /**
+   * Enable verbose event payloads (default: false).
+   *
+   * When true, event callbacks include full memory content and metadata.
+   * When false (default), events only include IDs, timestamps, types, and status.
+   *
+   * @default false
+   */
+  verboseEvents?: boolean;
 }
 
 /**
