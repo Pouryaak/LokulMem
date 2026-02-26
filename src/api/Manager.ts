@@ -14,6 +14,7 @@
 import type { WorkerClient } from '../core/MessagePort.js';
 import type { MemoryStats } from '../types/events.js';
 import type { MemoryDTO } from '../types/memory.js';
+import type { EventManager } from './EventManager.js';
 import type {
   BulkOperationResult,
   ChatMessage,
@@ -43,7 +44,10 @@ const DEFAULT_TIMEOUT_MS = 30000;
  * All operations communicate with the worker thread via IPC.
  */
 export class Manager {
-  constructor(private workerClient: WorkerClient) {}
+  constructor(
+    private workerClient: WorkerClient,
+    private eventManager: EventManager,
+  ) {}
 
   // ============================================================================
   // Single Operations (Task 3)
@@ -65,6 +69,18 @@ export class Manager {
       payload,
       DEFAULT_TIMEOUT_MS,
     )) as SingleOperationResult;
+
+    // Emit MEMORY_UPDATED after successful update
+    if (response.status === 'updated') {
+      const updated = await this.get(id);
+      if (updated) {
+        this.eventManager.emit(
+          'MEMORY_UPDATED',
+          this.eventManager.createMemoryEvent(updated),
+        );
+      }
+    }
+
     return response;
   }
 
@@ -80,6 +96,18 @@ export class Manager {
       payload,
       DEFAULT_TIMEOUT_MS,
     )) as SingleOperationResult;
+
+    // Emit MEMORY_UPDATED after successful pin
+    if (response.status === 'pinned') {
+      const pinned = await this.get(id);
+      if (pinned) {
+        this.eventManager.emit(
+          'MEMORY_UPDATED',
+          this.eventManager.createMemoryEvent(pinned),
+        );
+      }
+    }
+
     return response;
   }
 
@@ -95,6 +123,18 @@ export class Manager {
       payload,
       DEFAULT_TIMEOUT_MS,
     )) as SingleOperationResult;
+
+    // Emit MEMORY_UPDATED after successful unpin
+    if (response.status === 'unpinned') {
+      const unpinned = await this.get(id);
+      if (unpinned) {
+        this.eventManager.emit(
+          'MEMORY_UPDATED',
+          this.eventManager.createMemoryEvent(unpinned),
+        );
+      }
+    }
+
     return response;
   }
 
@@ -110,6 +150,18 @@ export class Manager {
       payload,
       DEFAULT_TIMEOUT_MS,
     )) as SingleOperationResult;
+
+    // Emit MEMORY_UPDATED after successful archive
+    if (response.status === 'archived') {
+      const archived = await this.get(id);
+      if (archived) {
+        this.eventManager.emit(
+          'MEMORY_UPDATED',
+          this.eventManager.createMemoryEvent(archived),
+        );
+      }
+    }
+
     return response;
   }
 
@@ -125,6 +177,18 @@ export class Manager {
       payload,
       DEFAULT_TIMEOUT_MS,
     )) as SingleOperationResult;
+
+    // Emit MEMORY_UPDATED after successful unarchive
+    if (response.status === 'active') {
+      const unarchived = await this.get(id);
+      if (unarchived) {
+        this.eventManager.emit(
+          'MEMORY_UPDATED',
+          this.eventManager.createMemoryEvent(unarchived),
+        );
+      }
+    }
+
     return response;
   }
 
@@ -140,6 +204,16 @@ export class Manager {
       payload,
       DEFAULT_TIMEOUT_MS,
     )) as SingleOperationResult;
+
+    // Emit MEMORY_DELETED and STATS_CHANGED after successful delete
+    if (response.status === 'deleted') {
+      this.eventManager.emit('MEMORY_DELETED', id);
+      this.eventManager.emit(
+        'STATS_CHANGED',
+        this.eventManager.createStatsEvent(await this.stats()),
+      );
+    }
+
     return response;
   }
 
@@ -159,6 +233,18 @@ export class Manager {
       payload,
       DEFAULT_TIMEOUT_MS,
     )) as BulkOperationResult;
+
+    // Emit MEMORY_DELETED for each succeeded deletion
+    for (const id of response.succeeded) {
+      this.eventManager.emit('MEMORY_DELETED', id);
+    }
+
+    // Emit STATS_CHANGED after bulk deletion
+    this.eventManager.emit(
+      'STATS_CHANGED',
+      this.eventManager.createStatsEvent(await this.stats()),
+    );
+
     return response;
   }
 
@@ -174,6 +260,18 @@ export class Manager {
       payload,
       DEFAULT_TIMEOUT_MS,
     )) as BulkOperationResult;
+
+    // Emit MEMORY_UPDATED for each succeeded pin
+    for (const id of response.succeeded) {
+      const pinned = await this.get(id);
+      if (pinned) {
+        this.eventManager.emit(
+          'MEMORY_UPDATED',
+          this.eventManager.createMemoryEvent(pinned),
+        );
+      }
+    }
+
     return response;
   }
 
@@ -189,6 +287,18 @@ export class Manager {
       payload,
       DEFAULT_TIMEOUT_MS,
     )) as BulkOperationResult;
+
+    // Emit MEMORY_UPDATED for each succeeded unpin
+    for (const id of response.succeeded) {
+      const unpinned = await this.get(id);
+      if (unpinned) {
+        this.eventManager.emit(
+          'MEMORY_UPDATED',
+          this.eventManager.createMemoryEvent(unpinned),
+        );
+      }
+    }
+
     return response;
   }
 
@@ -204,6 +314,18 @@ export class Manager {
       payload,
       DEFAULT_TIMEOUT_MS,
     )) as BulkOperationResult;
+
+    // Emit MEMORY_UPDATED for each succeeded archive
+    for (const id of response.succeeded) {
+      const archived = await this.get(id);
+      if (archived) {
+        this.eventManager.emit(
+          'MEMORY_UPDATED',
+          this.eventManager.createMemoryEvent(archived),
+        );
+      }
+    }
+
     return response;
   }
 
@@ -219,6 +341,18 @@ export class Manager {
       payload,
       DEFAULT_TIMEOUT_MS,
     )) as BulkOperationResult;
+
+    // Emit MEMORY_UPDATED for each succeeded unarchive
+    for (const id of response.succeeded) {
+      const unarchived = await this.get(id);
+      if (unarchived) {
+        this.eventManager.emit(
+          'MEMORY_UPDATED',
+          this.eventManager.createMemoryEvent(unarchived),
+        );
+      }
+    }
+
     return response;
   }
 
@@ -236,6 +370,21 @@ export class Manager {
       {},
       DEFAULT_TIMEOUT_MS,
     )) as ClearResult;
+
+    // Emit STATS_CHANGED after clear
+    this.eventManager.emit(
+      'STATS_CHANGED',
+      this.eventManager.createStatsEvent({
+        totalMemories: 0,
+        activeMemories: 0,
+        fadedMemories: 0,
+        pinnedMemories: 0,
+        averageStrength: 0,
+        oldestMemoryAt: null,
+        newestMemoryAt: null,
+      }),
+    );
+
     return response;
   }
 
@@ -284,6 +433,13 @@ export class Manager {
       payload,
       DEFAULT_TIMEOUT_MS,
     )) as ImportResult;
+
+    // Emit STATS_CHANGED after import completes
+    this.eventManager.emit(
+      'STATS_CHANGED',
+      this.eventManager.createStatsEvent(await this.stats()),
+    );
+
     return response;
   }
 
