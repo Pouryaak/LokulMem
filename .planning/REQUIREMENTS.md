@@ -131,10 +131,10 @@
 
 ### Demo Application
 
-- [ ] **DEMO-01**: React app in `examples/react-app/` with isolated package.json
-- [ ] **DEMO-02**: Visualizes debug object from augment()
-- [ ] **DEMO-03**: Reactive memory list using manage().list()
-- [ ] **DEMO-04**: Does not pollute root package.json with React dependencies
+- [x] **DEMO-01**: React app in `examples/react-app/` with isolated package.json
+- [x] **DEMO-02**: Visualizes debug object from augment()
+- [x] **DEMO-03**: Reactive memory list using manage().list()
+- [x] **DEMO-04**: Does not pollute root package.json with React dependencies
 
 ## v2 Requirements (Deferred)
 
