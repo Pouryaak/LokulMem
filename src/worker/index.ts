@@ -24,6 +24,7 @@ import type {
 } from '../core/Protocol.js';
 import { MessageType as MessageTypeConst } from '../core/Protocol.js';
 import type { PortLike } from '../core/types.js';
+import { TemporalMarkerDetector } from '../extraction/TemporalMarkerDetector.js';
 import type {
   AugmentPayload,
   AugmentResponsePayload,
@@ -199,6 +200,9 @@ function setupPort(port: PortLike): void {
       case MessageTypeConst.MEMORY_DELETE:
         await handleMemoryDelete(port, request);
         break;
+      case MessageTypeConst.MEMORY_STATS:
+        await handleMemoryStats(port, request);
+        break;
       default:
         console.warn('Unknown message type:', request.type);
     }
@@ -350,7 +354,10 @@ async function handleList(
   port: PortLike,
   request: RequestMessage,
 ): Promise<void> {
+  console.log('[Worker] handleList called, queryEngine:', !!queryEngine);
+
   if (!queryEngine) {
+    console.log('[Worker] handleList ERROR: queryEngine not initialized');
     const response: ResponseMessage = {
       id: request.id,
       type: MessageTypeConst.ERROR,
@@ -369,14 +376,17 @@ async function handleList(
   }
 
   try {
+    console.log('[Worker] handleList calling queryEngine.list...');
     const payload = request.payload as ListPayload;
     const result = await queryEngine.list(payload.options);
+    console.log('[Worker] handleList got result:', result.total, 'memories');
 
     const response: ResponseMessage = {
       id: request.id,
       type: MessageTypeConst.LIST,
-      payload: { result },
+      payload: result, // Return result directly, not wrapped in { result }
     };
+    console.log('[Worker] handleList posting response');
     port.postMessage(response);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -485,7 +495,7 @@ async function handleSearch(
     const response: ResponseMessage = {
       id: request.id,
       type: MessageTypeConst.SEARCH,
-      payload: { result },
+      payload: result, // Return result directly, not wrapped in { result }
     };
     port.postMessage(response);
   } catch (error) {
@@ -887,6 +897,85 @@ async function handleMemoryDelete(
 }
 
 /**
+ * Handle MEMORY_STATS request
+ */
+async function handleMemoryStats(
+  port: PortLike,
+  request: RequestMessage,
+): Promise<void> {
+  if (!repository) {
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'NOT_INITIALIZED',
+        message: 'Repository not initialized',
+      },
+    };
+    port.postMessage(response);
+    return;
+  }
+
+  try {
+    // Get all memories to compute stats
+    const memories = await repository.getAll();
+
+    // Compute statistics
+    const totalMemories = memories.length;
+    const activeMemories = memories.filter((m) => m.status === 'active').length;
+    const fadedMemories = memories.filter((m) => m.status === 'faded').length;
+    const pinnedMemories = memories.filter((m) => m.pinned).length;
+
+    let averageStrength = 0;
+    if (memories.length > 0) {
+      const sumStrength = memories.reduce(
+        (sum: number, m) => sum + m.currentStrength,
+        0,
+      );
+      averageStrength = sumStrength / memories.length;
+    }
+
+    let oldestMemoryAt: number | null = null;
+    let newestMemoryAt: number | null = null;
+    if (memories.length > 0) {
+      const timestamps = memories.map((m) => m.createdAt);
+      oldestMemoryAt = Math.min(...timestamps);
+      newestMemoryAt = Math.max(...timestamps);
+    }
+
+    const stats = {
+      totalMemories,
+      activeMemories,
+      fadedMemories,
+      pinnedMemories,
+      averageStrength,
+      oldestMemoryAt,
+      newestMemoryAt,
+    };
+
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.MEMORY_STATS,
+      payload: stats,
+    };
+    port.postMessage(response);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const response: ResponseMessage = {
+      id: request.id,
+      type: MessageTypeConst.ERROR,
+      payload: null,
+      error: {
+        code: 'MEMORY_STATS_FAILED',
+        message: errorMessage,
+      },
+    };
+    port.postMessage(response);
+  }
+}
+
+/**
  * Initialize lifecycle management
  */
 async function initializeLifecycle(config: LifecycleConfig): Promise<void> {
@@ -1101,17 +1190,29 @@ async function initializeAPIComponents(): Promise<void> {
   const noveltyCalculator = new NoveltyCalculator(vectorSearch);
   const specificityNER = new SpecificityNER();
   const recurrenceTracker = new RecurrenceTracker();
+  const temporalMarkerDetector = new TemporalMarkerDetector();
   const qualityScorer = new QualityScorer(
     specificityNER,
     noveltyCalculator,
     recurrenceTracker,
-    {}, // config - use defaults
+    {
+      threshold: 0.55,
+      minNovelty: 0.15,
+      noveltyWeight: 0.35,
+      specificityWeight: 0.45,
+      recurrenceWeight: 0.2,
+      recurrenceThreshold: 0.85,
+    },
   );
   const contradictionDetector = new ContradictionDetector(
-    repository,
     vectorSearch,
-    specificityNER,
-    {}, // config - use defaults
+    repository,
+    temporalMarkerDetector,
+    {
+      similarityThreshold: 0.8,
+      candidateK: 7,
+      resolutionMode: 'auto',
+    },
   );
   const supersessionManager = new SupersessionManager(repository);
 
@@ -1123,25 +1224,24 @@ async function initializeAPIComponents(): Promise<void> {
   );
 
   // Initialize Learner (with all dependencies)
-  if (lifecycleManager) {
-    learner = new Learner(
-      queryEngine,
-      vectorSearch,
-      repository,
-      qualityScorer,
-      contradictionDetector,
-      supersessionManager,
-      lifecycleManager,
-      specificityNER,
-      noveltyCalculator,
-      recurrenceTracker,
-      embeddingEngine,
-      eventManager,
-      {
-        extractionThreshold: 0.55, // Default
-      },
-    );
-  }
+  // Note: lifecycleManager can be null if not configured
+  learner = new Learner(
+    queryEngine,
+    vectorSearch,
+    repository,
+    qualityScorer,
+    contradictionDetector,
+    supersessionManager,
+    lifecycleManager, // May be null if lifecycle not configured
+    specificityNER,
+    noveltyCalculator,
+    recurrenceTracker,
+    embeddingEngine,
+    eventManager,
+    {
+      extractionThreshold: 0.55, // Default
+    },
+  );
 
   // Note: Manager is not instantiated in worker
   // Manager lives on main thread and communicates via WorkerClient
@@ -1164,7 +1264,6 @@ async function runMaintenance(): Promise<void> {
  * SharedWorker entry point
  * Called when a new client connects to the shared worker
  */
-// biome-ignore lint/suspicious/noExplicitAny: SharedWorker global scope
 declare let onconnect: ((event: MessageEvent) => void) | undefined;
 
 if (typeof onconnect !== 'undefined') {

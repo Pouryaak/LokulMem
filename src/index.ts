@@ -30,6 +30,7 @@ export type {
   MemoryType,
   MemoryStatus,
   // API types
+  ChatMessage,
   LokulMemConfig,
   InitStage,
   AugmentOptions,

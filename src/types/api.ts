@@ -4,6 +4,9 @@
 
 import type { MemoryDTO, MemoryType } from './memory.js';
 
+// Re-export ChatMessage from api/types for public API
+export type { ChatMessage } from '../api/types.js';
+
 /**
  * Initialization stages for progress callbacks
  */

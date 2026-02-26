@@ -454,7 +454,7 @@ export class Manager {
    */
   async list(options?: ListOptions): Promise<PaginatedResult<MemoryDTO>> {
     const response = (await this.workerClient.request(
-      'LIST',
+      'list', // CRITICAL: Must match MessageType.LIST which is 'list' (lowercase)
       options ?? {},
       DEFAULT_TIMEOUT_MS,
     )) as PaginatedResult<MemoryDTO>;

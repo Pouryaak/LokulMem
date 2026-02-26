@@ -26,7 +26,7 @@ export interface LearnOptions {
   /** Conversation ID for tracking (auto-generated if not provided) */
   conversationId?: string;
 
-  /** Which messages to extract from (default: 'both') */
+  /** Which messages to extract from (default: 'user' - assistant responses usually not information sources) */
   extractFrom?: 'user' | 'assistant' | 'both';
 
   /** Run maintenance sweep after extraction (default: false) */

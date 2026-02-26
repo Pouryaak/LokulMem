@@ -8,6 +8,7 @@ export type { MemoryDTO, MemoryType, MemoryStatus } from './memory.js';
 
 // API types
 export type {
+  ChatMessage,
   LokulMemConfig,
   InitStage,
   AugmentOptions,

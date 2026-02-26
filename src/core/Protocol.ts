@@ -91,6 +91,8 @@ export const MessageType = {
   MEMORY_PIN: 'MEMORY_PIN',
   MEMORY_UNPIN: 'MEMORY_UNPIN',
   MEMORY_DELETE: 'MEMORY_DELETE',
+  /** Memory statistics */
+  MEMORY_STATS: 'MEMORY_STATS',
 } as const;
 
 /**

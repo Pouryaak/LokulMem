@@ -9,7 +9,7 @@ interface ChatViewProps {
 }
 
 export function ChatView({ lokul, onDebug }: ChatViewProps) {
-  const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -32,10 +32,15 @@ export function ChatView({ lokul, onDebug }: ChatViewProps) {
       const assistantResponse = `I received your message: "${userMessage}". ${augmentResult.metadata.injectedCount} memories were injected.`;
 
       // Learn from conversation
-      await lokul.learn(
+      const learnResult = await lokul.learn(
         { role: 'user', content: userMessage },
         { role: 'assistant', content: assistantResponse }
       );
+      console.log('[ChatView] Learn result:', JSON.stringify(learnResult, null, 2));
+
+      // Verify memory was stored by listing
+      const listResult = await lokul.manage().list();
+      console.log('[ChatView] Total memories in DB:', listResult.total);
 
       // Update messages
       setMessages(prev => [

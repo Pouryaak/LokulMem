@@ -46,23 +46,23 @@ export class Learner {
    * @param supersessionManager - Supersession manager
    * @param lifecycleManager - Lifecycle manager for maintenance
    * @param specificityNER - Named entity recognition
-   * @param noveltyCalculator - Novelty calculator
-   * @param recurrenceTracker - Recurrence tracker
+   * @param _noveltyCalculator - Novelty calculator (embedded in qualityScorer, passed for reference)
+   * @param _recurrenceTracker - Recurrence tracker (embedded in qualityScorer, passed for reference)
    * @param embeddingEngine - Embedding engine for text embeddings
    * @param eventManager - Event manager for emitting events
    * @param config - Learner configuration
    */
   constructor(
-    private _queryEngine: QueryEngine,
+    _queryEngine: QueryEngine, // Reserved for future use
     private vectorSearch: VectorSearch,
     private repository: MemoryRepository,
     private qualityScorer: QualityScorer,
     private contradictionDetector: ContradictionDetector,
     private supersessionManager: SupersessionManager,
-    private lifecycleManager: LifecycleManager,
+    private lifecycleManager: LifecycleManager | null,
     private specificityNER: SpecificityNER,
-    private _noveltyCalculator: NoveltyCalculator,
-    private _recurrenceTracker: RecurrenceTracker,
+    _noveltyCalculator: NoveltyCalculator, // Embedded in qualityScorer
+    _recurrenceTracker: RecurrenceTracker, // Embedded in qualityScorer
     private embeddingEngine: EmbeddingEngine,
     private eventManager: EventManager,
     private config: {
@@ -86,7 +86,7 @@ export class Learner {
     // Step 1: Handle options defaults
     const {
       conversationId: providedConversationId,
-      extractFrom = 'both',
+      extractFrom = 'user', // Default to user messages only (assistant responses are usually not information sources)
       runMaintenance = false,
       learnThreshold,
       storeResponse = false,
@@ -117,9 +117,26 @@ export class Learner {
         embedding,
       });
 
+      // DEBUG: Log extraction score details
+      console.log('[Learner] Extraction score for:', source.substring(0, 50));
+      console.log('[Learner] Score details:', {
+        novelty: scoreResult.novelty.toFixed(3),
+        specificity: scoreResult.specificity.toFixed(3),
+        recurrence: scoreResult.recurrence.toFixed(3),
+        total: scoreResult.score.toFixed(3),
+        meetsThreshold: scoreResult.meetsThreshold,
+      });
+
       // Apply threshold
       const threshold = learnThreshold ?? this.config.extractionThreshold;
+      console.log('[Learner] Threshold check:', {
+        score: scoreResult.score.toFixed(3),
+        threshold: threshold.toFixed(3),
+        passes: scoreResult.score >= threshold,
+      });
+
       if (scoreResult.meetsThreshold && scoreResult.score >= threshold) {
+        console.log('[Learner] ✓ Memory extracted!');
         // Extract entities for memory creation
         const specificityResult = this.specificityNER.analyze(source);
         candidates.push(
@@ -132,6 +149,8 @@ export class Learner {
             embedding,
           ),
         );
+      } else {
+        console.log('[Learner] ✗ Memory below threshold, skipping');
       }
     }
 
@@ -187,7 +206,7 @@ export class Learner {
 
     // Step 8: Optional maintenance sweep
     let maintenanceStats = { faded: 0, deleted: 0 };
-    if (runMaintenance) {
+    if (runMaintenance && this.lifecycleManager) {
       // Get maintenance sweep from LifecycleManager
       const maintenanceSweep = (
         this.lifecycleManager as unknown as {

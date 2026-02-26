@@ -45,6 +45,11 @@ export class SpecificityNER {
     entities.push(...places);
     if (places.length > 0) memoryTypes.push('location');
 
+    // Job/Company patterns (weight: 0.3) - profession info is highly specific
+    const jobs = this.extractJobs(content);
+    entities.push(...jobs);
+    if (jobs.length > 0) memoryTypes.push('profession');
+
     // Number patterns (weight: 0.2)
     const numbers = this.extractNumbers(content);
     entities.push(...numbers);
@@ -80,6 +85,7 @@ export class SpecificityNER {
     const weights = {
       names: 0.3,
       places: 0.25,
+      jobs: 0.3,
       numbers: 0.2,
       preferences: 0.25,
       dates: 0.2,
@@ -90,6 +96,7 @@ export class SpecificityNER {
     const rawScore =
       (names.length > 0 ? weights.names : 0) +
       (places.length > 0 ? weights.places : 0) +
+      (jobs.length > 0 ? weights.jobs : 0) +
       (numbers.length > 0 ? weights.numbers : 0) +
       (preferences.length > 0 ? weights.preferences : 0) +
       (dates.length > 0 ? weights.dates : 0) +
@@ -174,6 +181,49 @@ export class SpecificityNER {
             count: 1,
             confidence: 0.7,
           });
+        }
+      }
+    }
+
+    return entities;
+  }
+
+  /**
+   * Extract job/company using regex patterns
+   * Matches: "I work at [Company]", "I am a [Role]", job titles, company names
+   */
+  private extractJobs(content: string): Entity[] {
+    const entities: Entity[] = [];
+
+    // Pattern: "I work at/as [Company/Role]" / "I'm a [Role]" / "I am a [Role]"
+    const workPatterns = [
+      /i\s+(?:really\s+)?work\s+(?:at|as|for)\s+([^.!?]+)/gi,
+      /i['m]\s+(?:a\s+)?an?\s+([^.!?]+)/gi,
+      /i\s+am\s+(?:a\s+)?an?\s+([^.!?]+)/gi,
+    ];
+
+    for (const pattern of workPatterns) {
+      const matches = content.matchAll(pattern);
+      for (const match of matches) {
+        if (match[1]) {
+          const value = match[1].trim();
+          if (value.length > 0 && value.length < 100) {
+            // Extract capitalized words as entities (company names, job titles)
+            const capitalizedWords = value.match(/\b[A-Z][a-z]+\b/g);
+            if (capitalizedWords) {
+              for (const word of capitalizedWords) {
+                if (!this.isCommonWord(word)) {
+                  entities.push({
+                    type: 'organization',
+                    value: word.toLowerCase(),
+                    raw: word,
+                    count: 1,
+                    confidence: 0.85,
+                  });
+                }
+              }
+            }
+          }
         }
       }
     }

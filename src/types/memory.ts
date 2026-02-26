@@ -93,8 +93,15 @@ export interface MemoryDTO {
  * union from needing 'possession' which would violate the type contract.
  */
 export interface Entity {
-  /** Entity type (person, place, number, date, preference, negation) */
-  type: 'person' | 'place' | 'number' | 'date' | 'preference' | 'negation';
+  /** Entity type (person, place, organization, number, date, preference, negation) */
+  type:
+    | 'person'
+    | 'place'
+    | 'organization'
+    | 'number'
+    | 'date'
+    | 'preference'
+    | 'negation';
 
   /** Extracted value (normalized form) */
   value: string;

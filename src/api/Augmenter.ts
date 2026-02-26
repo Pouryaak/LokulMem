@@ -32,7 +32,7 @@ export class Augmenter {
    */
   constructor(
     private queryEngine: QueryEngine,
-    private _eventManager: EventManager,
+    _eventManager: EventManager, // Not stored - reserved for future use
     private config: {
       /** Custom token counter function */
       tokenCounter?: (text: string) => number;
@@ -42,6 +42,11 @@ export class Augmenter {
       reservedForResponseTokens?: number;
     } = {},
   ) {
+    // Set default context window if not provided (4096 is common for many LLMs)
+    if (this.config.contextWindowTokens === undefined) {
+      this.config.contextWindowTokens = 4096;
+    }
+    // Note: Augmenter does NOT emit events during augment()
     // Note: Augmenter does NOT emit events during augment()
     // Events are emitted at point of mutation (reinforcement writes from Phase 6)
     // This eventManager reference is for future use

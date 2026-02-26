@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase 8 Manual Test - Public API & Demo</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 10px;
+    }
+    .test-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .test-section h2 {
+      margin-top: 0;
+      color: #555;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .result.success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+    .result.error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+    .result.info {
+      background: #d1ecf1;
+      border: 1px solid #bee5eb;
+      color: #0c5460;
+    }
+    #summary {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .stat-box {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      text-align: center;
+    }
+    .stat-box .number {
+      font-size: 32px;
+      font-weight: bold;
+      color: #007bff;
+    }
+    .stat-box .label {
+      font-size: 14px;
+      color: #666;
+      margin-top: 5px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .chat-message {
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 4px;
+    }
+    .chat-message.user {
+      background: #e3f2fd;
+      border-left: 3px solid #2196f3;
+    }
+    .chat-message.assistant {
+      background: #f5f5f5;
+      border-left: 3px solid #9e9e9e;
+    }
+    .chat-message.system {
+      background: #fff3e0;
+      border-left: 3px solid #ff9800;
+    }
+    .debug-info {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Phase 8 Manual Test - Public API & Demo</h1>
+
+  <div id="summary">
+    <h2>Test Summary</h2>
+    <div class="stats">
+      <div class="stat-box">
+        <div class="number" id="totalTests">0</div>
+        <div class="label">Total Tests</div>
+      </div>
+      <div class="stat-box">
+        <div class="number" id="passedTests">0</div>
+        <div class="label">Passed</div>
+      </div>
+      <div class="stat-box">
+        <div class="number" id="failedTests">0</div>
+        <div class="label">Failed</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>1. Library Loading</h2>
+    <button onclick="runTest('libraryLoad')">Test Library Load</button>
+    <div id="libraryLoad-result" class="result" style="display:none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>2. LokulMem Initialization</h2>
+    <button onclick="runTest('initialization')">Initialize LokulMem</button>
+    <div id="initialization-result" class="result" style="display:none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>3. augment() API Test</h2>
+    <p>Test memory retrieval and injection with debug output</p>
+    <textarea id="userMessage" placeholder="Enter user message...">My name is Alice and I love coffee</textarea>
+    <br><br>
+    <button onclick="runTest('augment')">Test augment()</button>
+    <div id="augment-result" class="result" style="display:none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>4. learn() API Test</h2>
+    <p>Test memory extraction from conversation</p>
+    <textarea id="learnUser" placeholder="User message...">I live in San Francisco</textarea>
+    <br><br>
+    <textarea id="learnAssistant" placeholder="Assistant response...">That's great! San Francisco is a beautiful city.</textarea>
+    <br><br>
+    <button onclick="runTest('learn')">Test learn()</button>
+    <div id="learn-result" class="result" style="display:none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>5. manage() API Test</h2>
+    <p>Test memory inspection and manipulation</p>
+    <button onclick="runTest('manageList')">Test manage().list()</button>
+    <button onclick="runTest('manageStats')">Test manage().stats()</button>
+    <button onclick="runTest('manageExport')">Test manage().export()</button>
+    <div id="manage-result" class="result" style="display:none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>6. Event System Test</h2>
+    <p>Test event callback registration and emissions</p>
+    <button onclick="runTest('events')">Test Events</button>
+    <div id="events-result" class="result" style="display:none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>7. Integration Test: augment → learn → augment</h2>
+    <p>Full workflow test showing immediate cache update</p>
+    <button onclick="runTest('integration')">Run Integration Test</button>
+    <div id="integration-result" class="result" style="display:none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>8. Run All Tests</h2>
+    <button onclick="runAllTests()">Run All Tests</button>
+  </div>
+
+  <script type="module">
+    // Import LokulMem from built dist
+    import { createLokulMem } from '../../dist/main.mjs';
+
+    // Global state
+    let lokul = null;
+    let testResults = {
+      total: 0,
+      passed: 0,
+      failed: 0,
+      logs: []
+    };
+
+    // Utility functions
+    function updateSummary() {
+      document.getElementById('totalTests').textContent = testResults.total;
+      document.getElementById('passedTests').textContent = testResults.passed;
+      document.getElementById('failedTests').textContent = testResults.failed;
+    }
+
+    function showResult(testId, type, message) {
+      const resultDiv = document.getElementById(`${testId}-result`);
+      resultDiv.style.display = 'block';
+      resultDiv.className = `result ${type}`;
+      resultDiv.textContent = message;
+    }
+
+    function log(message) {
+      console.log(`[Phase 8 Test] ${message}`);
+      testResults.logs.push(`[${new Date().toISOString()}] ${message}`);
+    }
+
+    // Test functions
+    window.runTest = async function(testId) {
+      testResults.total++;
+      updateSummary();
+
+      try {
+        switch (testId) {
+          case 'libraryLoad':
+            await testLibraryLoad();
+            break;
+          case 'initialization':
+            await testInitialization();
+            break;
+          case 'augment':
+            await testAugment();
+            break;
+          case 'learn':
+            await testLearn();
+            break;
+          case 'manageList':
+          case 'manageStats':
+          case 'manageExport':
+            await testManage(testId);
+            break;
+          case 'events':
+            await testEvents();
+            break;
+          case 'integration':
+            await testIntegration();
+            break;
+        }
+        testResults.passed++;
+      } catch (error) {
+        testResults.failed++;
+        showResult(testId, 'error', `FAILED: ${error.message}\n\n${error.stack}`);
+        log(`Test ${testId} failed: ${error.message}`);
+      }
+      updateSummary();
+    };
+
+    async function testLibraryLoad() {
+      log('Testing library load...');
+      if (typeof createLokulMem !== 'function') {
+        throw new Error('createLokulMem is not a function');
+      }
+      showResult('libraryLoad', 'success', '✓ Library loaded successfully\ncreateLokulMem function is available');
+      log('Library load test passed');
+    }
+
+    async function testInitialization() {
+      log('Testing LokulMem initialization...');
+      lokul = await createLokulMem({
+        dbName: 'lokulmem-phase8-test',
+      });
+      if (!lokul) {
+        throw new Error('LokulMem initialization returned null');
+      }
+      if (typeof lokul.augment !== 'function') {
+        throw new Error('augment() method not found');
+      }
+      if (typeof lokul.learn !== 'function') {
+        throw new Error('learn() method not found');
+      }
+      if (typeof lokul.manage !== 'function') {
+        throw new Error('manage() method not found');
+      }
+      showResult('initialization', 'success',
+        '✓ LokulMem initialized successfully\n' +
+        '✓ augment() method available\n' +
+        '✓ learn() method available\n' +
+        '✓ manage() method available'
+      );
+      log('Initialization test passed');
+    }
+
+    async function testAugment() {
+      log('Testing augment() API...');
+      if (!lokul) {
+        throw new Error('LokulMem not initialized. Run initialization test first.');
+      }
+
+      const userMessage = document.getElementById('userMessage').value;
+      const result = await lokul.augment(userMessage, [], {
+        contextWindowTokens: 8000,
+        reservedForResponseTokens: 512,
+        debug: true
+      });
+
+      if (!result || !result.messages) {
+        throw new Error('augment() did not return expected result structure');
+      }
+
+      let output = `✓ augment() executed successfully\n\n`;
+      output += `Messages: ${result.messages.length}\n`;
+      output += `Metadata:\n`;
+      output += `  - Injected: ${result.metadata.injectedCount} memories\n`;
+      output += `  - Tokens before: ${result.metadata.usedTokensBeforeInjection}\n`;
+      output += `  - Injection tokens: ${result.metadata.injectionTokens}\n`;
+      output += `  - Remaining: ${result.metadata.remainingTokensAfterInjection}\n`;
+
+      if (result.debug) {
+        output += `\nDebug Info:\n`;
+        output += `  - Latency: ${result.debug.latencyMs}ms\n`;
+        output += `  - Injected memories: ${result.debug.injectedMemories.length}\n`;
+        output += `  - Excluded candidates: ${result.debug.excludedCandidates.length}\n`;
+      }
+
+      output += `\nAugmented Messages:\n`;
+      result.messages.forEach((msg, i) => {
+        output += `  [${i}] ${msg.role}: ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}\n`;
+      });
+
+      showResult('augment', 'success', output);
+      log('augment() test passed');
+    }
+
+    async function testLearn() {
+      log('Testing learn() API...');
+      if (!lokul) {
+        throw new Error('LokulMem not initialized. Run initialization test first.');
+      }
+
+      const userMessage = { role: 'user', content: document.getElementById('learnUser').value };
+      const assistantResponse = { role: 'assistant', content: document.getElementById('learnAssistant').value };
+
+      const result = await lokul.learn(userMessage, assistantResponse, {
+        extractFrom: 'both',
+        verbose: true
+      });
+
+      if (!result) {
+        throw new Error('learn() did not return expected result structure');
+      }
+
+      let output = `✓ learn() executed successfully\n\n`;
+      output += `Extracted: ${result.extracted.length} memories\n`;
+      output += `Contradictions: ${result.contradictions.length}\n`;
+      output += `Maintenance: ${result.maintenance.faded} faded, ${result.maintenance.deleted} deleted\n`;
+      output += `Conversation ID: ${result.conversationId}\n`;
+
+      if (result.extracted.length > 0) {
+        output += `\nExtracted Memories:\n`;
+        result.extracted.forEach((mem, i) => {
+          output += `  [${i}] ${mem.types.join(', ')}: ${mem.content.substring(0, 80)}...\n`;
+        });
+      }
+
+      showResult('learn', 'success', output);
+      log('learn() test passed');
+    }
+
+    async function testManage(testId) {
+      log(`Testing manage() API - ${testId}...`);
+      if (!lokul) {
+        throw new Error('LokulMem not initialized. Run initialization test first.');
+      }
+
+      const manager = lokul.manage();
+      if (!manager) {
+        throw new Error('manage() did not return Manager instance');
+      }
+
+      let output = '';
+
+      switch (testId) {
+        case 'manageList':
+          const listResult = await manager.list({ limit: 10 });
+          output = `✓ manage().list() executed successfully\n\n`;
+          output += `Total memories: ${listResult.total}\n`;
+          output += `Returned: ${listResult.items.length} items\n`;
+          output += `Has more: ${listResult.hasMore}\n`;
+          if (listResult.items.length > 0) {
+            output += `\nFirst memory:\n`;
+            output += `  ID: ${listResult.items[0].id}\n`;
+            output += `  Content: ${listResult.items[0].content.substring(0, 100)}...\n`;
+            output += `  Types: ${listResult.items[0].types.join(', ')}\n`;
+          }
+          break;
+
+        case 'manageStats':
+          const stats = await manager.stats();
+          output = `✓ manage().stats() executed successfully\n\n`;
+          output += `Total: ${stats.totalMemories}\n`;
+          output += `Active: ${stats.activeMemories}\n`;
+          output += `Faded: ${stats.fadedMemories}\n`;
+          output += `Pinned: ${stats.pinnedMemories}\n`;
+          output += `Avg strength: ${stats.averageStrength.toFixed(2)}\n`;
+          break;
+
+        case 'manageExport':
+          const exported = await manager.export('json');
+          output = `✓ manage().export() executed successfully\n\n`;
+          output += `Export length: ${exported.length} characters\n`;
+          output += `Preview (first 500 chars):\n${exported.substring(0, 500)}...`;
+          break;
+      }
+
+      showResult('manage', 'success', output);
+      log(`manage() ${testId} test passed`);
+    }
+
+    async function testEvents() {
+      log('Testing Event System...');
+      if (!lokul) {
+        throw new Error('LokulMem not initialized. Run initialization test first.');
+      }
+
+      let eventsReceived = [];
+
+      // Register event listeners
+      const unsub1 = lokul.onMemoryAdded((event) => {
+        eventsReceived.push({ type: 'MEMORY_ADDED', data: event });
+      });
+
+      const unsub2 = lokul.onStatsChanged((event) => {
+        eventsReceived.push({ type: 'STATS_CHANGED', data: event });
+      });
+
+      // Trigger some events by learning
+      await lokul.learn(
+        { role: 'user', content: 'Test event message' },
+        { role: 'assistant', content: 'Response' }
+      );
+
+      // Wait a bit for events
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Cleanup
+      unsub1();
+      unsub2();
+
+      let output = `✓ Event system test completed\n\n`;
+      output += `Events registered: 2 (onMemoryAdded, onStatsChanged)\n`;
+      output += `Events received: ${eventsReceived.length}\n`;
+
+      if (eventsReceived.length > 0) {
+        output += `\nEvent details:\n`;
+        eventsReceived.forEach((evt, i) => {
+          output += `  [${i}] ${evt.type}\n`;
+        });
+      }
+
+      showResult('events', 'success', output);
+      log('Events test passed');
+    }
+
+    async function testIntegration() {
+      log('Testing integration: augment → learn → augment...');
+      if (!lokul) {
+        throw new Error('LokulMem not initialized. Run initialization test first.');
+      }
+
+      // Step 1: Augment before learning
+      const msg1 = 'My favorite color is blue';
+      const result1 = await lokul.augment(msg1, [], {
+        contextWindowTokens: 8000,
+        debug: true
+      });
+
+      const beforeCount = result1.metadata.injectedCount;
+
+      // Step 2: Learn from conversation
+      await lokul.learn(
+        { role: 'user', content: msg1 },
+        { role: 'assistant', content: 'I noted that your favorite color is blue.' }
+      );
+
+      // Step 3: Augment again (should include new memory)
+      const msg2 = 'What do you know about me?';
+      const result2 = await lokul.augment(msg2, [], {
+        contextWindowTokens: 8000,
+        debug: true
+      });
+
+      const afterCount = result2.metadata.injectedCount;
+
+      let output = `✓ Integration test completed\n\n`;
+      output += `Step 1 - First augment:\n`;
+      output += `  Injected: ${beforeCount} memories\n\n`;
+      output += `Step 2 - Learned: "My favorite color is blue"\n\n`;
+      output += `Step 3 - Second augment:\n`;
+      output += `  Injected: ${afterCount} memories\n\n`;
+      output += `Result: ${afterCount > beforeCount ? '✓ Cache updated synchronously' : '⚠ No new memory found'}\n`;
+
+      if (result2.debug && result2.debug.injectedMemories.length > 0) {
+        output += `\nInjected memories:\n`;
+        result2.debug.injectedMemories.forEach((mem, i) => {
+          if (i < 3) {
+            output += `  [${i}] ${mem.content.substring(0, 60)}...\n`;
+          }
+        });
+      }
+
+      showResult('integration', 'success', output);
+      log('Integration test passed');
+    }
+
+    window.runAllTests = async function() {
+      log('Running all tests...');
+      const tests = [
+        'libraryLoad',
+        'initialization',
+        'augment',
+        'learn',
+        'manageList',
+        'manageStats',
+        'events',
+        'integration'
+      ];
+
+      for (const test of tests) {
+        await runTest(test);
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      log('All tests completed!');
+      alert(`All tests complete!\n\nPassed: ${testResults.passed}/${testResults.total}`);
+    };
+
+    // Auto-run library load test on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      log('Phase 8 Manual Test page loaded');
+      log('Ready to run tests');
+    });
+  </script>
+</body>
+</html>
