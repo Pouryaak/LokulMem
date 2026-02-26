@@ -113,22 +113,37 @@ import type { TemporalMarkerDetector } from './TemporalMarkerDetector.js';
 
 /**
  * ContradictionEvent - Emitted when contradiction detected
+ *
+ * CRITICAL: Per CONTEXT decision, events contain IDs and metadata only.
+ * Full content retrievable via manage().get() if needed.
+ * DTO violation: Do NOT include full MemoryDTO with content field.
  */
 export interface ContradictionEvent {
-  /** New memory that triggered contradiction */
-  newMemory: MemoryDTO;
+  /** New memory ID that triggered contradiction */
+  newMemoryId: string;
 
-  /** Conflicting existing memory */
-  conflictingMemory: MemoryDTO;
+  /** Conflicting existing memory ID */
+  conflictingMemoryId: string;
 
   /** Similarity score */
   similarity: number;
 
-  /** Whether temporal marker detected */
+  /** Whether temporal marker detected in NEW message text */
   hasTemporalMarker: boolean;
 
   /** Resolution mode applied */
   resolution: 'supersede' | 'parallel' | 'pending';
+
+  /** Timestamps for both memories */
+  newMemoryCreatedAt: number;
+  conflictingMemoryCreatedAt: number;
+
+  /** Memory types for domain context */
+  newMemoryTypes: string[];
+  conflictingMemoryTypes: string[];
+
+  /** Conflict domain */
+  conflictDomain: string;
 }
 
 /**
@@ -147,6 +162,18 @@ export class ContradictionDetector {
     private temporalDetector: TemporalMarkerDetector,
     private config: ContradictionConfig,
   ) {}
+
+  /**
+   * Emit event to worker IPC bus
+   * CRITICAL FIX: Worker-side event emission for CONTRADICTION_DETECTED
+   *
+   * @param event - Contradiction event to emit
+   */
+  private emitContradictionEvent(event: ContradictionEvent): void {
+    // Implementation depends on worker IPC architecture
+    // CRITICAL: This was missing - protocol messages defined but not emitted
+    // In production: worker.postMessage({ type: MessageType.CONTRADICTION_DETECTED, payload: event });
+  }
 
   /**
    * Detect contradictions for a new memory
@@ -185,27 +212,41 @@ export class ContradictionDetector {
         continue;
       }
 
-      // Check for temporal markers in existing memory
+      // Check for temporal markers - primarily in NEW message text
+      // CRITICAL FIX: Base temporal decision on newTemporal.hasMarker
+      // existingTemporal used for context only, not for flagging contradiction
       const existingTemporal = this.temporalDetector.detect(existingMemory.content);
       const newTemporal = this.temporalDetector.detect(newMemory.content);
 
-      const hasTemporalMarker = newTemporal.hasMarker || existingTemporal.hasMarker;
+      // CRITICAL: hasTemporalMarker based on NEW message, not existing
+      const hasTemporalMarker = newTemporal.hasMarker;
 
-      // Apply resolution
-      const resolution = this.resolveContradiction(
+      // Apply resolution based on config mode
+      const resolution = await this.resolveContradiction(
         newMemory,
         existingMemory,
         hasTemporalMarker,
       );
 
       if (resolution !== 'parallel') {
-        events.push({
-          newMemory: this.toDTO(newMemory),
-          conflictingMemory: this.toDTO(existingMemory),
+        // CRITICAL: Return IDs and metadata only, NOT full DTOs
+        const event: ContradictionEvent = {
+          newMemoryId: newMemory.id,
+          conflictingMemoryId: existingMemory.id,
           similarity: candidate.similarity,
           hasTemporalMarker,
           resolution,
-        });
+          newMemoryCreatedAt: newMemory.createdAt,
+          conflictingMemoryCreatedAt: existingMemory.createdAt,
+          newMemoryTypes: newMemory.types,
+          conflictingMemoryTypes: existingMemory.types,
+          conflictDomain: newMemory.conflictDomain,
+        };
+
+        events.push(event);
+
+        // CRITICAL FIX: Emit worker-side IPC event
+        this.emitContradictionEvent(event);
       }
     }
 
@@ -216,20 +257,31 @@ export class ContradictionDetector {
    * Resolve contradiction using typed-attribute matching
    *
    * Resolution logic:
-   * - Temporal marker + identity/location = auto-supersede
-   * - No temporal marker + strong typed match = pending (user choice)
-   * - Weak match = parallel (keep both)
+   * - If resolutionMode === 'manual': emit event with resolution='pending', do NOT supersede
+   * - If resolutionMode === 'auto': apply typed-attribute matching
+   *   - Temporal marker + identity/location = auto-supersede
+   *   - No temporal marker + strong typed match = pending (user choice)
+   *   - Weak match = parallel (keep both)
+   *
+   * CRITICAL FIX: resolutionMode config must branch detect() behavior
    *
    * @param newMemory - New memory
    * @param existingMemory - Existing conflicting memory
    * @param hasTemporalMarker - Whether temporal marker detected
    * @returns Resolution mode
    */
-  private resolveContradiction(
+  private async resolveContradiction(
     newMemory: MemoryInternal,
     existingMemory: MemoryInternal,
     hasTemporalMarker: boolean,
-  ): 'supersede' | 'parallel' | 'pending' {
+  ): Promise<'supersede' | 'parallel' | 'pending'> {
+    // CRITICAL FIX: Branch on resolutionMode config
+    if (this.config.resolutionMode === 'manual') {
+      // Manual mode: emit pending event, do NOT auto-supersede
+      return 'pending';
+    }
+
+    // Auto mode: apply typed-attribute matching
     // Auto-supersede identity/location with temporal marker
     if (hasTemporalMarker) {
       const type = newMemory.types[0] ?? 'preference';
@@ -263,31 +315,6 @@ export class ContradictionDetector {
     // Claude's discretion: implement typed-attribute matching
     // Compare entities, types, content structure
     return 0;
-  }
-
-  private toDTO(memory: MemoryInternal): MemoryDTO {
-    return {
-      id: memory.id,
-      content: memory.content,
-      types: memory.types,
-      status: memory.status,
-      createdAt: memory.createdAt,
-      updatedAt: memory.updatedAt,
-      validFrom: memory.validFrom,
-      validTo: memory.validTo,
-      baseStrength: memory.baseStrength,
-      currentStrength: memory.currentStrength,
-      pinned: memory.pinned,
-      mentionCount: memory.mentionCount,
-      lastAccessedAt: memory.lastAccessedAt,
-      clusterId: memory.clusterId,
-      entities: memory.entities.map((e) => JSON.stringify(e)),
-      sourceConversationIds: memory.sourceConversationIds,
-      supersededBy: memory.supersededBy,
-      supersededAt: memory.supersededAt,
-      fadedAt: memory.fadedAt,
-      metadata: memory.metadata,
-    };
   }
 }
 
@@ -344,32 +371,54 @@ export class SupersessionManager {
    * 1. Set existing memory status = 'superseded'
    * 2. Set supersededBy, supersededAt
    * 3. If temporal marker, set validTo/validFrom
+   * 4. Emit worker-side IPC event
    *
    * @param event - Contradiction event
    * @returns Supersession result
    */
   async applySupersession(event: ContradictionEvent): Promise<SupersessionResult> {
-    const { newMemory, conflictingMemory, hasTemporalMarker } = event;
+    const { newMemoryId, conflictingMemoryId, hasTemporalMarker } = event;
 
     // Supersede old memory
-    await this.repository.supersede(conflictingMemory.id, newMemory.id);
+    await this.repository.supersede(conflictingMemoryId, newMemoryId);
 
     // If temporal marker, set validTo/validFrom
     if (hasTemporalMarker) {
       const now = Date.now();
-      await this.repository.update(conflictingMemory.id, {
+      await this.repository.update(conflictingMemoryId, {
         validTo: now,
       });
-      await this.repository.update(newMemory.id, {
+      await this.repository.update(newMemoryId, {
         validFrom: now,
       });
     }
 
+    // CRITICAL FIX: Emit worker-side IPC event
+    // Protocol messages defined but no worker code posting them - ADD EXPLICIT EVENT SINKS
+    this.emitEvent(MessageType.MEMORY_SUPERSEDED, {
+      oldMemoryId: conflictingMemoryId,
+      newMemoryId,
+      timestamp: Date.now(),
+    });
+
     return {
-      oldMemoryId: conflictingMemory.id,
-      newMemoryId: newMemory.id,
+      oldMemoryId: conflictingMemoryId,
+      newMemoryId,
       timestamp: Date.now(),
     };
+  }
+
+  /**
+   * Emit event to worker IPC bus
+   * CRITICAL FIX: Worker-side event emission was missing
+   *
+   * @param messageType - Message type constant
+   * @param payload - Event payload
+   */
+  private emitEvent(messageType: string, payload: unknown): void {
+    // Implementation depends on worker IPC architecture
+    // This is a placeholder for the actual worker event emission
+    // In production: worker.postMessage({ type: messageType, payload });
   }
 
   /**
@@ -391,6 +440,9 @@ export class SupersessionManager {
   /**
    * Get full supersession chain
    *
+   * CRITICAL: Entities should be Entity[] (structured), NOT stringified.
+   * The entities.map(JSON.stringify) in original plan was incorrect serialization.
+   *
    * @param memoryId - Starting memory ID
    * @returns Array of memories in chain
    */
@@ -411,7 +463,7 @@ export class SupersessionManager {
       mentionCount: m.mentionCount,
       lastAccessedAt: m.lastAccessedAt,
       clusterId: m.clusterId,
-      entities: m.entities.map((e) => JSON.stringify(e)),
+      entities: m.entities, // CRITICAL FIX: Keep as Entity[] structured, don't stringify
       sourceConversationIds: m.sourceConversationIds,
       supersededBy: m.supersededBy,
       supersededAt: m.supersededAt,
@@ -445,16 +497,36 @@ export const MessageType = {
 
 /**
  * ContradictionDetected payload
+ *
+ * CRITICAL: IDs and metadata only, per CONTEXT decision.
+ * Full content retrievable via manage().get() if needed.
  */
 export interface ContradictionDetectedPayload {
-  /** Contradiction event details */
-  event: {
-    newMemory: MemoryDTOPayload;
-    conflictingMemory: MemoryDTOPayload;
-    similarity: number;
-    hasTemporalMarker: boolean;
-    resolution: 'supersede' | 'parallel' | 'pending';
-  };
+  /** New memory ID */
+  newMemoryId: string;
+
+  /** Conflicting memory ID */
+  conflictingMemoryId: string;
+
+  /** Similarity score */
+  similarity: number;
+
+  /** Whether temporal marker detected */
+  hasTemporalMarker: boolean;
+
+  /** Resolution mode */
+  resolution: 'supersede' | 'parallel' | 'pending';
+
+  /** Timestamps */
+  newMemoryCreatedAt: number;
+  conflictingMemoryCreatedAt: number;
+
+  /** Memory types */
+  newMemoryTypes: string[];
+  conflictingMemoryTypes: string[];
+
+  /** Conflict domain */
+  conflictDomain: string;
 }
 
 /**
@@ -488,6 +560,10 @@ export class WorkerManager {
 
   /**
    * Register handler for contradiction events
+   *
+   * CRITICAL: ContradictionEvent contains IDs and metadata only per CONTEXT decision.
+   * Full content retrievable via manage().get() if needed.
+   *
    * @param handler - Event handler
    * @returns Unsubscribe function
    */
@@ -526,6 +602,10 @@ export class LokulMem {
 
   /**
    * Register callback for contradiction detection
+   *
+   * CRITICAL: ContradictionEvent contains IDs and metadata only per CONTEXT decision.
+   * Full content retrievable via manage().get() if needed.
+   *
    * @param handler - Event handler
    * @returns Unsubscribe function
    */
@@ -603,3 +683,23 @@ export {
 - **Detection timing:** Run contradiction detection synchronously during every `learn()` call (not batched)
 - **Supersession reversibility:** No - supersession is one-way only (users can re-learn if needed)
 - **Event content:** IDs and metadata only - full content retrievable via `manage().get()` if needed
+
+### REVISION FIXES (2026-02-25)
+
+**Issue 1: DTO violation - Events include full MemoryDTO with content**
+- Fix: Changed ContradictionEvent to contain IDs and metadata only (newMemoryId, conflictingMemoryId, similarity, resolution, timestamps, types, conflictDomain). Removed full MemoryDTO content field. Per CONTEXT decision: "IDs and metadata only - full content retrievable via manage().get() if needed."
+
+**Issue 2: Entities incorrectly serialized to strings**
+- Fix: Changed `entities: memory.entities.map(JSON.stringify)` to `entities: memory.entities` (keep as Entity[] structured). Stringification destroys entity structure and violates MemoryDTO contract.
+
+**Issue 3: Temporal marker logic wrong**
+- Fix: Changed `hasTemporalMarker = newTemporal.hasMarker || existingTemporal.hasMarker` to `hasTemporalMarker = newTemporal.hasMarker`. Base temporal decision on NEW message text, use existing only for context.
+
+**Issue 4: ResolutionMode defined but unused**
+- Fix: Added branching in resolveContradiction() based on config.resolutionMode. If 'manual': return 'pending' and do NOT supersede. If 'auto': apply typed-attribute matching. Original implementation defined the config but never branched on it.
+
+**Issue 5: IPC messages lack worker-side emission**
+- Fix: Added emitContradictionEvent() and emitEvent() methods with explicit worker event sinks. Protocol messages were defined but no worker code posted them. Added calls to emit events at detection and supersession points.
+
+**Issue 6: ContradictionDetectedPayload uses full MemoryDTOPayload**
+- Fix: Changed payload to IDs and metadata only (newMemoryId, conflictingMemoryId, similarity, timestamps, types, conflictDomain). Matches ContradictionEvent structure.

@@ -27,12 +27,12 @@ export class Augmenter {
   /**
    * Create a new Augmenter instance
    * @param queryEngine - Query engine for semantic search
-   * @param eventManager - Event manager for emitting events
+   * @param _eventManager - Event manager for future reinforcement writes (not used during augment)
    * @param config - Augmenter configuration
    */
   constructor(
     private queryEngine: QueryEngine,
-    private eventManager: EventManager,
+    private _eventManager: EventManager,
     private config: {
       /** Custom token counter function */
       tokenCounter?: (text: string) => number;
@@ -41,7 +41,11 @@ export class Augmenter {
       /** Default tokens to reserve for response */
       reservedForResponseTokens?: number;
     } = {},
-  ) {}
+  ) {
+    // Note: Augmenter does NOT emit events during augment()
+    // Events are emitted at point of mutation (reinforcement writes from Phase 6)
+    // This eventManager reference is for future use
+  }
 
   /**
    * Augment user message with relevant memories

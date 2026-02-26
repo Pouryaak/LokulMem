@@ -23,8 +23,7 @@ import type {
  * Embeddings never included in events (per CONTEXT decision).
  */
 export class EventManager {
-  private handlers: Map<EventType, Set<(...args: unknown[]) => void>> =
-    new Map();
+  private handlers: Map<EventType, Set<(data: unknown) => void>> = new Map();
   private config: EventConfig;
 
   constructor(config: EventConfig = {}) {
@@ -35,18 +34,21 @@ export class EventManager {
    * Register event handler
    * @returns Unsubscribe function
    */
-  on(eventType: EventType, handler: (...args: unknown[]) => void): () => void {
+  on<T = unknown>(
+    eventType: EventType,
+    handler: (data: T) => void,
+  ): () => void {
     if (!this.handlers.has(eventType)) {
       this.handlers.set(eventType, new Set());
     }
     const handlerSet = this.handlers.get(eventType);
     if (handlerSet) {
-      handlerSet.add(handler);
+      handlerSet.add(handler as (data: unknown) => void);
     }
 
     // Return unsubscribe function
     return () => {
-      this.handlers.get(eventType)?.delete(handler);
+      this.handlers.get(eventType)?.delete(handler as (data: unknown) => void);
     };
   }
 

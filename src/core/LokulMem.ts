@@ -121,9 +121,11 @@ export class LokulMem {
     this.workerManager = new WorkerManager();
 
     // Initialize EventManager with verboseEvents config
-    this.eventManager = new EventManager({
-      verboseEvents: config.verboseEvents,
-    });
+    const eventConfig: { verboseEvents?: boolean } = {};
+    if (config.verboseEvents !== undefined) {
+      eventConfig.verboseEvents = config.verboseEvents;
+    }
+    this.eventManager = new EventManager(eventConfig);
 
     // Merge with defaults - handle optional properties carefully for exactOptionalPropertyTypes
     this.config = {
@@ -393,7 +395,7 @@ export class LokulMem {
       // Create Manager singleton for memory inspection and manipulation
       const client = this.workerManager.getClient();
       if (client) {
-        this.manager = new Manager(client);
+        this.manager = new Manager(client, this.eventManager);
       }
 
       this.isInitialized = true;

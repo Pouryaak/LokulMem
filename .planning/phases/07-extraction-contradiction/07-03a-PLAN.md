@@ -96,6 +96,8 @@ export class LokulDatabase extends Dexie {
     super('LokulMemDB');
 
     // Version 2: Add supersession tracking
+    // CRITICAL: deletedAt is NOT in stores() string - it uses .and() filter in queries
+    // This is intentional: deletedAt is a query filter, not an indexed lookup
     this.version(2)
       .stores({
         memories: `
@@ -121,6 +123,7 @@ export class LokulDatabase extends Dexie {
         // Migration from v1 to v2
         const memories = trans.table('memories');
         await memories.toCollection().modify((memory) => {
+          // Add supersession fields
           if (memory.supersededAt === undefined) {
             memory.supersededAt = null;
           }
@@ -204,6 +207,11 @@ export class MemoryRepository {
    * Strip memory content to create tombstone
    * Removes embedding and content, keeps metadata only
    *
+   * CRITICAL: Keep minimal metadata for traceability:
+   * - types, conflictDomain, supersededAt/by, validFrom/validTo
+   * - sourceConversationIds, contentHash (for deduplication)
+   * Do NOT strip all metadata to 0/[] - this destroys chain traceability
+   *
    * @param memoryId - ID of memory to strip
    */
   async stripToTombstone(memoryId: string): Promise<void> {
@@ -212,13 +220,45 @@ export class MemoryRepository {
 
     const now = Date.now();
     await this.memories.update(memoryId, {
+      // Strip heavy data
       content: '',
       embeddingBytes: new ArrayBuffer(0),
-      entities: [],
+      // CRITICAL: Keep minimal metadata, not empty arrays
+      entities: memory.entities, // Keep entities for chain traceability
       deletedAt: now,
+      // Keep strength metadata for history
       currentStrength: 0,
-      baseStrength: 0,
+      baseStrength: memory.baseStrength, // Keep original strength
+      // Keep all other metadata intact
+      types: memory.types,
+      conflictDomain: memory.conflictDomain,
+      supersededBy: memory.supersededBy,
+      supersededAt: memory.supersededAt,
+      validFrom: memory.validFrom,
+      validTo: memory.validTo,
+      sourceConversationIds: memory.sourceConversationIds,
+      // Add contentHash for deduplication
+      metadata: {
+        ...memory.metadata,
+        contentHash: this.hashContent(memory.content),
+      },
     });
+  }
+
+  /**
+   * Generate content hash for tombstone deduplication
+   * @param content - Content to hash
+   * @returns Hash string
+   */
+  private hashContent(content: string): string {
+    // Simple hash - use crypto.subtle in production
+    let hash = 0;
+    for (let i = 0; i < content.length; i++) {
+      const char = content.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return hash.toString(36);
   }
 
   /**
@@ -288,8 +328,12 @@ export class VectorSearch {
       const meta = this.metaCache.get(memoryId);
       if (!meta) continue;
 
-      // Filter by conflict domain (need repository for this)
-      // For now, return all similarities - filtering done in detector
+      // CRITICAL FIX: Filter by conflict domain during iteration
+      // conflictDomain MUST be in metaCache from Phase 5 init
+      if (meta.conflictDomain !== conflictDomain) {
+        continue;
+      }
+
       const similarity = this.cosineSimilarity(queryEmbedding, memoryEmbedding);
       candidates.push({ memoryId, similarity });
     }
@@ -320,3 +364,14 @@ export class VectorSearch {
 - **Schema migration:** Version 2 adds supersession fields while maintaining v1 for backward compatibility
 - **Tombstone retention:** 30-day retention period balances traceability with storage efficiency
 - **Supersession chain tracing:** Follows supersededBy pointers forward through history
+
+### REVISION FIXES (2026-02-25)
+
+**Issue 1: Database schema missing deletedAt in stores()**
+- Fix: Added comment documenting that `deletedAt` is intentionally NOT in stores() string. It uses `.and()` filter in queries (e.g., `.and((memory) => memory.deletedAt === null)`). This is intentional: deletedAt is a query filter, not an indexed lookup.
+
+**Issue 2: Tombstone semantics destroy metadata**
+- Fix: Changed stripToTombstone() to keep minimal metadata (types, conflictDomain, supersededAt/by, validFrom/validTo, sourceConversationIds, contentHash) instead of stripping all to 0/[]. Added hashContent() method and contentHash tracking for deduplication. Original implementation destroyed traceability.
+
+**Issue 3: VectorSearch.searchByConflictDomain not implemented**
+- Fix: Added actual conflict domain filtering in the loop: `if (meta.conflictDomain !== conflictDomain) continue;`. Note that conflictDomain must be in metaCache from Phase 5 init. Original implementation claimed to filter but returned all similarities.

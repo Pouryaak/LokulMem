@@ -53,7 +53,7 @@ export class Learner {
    * @param config - Learner configuration
    */
   constructor(
-    private queryEngine: QueryEngine,
+    private _queryEngine: QueryEngine,
     private vectorSearch: VectorSearch,
     private repository: MemoryRepository,
     private qualityScorer: QualityScorer,
@@ -61,8 +61,8 @@ export class Learner {
     private supersessionManager: SupersessionManager,
     private lifecycleManager: LifecycleManager,
     private specificityNER: SpecificityNER,
-    private noveltyCalculator: NoveltyCalculator,
-    private recurrenceTracker: RecurrenceTracker,
+    private _noveltyCalculator: NoveltyCalculator,
+    private _recurrenceTracker: RecurrenceTracker,
     private embeddingEngine: EmbeddingEngine,
     private eventManager: EventManager,
     private config: {
