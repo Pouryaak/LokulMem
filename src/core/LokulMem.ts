@@ -20,6 +20,8 @@ import type {
   AugmentOptions,
   AugmentResult,
   ChatMessage,
+  LearnOptions,
+  LearnResult,
   MemoryEventPayload,
   StatsChangedPayload,
 } from '../api/types.js';
@@ -420,18 +422,10 @@ export class LokulMem {
   /**
    * Learn from conversation by extracting memories
    *
-   * NOTE: This method requires worker integration. The Learner class
-   * must be instantiated in the worker context where EmbeddingEngine
-   * and other dependencies are available.
-   *
-   * For now, this is a placeholder that will be implemented in a
-   * future phase when worker-side learn() handling is added.
-   *
-   * @param _userMessage - User's message
-   * @param _assistantResponse - Assistant's response
-   * @param _options - Learn options
+   * @param userMessage - User's message
+   * @param assistantResponse - Assistant's response
+   * @param options - Learn options
    * @returns Learn result with extracted memories and contradictions
-   * @throws Error - Not yet implemented
    *
    * @example
    * ```typescript
@@ -444,40 +438,37 @@ export class LokulMem {
    * ```
    */
   async learn(
-    _userMessage: {
-      role: 'user' | 'assistant' | 'system';
-      content: string;
-      timestamp?: number;
-    },
-    _assistantResponse: {
-      role: 'user' | 'assistant' | 'system';
-      content: string;
-      timestamp?: number;
-    },
-    _options?: {
-      conversationId?: string;
-      extractFrom?: 'user' | 'assistant' | 'both';
-      runMaintenance?: boolean;
-      learnThreshold?: number;
-      autoAssociate?: boolean;
-      storeResponse?: boolean;
-      verbose?: boolean;
-    },
-  ): Promise<{
-    extracted: import('../types/memory.js').MemoryDTO[];
-    contradictions: import('../types/events.js').ContradictionEvent[];
-    maintenance: { faded: number; deleted: number };
-    conversationId: string;
-  }> {
-    // TODO: Implement worker-side learn() handling
-    // This requires:
-    // 1. Instantiate Learner in worker with all dependencies
-    // 2. Add LEARN message handler in worker/index.ts
-    // 3. Send LEARN message from main thread via workerManager
-    // 4. Return LearnResult via IPC
-    throw new Error(
-      'learn() requires worker integration. Will be implemented in a future phase.',
-    );
+    userMessage: ChatMessage,
+    assistantResponse: ChatMessage,
+    options: LearnOptions = {},
+  ): Promise<LearnResult> {
+    if (!this.isInitialized) {
+      throw new Error('LokulMem not initialized. Call initialize() first.');
+    }
+
+    // Route to worker RPC
+    const client = this.workerManager.getClient();
+    if (!client) {
+      throw new Error('Worker client not available.');
+    }
+
+    return (await client.request(
+      MessageTypeConst.LEARN,
+      {
+        userMessage,
+        assistantResponse,
+        options: {
+          conversationId: options.conversationId,
+          extractFrom: options.extractFrom ?? 'both',
+          runMaintenance: options.runMaintenance ?? false,
+          learnThreshold: options.learnThreshold,
+          autoAssociate: options.autoAssociate ?? false,
+          storeResponse: options.storeResponse ?? false,
+          verbose: options.verbose ?? false,
+        },
+      },
+      60000, // 60 second timeout for learn operation (includes extraction)
+    )) as LearnResult;
   }
 
   /**
@@ -724,18 +715,27 @@ export class LokulMem {
       throw new Error('LokulMem not initialized. Call initialize() first.');
     }
 
-    // Route to worker RPC (see 08-05 for implementation)
+    // Route to worker RPC
     const client = this.workerManager.getClient();
     if (!client) {
       throw new Error('Worker client not available.');
     }
 
     return (await client.request(
-      'augment',
+      MessageTypeConst.AUGMENT,
       {
         userMessage,
         history,
-        options,
+        options: {
+          contextWindowTokens:
+            options.contextWindowTokens ?? this.config.contextWindowTokens,
+          reservedForResponseTokens:
+            options.reservedForResponseTokens ??
+            this.config.reservedForResponseTokens ??
+            512,
+          maxTokens: options.maxTokens,
+          debug: options.debug ?? false,
+        },
       },
       30000, // 30 second timeout for augment operation
     )) as AugmentResult;
