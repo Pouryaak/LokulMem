@@ -697,10 +697,19 @@ async function handleMemoryUpdate(
 
   try {
     const payload = request.payload as { id: string; updates: unknown };
-    await repository.update(
-      payload.id,
-      payload.updates as import('../api/types.js').MemoryUpdate,
-    );
+    const memory = await repository.getById(payload.id);
+
+    if (!memory) {
+      throw new Error(`Memory not found: ${payload.id}`);
+    }
+
+    // Apply updates to memory
+    const updates = payload.updates as Partial<
+      import('../types/memory.js').MemoryDTO
+    >;
+    const updatedMemory = { ...memory, ...updates, updatedAt: Date.now() };
+
+    await repository.update(updatedMemory);
 
     const response: ResponseMessage = {
       id: request.id,
@@ -746,7 +755,15 @@ async function handleMemoryPin(
 
   try {
     const payload = request.payload as { id: string };
-    await repository.pin(payload.id);
+    const memory = await repository.getById(payload.id);
+
+    if (!memory) {
+      throw new Error(`Memory not found: ${payload.id}`);
+    }
+
+    // Update pinned status
+    const updatedMemory = { ...memory, pinned: true, updatedAt: Date.now() };
+    await repository.update(updatedMemory);
 
     const response: ResponseMessage = {
       id: request.id,
@@ -792,7 +809,15 @@ async function handleMemoryUnpin(
 
   try {
     const payload = request.payload as { id: string };
-    await repository.unpin(payload.id);
+    const memory = await repository.getById(payload.id);
+
+    if (!memory) {
+      throw new Error(`Memory not found: ${payload.id}`);
+    }
+
+    // Update pinned status
+    const updatedMemory = { ...memory, pinned: false, updatedAt: Date.now() };
+    await repository.update(updatedMemory);
 
     const response: ResponseMessage = {
       id: request.id,
@@ -1077,10 +1102,10 @@ async function initializeAPIComponents(): Promise<void> {
   const specificityNER = new SpecificityNER();
   const recurrenceTracker = new RecurrenceTracker();
   const qualityScorer = new QualityScorer(
-    embeddingEngine,
-    noveltyCalculator,
     specificityNER,
+    noveltyCalculator,
     recurrenceTracker,
+    {}, // config - use defaults
   );
   const contradictionDetector = new ContradictionDetector(
     repository,
