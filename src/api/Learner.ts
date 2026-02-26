@@ -23,6 +23,10 @@ import type { SpecificityNER } from '../extraction/SpecificityNER.js';
 import type { SupersessionManager } from '../extraction/SupersessionManager.js';
 import type { MemoryInternal } from '../internal/types.js';
 import type { LifecycleManager } from '../lifecycle/LifecycleManager.js';
+import {
+  type WritePolicyDecision,
+  WritePolicyEngine,
+} from '../policy/WritePolicyEngine.js';
 import type { QueryEngine } from '../search/QueryEngine.js';
 import type { VectorSearch } from '../search/VectorSearch.js';
 import type { MemoryRepository } from '../storage/MemoryRepository.js';
@@ -55,6 +59,7 @@ export class Learner {
   private readonly canonicalizer = new Canonicalizer();
   private readonly entityLinker = new EntityLinker();
   private readonly riskValidator = new RiskValidator();
+  private readonly writePolicyEngine = new WritePolicyEngine();
 
   /**
    * Create a new Learner instance
@@ -125,11 +130,22 @@ export class Learner {
       sources.push(assistantResponse.content);
     }
 
+    const startedAt = performance.now();
+    const perSourceMs: number[] = [];
+
     // Step 3: Extract candidates using Phase 7 pipeline
     const candidates: MemoryInternal[] = [];
     const diagnostics: LearnDiagnostic[] = [];
+    const policySupersessions: Array<{
+      newMemoryId: string;
+      targetMemoryId: string;
+      hasTemporalMarker: boolean;
+    }> = [];
+    const activeMemoriesForPolicy =
+      await this.repository.findByStatus('active');
 
     for (const source of sources) {
+      const sourceStartedAt = performance.now();
       const normalization = this.normalizer.buildNormalizationMetadata(source);
       const extractionContent = normalization.extractionNormalized;
       const matchingContent = normalization.normalized;
@@ -178,9 +194,53 @@ export class Learner {
         canonicalization,
       });
       const shouldAccept = accepted && riskValidation.accepted;
+      let policyAction: WritePolicyDecision['action'] | undefined;
+      let policyReasonCodes: WritePolicyDecision['reasonCodes'] | undefined;
+      let policyTargetMemoryId: string | undefined;
+
+      if (shouldAccept) {
+        const candidate = this.createMemory(
+          source,
+          linkedEntities,
+          scoreResult.score,
+          specificityResult.memoryTypes,
+          normalization,
+          canonicalization,
+          conversationId,
+          embedding,
+        );
+
+        const policyDecision = this.writePolicyEngine.decide(
+          candidate,
+          activeMemoriesForPolicy,
+        );
+        policyAction = policyDecision.action;
+        policyReasonCodes = policyDecision.reasonCodes;
+        policyTargetMemoryId = policyDecision.targetMemoryId;
+
+        if (policyDecision.action !== 'IGNORE') {
+          candidates.push(candidate);
+          activeMemoriesForPolicy.push(candidate);
+
+          if (
+            (policyDecision.action === 'SUPERSEDE' ||
+              policyDecision.action === 'UPDATE') &&
+            policyDecision.targetMemoryId
+          ) {
+            policySupersessions.push({
+              newMemoryId: candidate.id,
+              targetMemoryId: policyDecision.targetMemoryId,
+              hasTemporalMarker: policyDecision.action === 'SUPERSEDE',
+            });
+          }
+        }
+      }
+
+      const sourceProcessingMs = performance.now() - sourceStartedAt;
+      perSourceMs.push(sourceProcessingMs);
 
       if (verbose) {
-        diagnostics.push({
+        const diagnostic: LearnDiagnostic = {
           source,
           normalizedSource: matchingContent,
           extractionSource: extractionContent,
@@ -191,29 +251,29 @@ export class Learner {
           specificity: scoreResult.specificity,
           recurrence: scoreResult.recurrence,
           threshold,
-          accepted: shouldAccept,
+          accepted:
+            shouldAccept &&
+            (policyAction === undefined || policyAction !== 'IGNORE'),
           memoryTypes: specificityResult.memoryTypes,
           entityCount: linkedEntities.length,
           linkedEntityCount: linkedEntities.filter(
             (entity) => entity.linkReason !== 'new',
           ).length,
           riskSignals: riskValidation.signals,
-        });
-      }
+          processingMs: sourceProcessingMs,
+        };
 
-      if (shouldAccept) {
-        candidates.push(
-          this.createMemory(
-            source,
-            linkedEntities,
-            scoreResult.score,
-            specificityResult.memoryTypes,
-            normalization,
-            canonicalization,
-            conversationId,
-            embedding,
-          ),
-        );
+        if (policyAction !== undefined) {
+          diagnostic.policyAction = policyAction;
+        }
+        if (policyReasonCodes !== undefined) {
+          diagnostic.policyReasonCodes = policyReasonCodes;
+        }
+        if (policyTargetMemoryId !== undefined) {
+          diagnostic.policyTargetMemoryId = policyTargetMemoryId;
+        }
+
+        diagnostics.push(diagnostic);
       }
     }
 
@@ -237,7 +297,42 @@ export class Learner {
       );
     }
 
-    // Step 7: Detect contradictions
+    // Step 7: Apply deterministic policy supersessions before contradiction pass
+    for (const supersession of policySupersessions) {
+      const newMemory = candidates.find(
+        (memory) => memory.id === supersession.newMemoryId,
+      );
+      const oldMemory = await this.repository.getById(
+        supersession.targetMemoryId,
+      );
+      if (!newMemory || !oldMemory || oldMemory.status !== 'active') {
+        continue;
+      }
+
+      const event: ContradictionEvent = {
+        newMemoryId: newMemory.id,
+        conflictingMemoryId: oldMemory.id,
+        similarity: 1,
+        hasTemporalMarker: supersession.hasTemporalMarker,
+        resolution: 'supersede',
+        newMemoryCreatedAt: newMemory.createdAt,
+        conflictingMemoryCreatedAt: oldMemory.createdAt,
+        newMemoryTypes: newMemory.types,
+        conflictingMemoryTypes: oldMemory.types,
+        conflictDomain: newMemory.conflictDomain,
+      };
+
+      const supersessionResult =
+        await this.supersessionManager.applySupersession(event);
+      this.vectorSearch.delete(supersessionResult.oldMemoryId);
+      this.eventManager.emit('MEMORY_SUPERSEDED', {
+        oldMemoryId: supersessionResult.oldMemoryId,
+        newMemoryId: supersessionResult.newMemoryId,
+        timestamp: supersessionResult.timestamp,
+      });
+    }
+
+    // Step 8: Detect contradictions
     const contradictions: ContradictionEvent[] = [];
 
     for (const memory of candidates) {
@@ -267,7 +362,7 @@ export class Learner {
       }
     }
 
-    // Step 8: Optional maintenance sweep
+    // Step 9: Optional maintenance sweep
     let maintenanceStats = { faded: 0, deleted: 0 };
     if (runMaintenance && this.lifecycleManager) {
       // Get maintenance sweep from LifecycleManager
@@ -302,7 +397,7 @@ export class Learner {
       // No additional stats() call needed - events fire at mutation point
     }
 
-    // Step 8: Optional episode storage
+    // Step 10: Optional episode storage
     if (storeResponse) {
       // Episodes would be stored here - for now this is a placeholder
       // await this.repository.addEpisode({
@@ -313,7 +408,7 @@ export class Learner {
       // });
     }
 
-    // Step 9: Return result
+    // Step 11: Return result
     const result: LearnResult = {
       extracted: candidates.map((m) => this.toDTO(m)),
       contradictions,
@@ -323,6 +418,10 @@ export class Learner {
 
     if (verbose) {
       result.diagnostics = diagnostics;
+      result.timings = {
+        totalMs: performance.now() - startedAt,
+        perSourceMs,
+      };
     }
 
     return result;

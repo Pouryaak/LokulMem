@@ -66,6 +66,12 @@ export interface LearnResult {
 
   /** Optional extraction diagnostics (only when LearnOptions.verbose=true) */
   diagnostics?: LearnDiagnostic[];
+
+  /** Optional latency timings in ms (only when LearnOptions.verbose=true) */
+  timings?: {
+    totalMs: number;
+    perSourceMs: number[];
+  };
 }
 
 /** Per-source diagnostic emitted by learn() in verbose mode */
@@ -87,6 +93,16 @@ export interface LearnDiagnostic {
   riskSignals?: Array<
     'REPETITIVE_NOISE' | 'LOW_STRUCTURE_HIGH_SCORE' | 'AMBIGUOUS_TEMPORAL'
   >;
+  policyAction?: 'ADD' | 'UPDATE' | 'SUPERSEDE' | 'IGNORE';
+  policyReasonCodes?: Array<
+    | 'NO_ACTIVE_MATCH'
+    | 'EXACT_CANONICAL_DUPLICATE'
+    | 'TRANSITIONAL_REPLACEMENT'
+    | 'SAME_PREDICATE_NEW_VALUE'
+    | 'LOW_CONFIDENCE_MATCH'
+  >;
+  policyTargetMemoryId?: string;
+  processingMs?: number;
 }
 
 /**
