@@ -9,6 +9,8 @@ interface UseLokulMemResult {
   fallbackModel: string;
 }
 
+const DEFAULT_FALLBACK_MODEL = 'Llama-3.2-3B-Instruct-q4f32_1-MLC';
+
 export function useLokulMem(): UseLokulMemResult {
   const [lokul, setLokul] = useState<LokulMem | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -24,7 +26,7 @@ export function useLokulMem(): UseLokulMemResult {
       }
     ).env;
     const fallbackModel =
-      env?.VITE_WEBLLM_FALLBACK_MODEL ?? 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
+      env?.VITE_WEBLLM_FALLBACK_MODEL ?? DEFAULT_FALLBACK_MODEL;
 
     const config: LokulMemConfig = {
       dbName: 'lokulmem-demo',
@@ -71,7 +73,7 @@ export function useLokulMem(): UseLokulMemResult {
     }
   ).env;
   const fallbackModel =
-    env?.VITE_WEBLLM_FALLBACK_MODEL ?? 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
+    env?.VITE_WEBLLM_FALLBACK_MODEL ?? DEFAULT_FALLBACK_MODEL;
 
   return { lokul, isReady, error, fallbackModel };
 }

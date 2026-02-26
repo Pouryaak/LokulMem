@@ -34,4 +34,36 @@ describe('AmbiguityTrigger', () => {
     expect(decision.shouldTriggerFallback).toBe(true);
     expect(decision.reasons).toContain('UNRESOLVED_TEMPORAL_SHIFT');
   });
+
+  it('triggers for weak first-person personal fact cues', () => {
+    const trigger = new AmbiguityTrigger();
+
+    const decision = trigger.evaluate({
+      content: "Im married and my wife's name is Parastoo",
+      score: 0.29,
+      threshold: 0.45,
+      memoryTypes: ['relational'],
+      entityCount: 0,
+      temporalBucket: 'unspecified',
+    });
+
+    expect(decision.shouldTriggerFallback).toBe(true);
+    expect(decision.reasons).toContain('PERSONAL_FACT_CUE');
+  });
+
+  it('does not trigger for non-personal small talk', () => {
+    const trigger = new AmbiguityTrigger();
+
+    const decision = trigger.evaluate({
+      content: 'hi there',
+      score: 0.2,
+      threshold: 0.45,
+      memoryTypes: [],
+      entityCount: 0,
+      temporalBucket: 'unspecified',
+    });
+
+    expect(decision.shouldTriggerFallback).toBe(false);
+    expect(decision.reasons).toEqual([]);
+  });
 });

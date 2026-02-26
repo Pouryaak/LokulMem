@@ -41,11 +41,24 @@ export class ChainedFallbackExtractor implements FallbackExtractor {
 
     const secondaryResult = await this.secondary.extract(input);
     if (secondaryResult.facts.length > 0) {
+      const upstreamModel =
+        primaryResult.provider === 'webllm' ? primaryResult.model : undefined;
+      const upstreamError =
+        primaryResult.error ??
+        (primaryResult.provider === 'webllm' ? 'no_facts' : undefined);
       return {
         ...secondaryResult,
-        ...(primaryResult.error !== undefined && {
-          error: `upstream:${primaryResult.error}`,
+        ...(upstreamModel !== undefined && { model: upstreamModel }),
+        ...(upstreamError !== undefined && {
+          error: `upstream:${upstreamError}`,
         }),
+      };
+    }
+
+    if (primaryResult.provider === 'webllm') {
+      return {
+        ...primaryResult,
+        ...(primaryResult.error === undefined && { error: 'no_facts' }),
       };
     }
 
@@ -321,10 +334,7 @@ function safeParseFacts(raw: string): string[] | null {
       .filter((item): item is string => typeof item === 'string')
       .map((item) => item.trim())
       .filter((item) => item.length > 0);
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`webllm_init_failed:${error.message}`);
-    }
+  } catch {
     return null;
   }
 }
@@ -348,30 +358,29 @@ function extractFirstJsonObject(value: string): string | null {
 async function createWebLLMEngine(
   config: FallbackLLMConfig,
 ): Promise<WebLLMEngineLike | null> {
-  try {
-    const moduleName = ['@mlc-ai', 'web-llm'].join('/');
-    const mod = (await import(/* @vite-ignore */ moduleName)) as {
-      CreateMLCEngine?: (
-        model: string,
-        options?: { appConfig?: unknown },
-      ) => Promise<WebLLMEngineLike>;
-    };
-
-    if (!mod.CreateMLCEngine) {
-      return null;
-    }
-
-    const model = config.model.trim();
-    if (!model) {
-      return null;
-    }
-
-    return await mod.CreateMLCEngine(model, {
-      ...(config.appConfig !== undefined && { appConfig: config.appConfig }),
-    });
-  } catch {
-    return null;
+  if (typeof navigator !== 'undefined' && !('gpu' in navigator)) {
+    throw new Error('webgpu_unavailable');
   }
+
+  const model = config.model.trim();
+  if (!model) {
+    throw new Error('missing_model');
+  }
+
+  const mod = (await import('@mlc-ai/web-llm')) as {
+    CreateMLCEngine?: (
+      model: string,
+      options?: { appConfig?: unknown },
+    ) => Promise<WebLLMEngineLike>;
+  };
+
+  if (!mod.CreateMLCEngine) {
+    throw new Error('create_engine_unavailable');
+  }
+
+  return await mod.CreateMLCEngine(model, {
+    ...(config.appConfig !== undefined && { appConfig: config.appConfig }),
+  });
 }
 
 async function withTimeout<T>(

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   ChainedFallbackExtractor,
+  type FallbackExtractor,
   PatternFallbackExtractor,
   WebLLMFallbackExtractor,
 } from '../../src/extraction/FallbackExtractor.js';
@@ -117,6 +118,46 @@ describe('WebLLMFallbackExtractor', () => {
     expect(result.provider).toBe('webllm');
   });
 
+  it('extracts json object from noisy model output', async () => {
+    const createEngine = vi.fn(async () => ({
+      chat: {
+        completions: {
+          create: vi.fn(async () => ({
+            choices: [
+              {
+                message: {
+                  content:
+                    'Sure, here you go: {"facts":["My name is Pourya","I am married"]} Thanks!',
+                },
+              },
+            ],
+          })),
+        },
+      },
+    }));
+
+    const extractor = new WebLLMFallbackExtractor(
+      {
+        enabled: true,
+        provider: 'webllm',
+        model: 'Llama-3.2-3B-Instruct-q4f32_1-MLC',
+      },
+      createEngine,
+    );
+
+    const result = await extractor.extract({
+      source: 'Im Pourya and I am married',
+      conversationId: 'conv-llm-noisy',
+    });
+
+    expect(result.provider).toBe('webllm');
+    expect(result.error).toBeUndefined();
+    expect(result.facts.map((fact) => fact.text)).toEqual([
+      'My name is Pourya',
+      'I am married',
+    ]);
+  });
+
   it('returns empty facts when engine creation fails', async () => {
     const extractor = new WebLLMFallbackExtractor(
       {
@@ -135,6 +176,30 @@ describe('WebLLMFallbackExtractor', () => {
     expect(result.facts).toEqual([]);
     expect(result.provider).toBe('webllm');
     expect(result.error).toBe('engine_unavailable');
+  });
+
+  it('surfaces engine creation error details', async () => {
+    const extractor = new WebLLMFallbackExtractor(
+      {
+        enabled: true,
+        provider: 'webllm',
+        model: 'Llama-3.2-1B-Instruct-q4f32_1-MLC',
+      },
+      async () => {
+        throw new Error('failed to resolve module specifier');
+      },
+    );
+
+    const result = await extractor.extract({
+      source: 'Call me Alice',
+      conversationId: 'conv-engine-throw',
+    });
+
+    expect(result.facts).toEqual([]);
+    expect(result.provider).toBe('webllm');
+    expect(result.error).toBe(
+      'engine_unavailable:failed to resolve module specifier',
+    );
   });
 });
 
@@ -161,5 +226,55 @@ describe('ChainedFallbackExtractor', () => {
     expect(result.provider).toBe('pattern');
     expect(result.facts.map((fact) => fact.text)).toContain('My name is Alice');
     expect(result.error).toContain('upstream:engine_unavailable');
+  });
+
+  it('preserves upstream webllm context when webllm returns no facts', async () => {
+    const primary: FallbackExtractor = {
+      extract: vi.fn(async () => ({
+        facts: [],
+        provider: 'webllm' as const,
+        model: 'Llama-3.2-1B-Instruct-q4f32_1-MLC',
+      })),
+    };
+
+    const chained = new ChainedFallbackExtractor(
+      primary,
+      new PatternFallbackExtractor(),
+    );
+
+    const result = await chained.extract({
+      source: 'Call me Alice',
+      conversationId: 'conv-chain-empty-webllm',
+    });
+
+    expect(result.provider).toBe('pattern');
+    expect(result.model).toBe('Llama-3.2-1B-Instruct-q4f32_1-MLC');
+    expect(result.error).toBe('upstream:no_facts');
+  });
+
+  it('returns webllm no_facts when both extractors return empty', async () => {
+    const primary: FallbackExtractor = {
+      extract: vi.fn(async () => ({
+        facts: [],
+        provider: 'webllm' as const,
+        model: 'Llama-3.2-1B-Instruct-q4f32_1-MLC',
+      })),
+    };
+    const secondary: FallbackExtractor = {
+      extract: vi.fn(async () => ({
+        facts: [],
+        provider: 'pattern' as const,
+      })),
+    };
+
+    const chained = new ChainedFallbackExtractor(primary, secondary);
+    const result = await chained.extract({
+      source: 'I am happy',
+      conversationId: 'conv-chain-both-empty',
+    });
+
+    expect(result.provider).toBe('webllm');
+    expect(result.model).toBe('Llama-3.2-1B-Instruct-q4f32_1-MLC');
+    expect(result.error).toBe('no_facts');
   });
 });

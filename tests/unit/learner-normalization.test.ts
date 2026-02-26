@@ -361,4 +361,117 @@ describe('Learner normalization and policy integration', () => {
     expect(fallbackDiagnostic?.fallbackFactCount).toBe(1);
     expect(fallbackDiagnostic?.accepted).toBe(true);
   });
+
+  it('routes weak personal cues to fallback and records reason', async () => {
+    const fallbackExtractor: FallbackExtractor = {
+      extract: vi.fn(async () => ({
+        facts: [{ text: 'My name is Pourya', confidence: 0.86 }],
+        provider: 'webllm' as const,
+        model: 'Llama-3.2-3B-Instruct-q4f32_1-MLC',
+      })),
+    };
+
+    const { learner } = createLearnerHarness({
+      fallbackExtractor,
+      scoreImpl: (content) => {
+        if (content.includes('name is Pourya')) {
+          return {
+            score: 0.72,
+            novelty: 0.8,
+            specificity: 0.7,
+            recurrence: 0,
+            meetsThreshold: true,
+            threshold: 0.45,
+          };
+        }
+
+        return {
+          score: 0.31,
+          novelty: 0.7,
+          specificity: 0,
+          recurrence: 0,
+          meetsThreshold: false,
+          threshold: 0.45,
+        };
+      },
+    });
+
+    const result = await learner.learn(
+      { role: 'user', content: 'Im Pourya' },
+      { role: 'assistant', content: 'ok' },
+      { conversationId: 'conv-personal-cue', verbose: true },
+    );
+
+    expect(fallbackExtractor.extract).toHaveBeenCalledTimes(1);
+    const deterministic = result.diagnostics?.find(
+      (item) => item.extractionMode === 'deterministic',
+    );
+    expect(deterministic?.fallbackInvoked).toBe(true);
+    expect(deterministic?.ambiguityReasons).toContain('PERSONAL_FACT_CUE');
+    expect(deterministic?.fallbackProvider).toBe('webllm');
+  });
+
+  it('handles adversarial multi-fact chunks through fallback extraction', async () => {
+    const fallbackExtractor: FallbackExtractor = {
+      extract: vi.fn(async () => ({
+        facts: [
+          { text: 'My name is Pourya', confidence: 0.9 },
+          { text: 'I live in Copenhagen', confidence: 0.88 },
+          { text: 'I love Nutella', confidence: 0.85 },
+        ],
+        provider: 'webllm' as const,
+        model: 'Llama-3.2-3B-Instruct-q4f32_1-MLC',
+      })),
+    };
+
+    const { learner } = createLearnerHarness({
+      fallbackExtractor,
+      scoreImpl: (content) => {
+        const lower = content.toLowerCase();
+        if (
+          lower.includes('name is pourya') ||
+          lower.includes('live in copenhagen') ||
+          lower.includes('love nutella')
+        ) {
+          return {
+            score: 0.74,
+            novelty: 0.82,
+            specificity: 0.7,
+            recurrence: 0,
+            meetsThreshold: true,
+            threshold: 0.45,
+          };
+        }
+
+        return {
+          score: 0.43,
+          novelty: 0.6,
+          specificity: 0.1,
+          recurrence: 0,
+          meetsThreshold: false,
+          threshold: 0.45,
+        };
+      },
+    });
+
+    const result = await learner.learn(
+      {
+        role: 'user',
+        content:
+          'She might move next week. I live in copenhagen, I love nutella, and random noise 12345 ???',
+      },
+      { role: 'assistant', content: 'ok' },
+      { conversationId: 'conv-adversarial-chunk', verbose: true },
+    );
+
+    expect(fallbackExtractor.extract).toHaveBeenCalledTimes(1);
+    expect(result.extracted.length).toBeGreaterThan(0);
+    const deterministicDiagnostic = result.diagnostics?.find(
+      (item) => item.extractionMode === 'deterministic',
+    );
+    expect(deterministicDiagnostic?.fallbackInvoked).toBe(true);
+    expect(
+      result.diagnostics?.some((item) => item.extractionMode === 'fallback'),
+    ).toBe(true);
+  });
 });

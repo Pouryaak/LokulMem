@@ -108,6 +108,7 @@ export interface LearnDiagnostic {
     | 'GRAY_ZONE_SCORE'
     | 'PRONOUN_RELATION_AMBIGUITY'
     | 'UNRESOLVED_TEMPORAL_SHIFT'
+    | 'PERSONAL_FACT_CUE'
   >;
   fallbackInvoked?: boolean;
   fallbackFactCount?: number;

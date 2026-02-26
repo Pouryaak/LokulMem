@@ -90,9 +90,15 @@ export function ChatView({ lokul, onDebug, fallbackModel }: ChatViewProps) {
             !diagnostic.fallbackError,
         ).length;
         const webllmFailures = fallbackDiagnostics.filter(
-          (diagnostic) =>
-            diagnostic.fallbackProvider === 'webllm' &&
-            Boolean(diagnostic.fallbackError),
+          (diagnostic) => {
+            if (diagnostic.fallbackProvider === 'webllm') {
+              return Boolean(diagnostic.fallbackError);
+            }
+            if (diagnostic.fallbackProvider === 'pattern') {
+              return Boolean(diagnostic.fallbackError?.startsWith('upstream:'));
+            }
+            return false;
+          },
         ).length;
         const patternFallbackUses = fallbackDiagnostics.filter(
           (diagnostic) => diagnostic.fallbackProvider === 'pattern',
@@ -136,7 +142,9 @@ export function ChatView({ lokul, onDebug, fallbackModel }: ChatViewProps) {
             <p>{msg.content}</p>
           </div>
         ))}
-        {isLoading && <div className="message assistant">Thinking...</div>}
+        {isLoading && (
+          <div className="message assistant">Processing message...</div>
+        )}
       </div>
 
       <div className="input">
