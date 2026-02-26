@@ -19,6 +19,7 @@ import type { MemoryRepository } from '../storage/MemoryRepository.js';
 import type { ContradictionEvent } from '../types/events.js';
 import type { Entity, MemoryDTO, MemoryType } from '../types/memory.js';
 import type { EmbeddingEngine } from '../worker/EmbeddingEngine.js';
+import type { EventManager } from './EventManager.js';
 import type { ChatMessage, LearnOptions, LearnResult } from './types.js';
 
 /**
@@ -48,6 +49,7 @@ export class Learner {
    * @param noveltyCalculator - Novelty calculator
    * @param recurrenceTracker - Recurrence tracker
    * @param embeddingEngine - Embedding engine for text embeddings
+   * @param eventManager - Event manager for emitting events
    * @param config - Learner configuration
    */
   constructor(
@@ -62,6 +64,7 @@ export class Learner {
     private noveltyCalculator: NoveltyCalculator,
     private recurrenceTracker: RecurrenceTracker,
     private embeddingEngine: EmbeddingEngine,
+    private eventManager: EventManager,
     private config: {
       extractionThreshold: number;
     },
@@ -144,7 +147,15 @@ export class Learner {
       this.vectorSearch.add(memory);
     }
 
-    // Step 6: Detect contradictions
+    // Step 6: Emit MEMORY_ADDED events (after cache update)
+    for (const memory of candidates) {
+      this.eventManager.emit(
+        'MEMORY_ADDED',
+        this.eventManager.createMemoryEvent(this.toDTO(memory)),
+      );
+    }
+
+    // Step 7: Detect contradictions
     const contradictions: ContradictionEvent[] = [];
 
     for (const memory of candidates) {
@@ -158,13 +169,23 @@ export class Learner {
 
           // Update cache to remove superseded memory
           this.vectorSearch.delete(supersessionResult.oldMemoryId);
+
+          // Emit supersession event
+          this.eventManager.emit('MEMORY_SUPERSEDED', {
+            oldMemoryId: supersessionResult.oldMemoryId,
+            newMemoryId: memory.id,
+            timestamp: Date.now(),
+          });
         }
+
+        // Emit contradiction event
+        this.eventManager.emit('CONTRADICTION_DETECTED', event);
 
         contradictions.push(event);
       }
     }
 
-    // Step 7: Optional maintenance sweep
+    // Step 8: Optional maintenance sweep
     let maintenanceStats = { faded: 0, deleted: 0 };
     if (runMaintenance) {
       // Get maintenance sweep from LifecycleManager
@@ -174,6 +195,7 @@ export class Learner {
             runSweep: () => Promise<{
               fadedCount: number;
               deletedCount: number;
+              fadedMemories?: MemoryDTO[];
             }>;
           };
         }
@@ -183,6 +205,19 @@ export class Learner {
         faded: sweepResult.fadedCount,
         deleted: sweepResult.deletedCount,
       };
+
+      // Emit MEMORY_FADED events for each faded memory
+      if (sweepResult.fadedMemories) {
+        for (const fadedMemory of sweepResult.fadedMemories) {
+          this.eventManager.emit(
+            'MEMORY_FADED',
+            this.eventManager.createMemoryEvent(fadedMemory),
+          );
+        }
+      }
+
+      // Emit STATS_CHANGED after maintenance (already emitted via repository hooks)
+      // No additional stats() call needed - events fire at mutation point
     }
 
     // Step 8: Optional episode storage
