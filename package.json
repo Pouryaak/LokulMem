@@ -64,7 +64,7 @@
     "vite": "^6.0.0",
     "vite-plugin-dts": "^4.0.0",
     "vite-plugin-static-copy": "^2.0.0",
-    "vitest": "^2.0.0"
+    "vitest": "^4.0.18"
   },
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged"
