@@ -580,4 +580,91 @@ describe('SpecificityNER heuristics', () => {
     expect(result.memoryTypes).toContain('location');
     expect(placeValues).toContain('123 main st');
   });
+
+  it('extracts strong negation cues with scope', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze("I don't eat peanuts");
+    const negationValues = result.entities
+      .filter((entity) => entity.type === 'negation')
+      .map((entity) => entity.value);
+
+    expect(negationValues).toContain("don't");
+  });
+
+  it('extracts uncertainty markers as weak negation context', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I might be allergic to shellfish');
+    const negationValues = result.entities
+      .filter((entity) => entity.type === 'negation')
+      .map((entity) => entity.value);
+
+    expect(negationValues).toContain('might');
+  });
+
+  it('captures correction and contradiction markers for conflict handling', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze(
+      "I don't drink coffee, but actually I prefer tea",
+    );
+    const negationValues = result.entities
+      .filter((entity) => entity.type === 'negation')
+      .map((entity) => entity.value);
+
+    expect(negationValues).toContain('but');
+    expect(negationValues).toContain('actually');
+  });
+
+  it('does not treat plain desire statements as negation', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I want pizza tonight');
+    const negationValues = result.entities
+      .filter((entity) => entity.type === 'negation')
+      .map((entity) => entity.value);
+
+    expect(negationValues).not.toContain('want');
+  });
+
+  it('does not mark neutral contrast without negation cue', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I like coffee but I love tea');
+    const negationValues = result.entities
+      .filter((entity) => entity.type === 'negation')
+      .map((entity) => entity.value);
+
+    expect(negationValues).not.toContain('but');
+  });
+
+  it('does not mark standalone correction words as negation', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('Actually I moved to Austin last year');
+    const negationValues = result.entities
+      .filter((entity) => entity.type === 'negation')
+      .map((entity) => entity.value);
+
+    expect(negationValues).not.toContain('actually');
+  });
 });

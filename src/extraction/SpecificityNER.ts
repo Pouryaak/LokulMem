@@ -3,7 +3,6 @@ import {
   classifyMemoryTypes,
   extractEmails,
   extractNamedEntities,
-  extractNegations,
   extractNumbers,
   extractPossessions,
 } from './specificity/basicExtractors.js';
@@ -29,6 +28,10 @@ import {
   extractNames,
   isLikelyNameCandidate,
 } from './specificity/nameExtractor.js';
+import {
+  type NegationSignal,
+  extractNegationSignals,
+} from './specificity/negationExtractor.js';
 import {
   type PreferenceSignal,
   extractPreferenceSignals,
@@ -65,6 +68,7 @@ const WEIGHTS = {
   habits: 0.2,
   routineSignals: 0.1,
   negations: 0.2,
+  negationSignals: 0.08,
   temporalChanges: 0.25,
   emails: 0.4,
   namedEntities: 0.25,
@@ -158,8 +162,8 @@ export class SpecificityNER {
       memoryTypes.push('preference');
     if (temporalChanges.length > 0) memoryTypes.push('temporal');
 
-    const negations = extractNegations(content);
-    entities.push(...negations);
+    const negationExtraction = extractNegationSignals(content);
+    entities.push(...negationExtraction.entities);
 
     const emails = extractEmails(content);
     entities.push(...emails);
@@ -186,7 +190,8 @@ export class SpecificityNER {
         dates: temporalExtraction.dateEntities,
         habits: routineExtraction.habitEntities,
         routineSignals: routineExtraction.signals,
-        negations,
+        negations: negationExtraction.entities,
+        negationSignals: negationExtraction.signals,
         temporalChanges,
         emails,
         namedEntities,
@@ -291,6 +296,7 @@ export class SpecificityNER {
     habits: Entity[];
     routineSignals: RoutineSignal[];
     negations: Entity[];
+    negationSignals: NegationSignal[];
     temporalChanges: Entity[];
     emails: Entity[];
     namedEntities: Entity[];
@@ -315,6 +321,7 @@ export class SpecificityNER {
       (input.habits.length > 0 ? WEIGHTS.habits : 0) +
       (input.routineSignals.length > 0 ? WEIGHTS.routineSignals : 0) +
       (input.negations.length > 0 ? WEIGHTS.negations : 0) +
+      (input.negationSignals.length > 0 ? WEIGHTS.negationSignals : 0) +
       (input.temporalChanges.length > 0 ? WEIGHTS.temporalChanges : 0) +
       (input.emails.length > 0 ? WEIGHTS.emails : 0) +
       (input.namedEntities.length > 0 ? WEIGHTS.namedEntities : 0) +
