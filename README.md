@@ -1,7 +1,7 @@
 # LokulMem 🧠⚡
 
 <p align="center">
-  <img alt="LokulMem banner" src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=220&section=header&text=LokulMem&fontSize=62&fontAlignY=38&desc=Browser-native%20AI%20memory%20layer%20%E2%80%94%20zero-server%20%E2%80%94%20LLM-agnostic&descAlignY=60&fontColor=fff" />
+  <img alt="LokulMem banner" src="./public/lokulMem.jpg" width="100%" />
 </p>
 
 <p align="center">

@@ -16,9 +16,13 @@
   --vp-c-brand-2: #ffab63;
   --vp-c-brand-3: #ff7a15;
 
-  --vp-button-brand-bg: linear-gradient(135deg, #ff9a42 0%, #ff7a15 100%);
+  --vp-sidebar-bg-color: #16181b;
+  --vp-sidebar-curtain-bg-color: rgb(10 11 12 / 62%);
+  --vp-nav-bg-color: rgb(17 18 19 / 86%);
+
+  --vp-button-brand-bg: #ff8f2f;
   --vp-button-brand-text: #121212;
-  --vp-button-brand-hover-bg: linear-gradient(135deg, #ffb477 0%, #ff8f2f 100%);
+  --vp-button-brand-hover-bg: #ffab63;
   --vp-button-brand-active-bg: #ff7a15;
 
   --vp-button-alt-bg: #1f2125;
@@ -90,6 +94,33 @@ body::after {
   font-weight: 600;
 }
 
+.VPNavBarSearch .DocSearch-Button,
+.VPNavBarSearch .button {
+  background: #23262b !important;
+  border: 1px solid #3a3f47 !important;
+  color: #dfe3e8 !important;
+  border-radius: 999px;
+}
+
+.VPNavBarSearch .DocSearch-Button:hover,
+.VPNavBarSearch .button:hover {
+  background: #2a2e35 !important;
+  border-color: #ff8f2f55 !important;
+}
+
+.VPNavBarSearch .DocSearch-Search-Icon,
+.VPNavBarSearch .DocSearch-Button-Placeholder,
+.VPNavBarSearch .text {
+  color: #c5cbd4 !important;
+}
+
+.VPNavBarSearch .DocSearch-Button-Keys,
+.VPNavBarSearch .DocSearch-Button-Key {
+  color: #9ea6b2 !important;
+  background: #1c1f24 !important;
+  box-shadow: inset 0 -1px 0 #454b55 !important;
+}
+
 .VPHero .name,
 .VPHero .text {
   font-family: 'Sora', sans-serif;
@@ -118,6 +149,16 @@ body::after {
     transform 0.2s ease,
     box-shadow 0.2s ease,
     border-color 0.2s ease;
+}
+
+.VPHero .VPButton.brand {
+  background: linear-gradient(135deg, #ff9a42 0%, #ff7a15 100%) !important;
+  color: #141414 !important;
+  border-color: #ff8f2f !important;
+}
+
+.VPHero .VPButton.brand:hover {
+  background: linear-gradient(135deg, #ffb977 0%, #ff8f2f 100%) !important;
 }
 
 .VPButton:hover {
@@ -153,9 +194,16 @@ body::after {
 }
 
 .VPSidebar {
-  background: rgb(19 20 22 / 86%);
+  background: #16181b !important;
   border-right: 1px solid rgb(255 255 255 / 6%);
   backdrop-filter: blur(10px);
+}
+
+.VPSidebar.open,
+.VPSidebarNav,
+.VPSidebarNav .group,
+.VPSidebar .curtain {
+  background: #16181b !important;
 }
 
 .VPNavScreen,
