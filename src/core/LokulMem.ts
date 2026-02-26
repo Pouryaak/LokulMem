@@ -15,6 +15,11 @@
  */
 
 import { Manager } from '../api/Manager.js';
+import type {
+  AugmentOptions,
+  AugmentResult,
+  ChatMessage,
+} from '../api/types.js';
 import type { InitStage, LokulMemConfig } from '../types/api.js';
 import type { ContradictionEvent, SupersessionEvent } from '../types/events.js';
 import type { MemoryDTO, MemoryType } from '../types/memory.js';
@@ -579,6 +584,56 @@ export class LokulMem {
    */
   getClient(): WorkerClient | null {
     return this.workerManager.getClient();
+  }
+
+  /**
+   * Augment user message with relevant memories for LLM context
+   *
+   * Retrieves relevant memories using semantic search and injects them
+   * into the message array as a system message. Token-aware to ensure
+   * memories fit within the LLM context window.
+   *
+   * @param userMessage - Current user message
+   * @param history - Conversation history (optional)
+   * @param options - Augment options
+   * @returns Augmented messages with metadata
+   *
+   * @example
+   * ```typescript
+   * const { messages, metadata } = await lokul.augment(
+   *   "What's my name?",
+   *   [{ role: "user", content: "Hi, I'm John" }, { role: "assistant", content: "Hi John!" }],
+   *   { contextWindowTokens: 8192, debug: true }
+   * );
+   *
+   * // messages[0] is now a system message with relevant memories
+   * // metadata.injectedCount shows how many memories were injected
+   * ```
+   */
+  async augment(
+    userMessage: string,
+    history: ChatMessage[] = [],
+    options: AugmentOptions = {},
+  ): Promise<AugmentResult> {
+    if (!this.isInitialized) {
+      throw new Error('LokulMem not initialized. Call initialize() first.');
+    }
+
+    // Route to worker RPC (see 08-05 for implementation)
+    const client = this.workerManager.getClient();
+    if (!client) {
+      throw new Error('Worker client not available.');
+    }
+
+    return (await client.request(
+      'augment',
+      {
+        userMessage,
+        history,
+        options,
+      },
+      30000, // 30 second timeout for augment operation
+    )) as AugmentResult;
   }
 }
 
