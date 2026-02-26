@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: 'weekly'
     open-pull-requests-limit: 1
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - 'version-update:semver-major'
     groups:
       all-npm-dependencies:
         patterns:
@@ -15,6 +19,10 @@ updates:
     schedule:
       interval: 'weekly'
     open-pull-requests-limit: 1
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - 'version-update:semver-major'
     groups:
       all-actions-dependencies:
         patterns:
