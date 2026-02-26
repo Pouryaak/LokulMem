@@ -1,10 +1,10 @@
 # State: LokulMem
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
-**Current Phase:** 07
-**Current Plan:** Not started
-**Status:** Milestone complete
-**Updated:** 2026-02-25
+**Current Phase:** 08
+**Current Plan:** 08-03
+**Status:** In progress
+**Updated:** 2026-02-26
 
 ---
 
@@ -37,11 +37,36 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 4: Embedding Engine (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 5: Memory Store & Retrieval (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 6: Lifecycle & Decay (Complete - 4 of 4 plans)
-[██████████] 75% - Phase 7: Extraction & Contradiction (3 of 4 plans complete)
-[░░░░░░░░░░] 0% - Phase 8: Public API & Demo (Not started)
+[██████████] 100% - Phase 7: Extraction & Contradiction (Complete - 4 of 4 plans)
+[████░░░░░] 50% - Phase 8: Public API & Demo (3 of 6 plans complete)
 ```
 
 ### Active Work
+
+**Plan 08-03 Complete!** Manager namespace with 16+ methods implemented in 2 minutes:
+
+**Implemented:**
+- Manager class with IPC-based communication pattern via WorkerClient
+- Single operation methods: update, pin, unpin, archive, unarchive, delete (return lightweight { id, status })
+- Bulk operation methods: deleteMany, pinMany, unpinMany, archiveMany, unarchiveMany (return detailed { succeeded, failed, total, counts })
+- Clear and stats methods: clear() returns { status, count }, stats() returns MemoryStats
+- Export/import methods: export(format) supports JSON (base64 embeddings) and Markdown, import(data, mode) supports replace/merge
+- Query methods delegating to worker-side QueryEngine: list, get, getByConversation, getRecent, getTop, getPinned, search, semanticSearch, getTimeline, getGrouped, getInjectionPreview
+- Management types added to api/types.ts: BulkOperationResult, ClearResult, ExportFormat, ImportMode, ImportResult, SingleOperationResult, LokulMemExport, MemoryUpdate
+- Manager namespace integrated into LokulMem with manage() method returning cached singleton
+- API barrel file (_index.ts) exporting all public classes and types
+
+**Committed:**
+- 99e075a: feat(08-03): add management types to api/types.ts
+- 88b1ac2: feat(08-03): create Manager class skeleton with 16+ methods
+- d808e6b: feat(08-03): integrate Manager namespace with LokulMem
+- 5d8d1fa: feat(08-03): update API barrel file with Manager exports
+
+**Deviations:** None - plan executed exactly as written.
+
+**Next Action:** Execute Plan 08-04: Event System
+
+---
 
 **Plan 07-03b Complete!** Contradiction detection engine implemented in 3 minutes:
 
@@ -325,6 +350,7 @@ All 3 plans executed successfully:
 | Phase 07 P01 | 342 | 6 tasks | 6 files |
 | Phase 07 P02 | 147 | 4 tasks | 4 files |
 | Phase 07 P03b | 3 minutes | 6 tasks | 7 files |
+| Phase 08 P03 | 178 | 9 tasks | 4 files |
 
 ### Benchmarks
 
@@ -338,6 +364,13 @@ No benchmarks recorded yet. Phase 5 planning should include retrieval benchmarki
 
 | Date | Decision | Rationale | Status |
 |------|----------|-----------|--------|
+| 2026-02-26 | Manager uses WorkerClient for IPC communication | All storage operations happen in worker thread for consistency, Manager requests via IPC | **Implemented** ✅ (08-03 complete) |
+| 2026-02-26 | 30-second default timeout for management operations | Prevents indefinite hangs while allowing enough time for bulk operations | **Implemented** ✅ (08-03 complete) |
+| 2026-02-26 | Singleton Manager pattern | manage() returns cached instance, not new instance each time | **Implemented** ✅ (08-03 complete) |
+| 2026-02-26 | Lightweight single operation responses | Single ops return { id, status } only to minimize response size | **Implemented** ✅ (08-03 complete) |
+| 2026-02-26 | Detailed bulk operation feedback | Bulk ops return { succeeded, failed, total, counts } for error recovery | **Implemented** ✅ (08-03 complete) |
+| 2026-02-26 | Export format flexibility | JSON with base64 embeddings for serialization, Markdown for human-readable | **Implemented** ✅ (08-03 complete) |
+| 2026-02-26 | Import mode options | replace (clear all) vs merge (skip existing IDs) for user control | **Implemented** ✅ (08-03 complete) |
 | 2026-02-25 | Possession NOT a separate entity type | Possessions tracked via memory flag, prevents Entity.type union pollution | **Implemented** ✅ (07-01 complete) |
 | 2026-02-25 | Empty memoryTypes array fallback | When no types detected, QualityScorer uses base threshold - doesn't poison contradiction domains with 'preference' default | **Implemented** ✅ (07-01 complete) |
 | 2026-02-25 | Content hashing for RecurrenceTracker keys | Avoids paraphrase false negatives and large string keys, efficient Map-based storage | **Implemented** ✅ (07-01 complete) |
@@ -474,34 +507,35 @@ This prevents silent under-injection for modern LLMs (8k/16k/128k context).
 ## Session Continuity
 
 ### Last Action
-Plan 05-03 complete! Implemented token-aware dynamic K selection:
+Plan 08-03 complete! Manager namespace with 16+ methods for memory inspection and manipulation:
 
 **Completed Tasks:**
-- Task 1: Added token budget configuration to LokulMemConfig (NO defaults)
-- Task 2: Added ChatMessage and token budget types to search/types.ts
-- Task 3: Implemented computeTokenBudget() helper in core/TokenBudget.ts
-- Task 4: Updated QueryEngine.getInjectionPreview() with messages-based accounting
-- Task 5: Updated LokulMem to store token budget config in main thread only
-- Task 6: Updated STATE.md to document token estimation strategy
+- Task 1: Added management types to api/types.ts (BulkOperationResult, ExportFormat, ImportMode, ImportResult, ClearResult, SingleOperationResult, LokulMemExport, MemoryUpdate)
+- Task 2: Created Manager class skeleton with 16+ methods (single ops, bulk ops, clear, stats, export, import, query delegation)
+- Tasks 3-7: Single/bulk/clear/stats/export/import/query methods implemented in Manager skeleton (all use IPC pattern)
+- Task 8: Integrated Manager namespace with LokulMem (manage() method returns cached singleton)
+- Task 9: Updated API barrel file with Manager exports
 
 **Key Features:**
-- Messages-based token accounting (system + history + user)
-- NO default context window (prevents under-injection for modern LLMs)
-- Shared helper for consistent behavior across augment() and getInjectionPreview()
-- Worker remains stateless (token budgeting computed in main thread)
-- Backward compatible (works without messages parameter)
-- Custom tokenCounter support for tiktoken integration in v2
+- Manager uses WorkerClient for IPC communication (all operations go through worker)
+- Single operations return lightweight { id, status } responses
+- Bulk operations return detailed { succeeded, failed, total, counts } for error tracking
+- Export supports JSON (base64 embeddings) and Markdown (human-readable) formats
+- Import supports replace (clear all) and merge (skip existing IDs) modes
+- 26 total methods: 6 single ops, 5 bulk ops, 2 management ops, 2 export/import ops, 11 query delegation methods
 
 ### Next Action
-Execute Phase 6 plans in wave order:
-- Wave 1 (autonomous): Plan 06-01 - Decay Calculator & Reinforcement Tracker
-- Wave 2 (autonomous): Plans 06-02, 06-03 - Maintenance, K-means, Integration (parallel)
+Execute Phase 8 plans in sequence:
+- Plan 08-04: Event System (onMemoryAdded, onMemoryUpdated, etc.)
+- Plan 08-05: Augmenter Implementation
+- Plan 08-06: Learner Implementation
 
 ### Blockers
-None.
+- Worker handlers still needed for management operations (MEMORY_UPDATE, MEMORY_PIN, MEMORY_DELETE, etc.)
+- Query method handlers exist from Phase 5, but new management handlers need to be added to src/worker/index.ts
 
 ### Working Branch
-master (initial development)
+main (initial development)
 
 ---
 

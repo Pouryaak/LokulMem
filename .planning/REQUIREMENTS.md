@@ -103,13 +103,13 @@
 - [ ] **MGMT-07**: `getTimeline()` memories grouped by date
 - [ ] **MGMT-08**: `getGrouped()` memories organized by type for UI
 - [ ] **MGMT-09**: `getInjectionPreview()` preview what augment would inject
-- [ ] **MGMT-10**: `update()`, `pin()`, `unpin()`, `archive()`, `unarchive()`, `delete()`
-- [ ] **MGMT-11**: Bulk operations: `deleteMany()`, `archiveMany()`, `pinMany()`, `unpinMany()`
-- [ ] **MGMT-12**: `clear()` reset all memories
-- [ ] **MGMT-13**: `stats()` full MemoryStats interface
-- [ ] **MGMT-14**: `export()` JSON with base64 embeddings
-- [ ] **MGMT-15**: `exportToMarkdown()` human-readable export
-- [ ] **MGMT-16**: `import()` JSON with merge options
+- [x] **MGMT-10**: `update()`, `pin()`, `unpin()`, `archive()`, `unarchive()`, `delete()`
+- [x] **MGMT-11**: Bulk operations: `deleteMany()`, `archiveMany()`, `pinMany()`, `unpinMany()`
+- [x] **MGMT-12**: `clear()` reset all memories
+- [x] **MGMT-13**: `stats()` full MemoryStats interface
+- [x] **MGMT-14**: `export()` JSON with base64 embeddings
+- [x] **MGMT-15**: `exportToMarkdown()` human-readable export
+- [x] **MGMT-16**: `import()` JSON with merge options
 
 ### Event System
 
