@@ -407,4 +407,61 @@ describe('SpecificityNER heuristics', () => {
     expect(result.memoryTypes).toContain('temporal');
     expect(result.score).toBeGreaterThanOrEqual(0.25);
   });
+
+  it('normalizes absolute month-day-year dates to ISO', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('My event is on January 15, 2024');
+    const dateValues = result.entities
+      .filter((entity) => entity.type === 'date')
+      .map((entity) => entity.value);
+
+    expect(result.memoryTypes).toContain('temporal');
+    expect(dateValues).toContain('2024-01-15');
+  });
+
+  it('normalizes 12-hour times to 24-hour format', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I have a meeting at 3:30pm');
+    const dateValues = result.entities
+      .filter((entity) => entity.type === 'date')
+      .map((entity) => entity.value);
+
+    expect(dateValues).toContain('15:30');
+  });
+
+  it('does not misclassify plain numeric counts as years', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I have 2024 followers on social media');
+    const dateValues = result.entities
+      .filter((entity) => entity.type === 'date')
+      .map((entity) => entity.value);
+
+    expect(dateValues).not.toContain('2024');
+  });
+
+  it('does not treat greeting phrases as temporal facts', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('Good morning everyone');
+    const dateValues = result.entities
+      .filter((entity) => entity.type === 'date')
+      .map((entity) => entity.value);
+
+    expect(dateValues).toHaveLength(0);
+  });
 });

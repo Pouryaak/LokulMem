@@ -1,7 +1,6 @@
 import type { Entity, MemoryType } from '../types/memory.js';
 import {
   classifyMemoryTypes,
-  extractDates,
   extractEmails,
   extractNamedEntities,
   extractNegations,
@@ -38,6 +37,7 @@ import {
   type RoutineSignal,
   extractRoutineSignals,
 } from './specificity/routineExtractor.js';
+import { extractTemporalSignals } from './specificity/temporalExtractor.js';
 
 export interface SpecificityResult {
   score: number;
@@ -110,17 +110,21 @@ export class SpecificityNER {
       memoryTypes.push('preference');
     }
 
-    const dates = extractDates(content);
-    entities.push(...dates);
-    if (dates.length > 0) memoryTypes.push('temporal');
+    const temporalExtraction = extractTemporalSignals(content);
+    entities.push(...temporalExtraction.dateEntities);
+    if (temporalExtraction.dateEntities.length > 0)
+      memoryTypes.push('temporal');
 
     const routineExtraction = extractRoutineSignals(content);
     entities.push(...routineExtraction.habitEntities);
-    entities.push(...routineExtraction.temporalEntities);
+    const temporalChanges = this.mergeUniqueEntities(
+      routineExtraction.temporalEntities,
+      temporalExtraction.changeEntities,
+    );
+    entities.push(...temporalChanges);
     if (routineExtraction.habitEntities.length > 0)
       memoryTypes.push('preference');
-    if (routineExtraction.temporalEntities.length > 0)
-      memoryTypes.push('temporal');
+    if (temporalChanges.length > 0) memoryTypes.push('temporal');
 
     const negations = extractNegations(content);
     entities.push(...negations);
@@ -147,11 +151,11 @@ export class SpecificityNER {
         preferences: preferenceExtraction.preferenceEntities,
         preferenceComparisons: preferenceExtraction.comparisonEntities,
         preferenceSignals: preferenceExtraction.signals,
-        dates,
+        dates: temporalExtraction.dateEntities,
         habits: routineExtraction.habitEntities,
         routineSignals: routineExtraction.signals,
         negations,
-        temporalChanges: routineExtraction.temporalEntities,
+        temporalChanges,
         emails,
         namedEntities,
         possessions,
@@ -181,6 +185,22 @@ export class SpecificityNER {
     ) {
       memoryTypes.push('relational');
     }
+  }
+
+  private mergeUniqueEntities(...groups: Entity[][]): Entity[] {
+    const merged: Entity[] = [];
+    const seen = new Set<string>();
+
+    for (const group of groups) {
+      for (const entity of group) {
+        const key = `${entity.type}:${entity.value}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(entity);
+      }
+    }
+
+    return merged;
   }
 
   private computeScore(input: {
