@@ -41,7 +41,7 @@ export class CandidateFusion {
         const fallbackAccepted =
           fallback.accepted ||
           fallback.score >= fallback.threshold + 0.03 ||
-          (fallback.fallbackConfidence ?? 0) >= 0.8;
+          (fallback.fallbackConfidence ?? 0) >= 0.72;
         output.push({
           canonicalKey,
           accepted: deterministicAccepted || fallbackAccepted,
@@ -65,7 +65,7 @@ export class CandidateFusion {
         const conservativeAccept =
           fallback.accepted &&
           (fallback.score >= fallback.threshold + 0.08 ||
-            (fallback.fallbackConfidence ?? 0) >= 0.8);
+            (fallback.fallbackConfidence ?? 0) >= 0.72);
         output.push({
           canonicalKey,
           accepted: conservativeAccept,

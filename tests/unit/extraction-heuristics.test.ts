@@ -81,4 +81,111 @@ describe('SpecificityNER heuristics', () => {
     expect(personOrPlaceValues).not.toContain('planning to');
     expect(personOrPlaceValues).not.toContain('move to');
   });
+
+  it('detects lowercase profession statements as profession memories', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('i work as senior software engineer');
+
+    expect(result.memoryTypes).toContain('profession');
+    expect(result.score).toBeGreaterThanOrEqual(0.25);
+  });
+
+  it('does not misclassify marriage status as profession', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I am married');
+
+    expect(result.memoryTypes).toContain('relational');
+    expect(result.memoryTypes).not.toContain('profession');
+  });
+
+  it('extracts names from curated intro variants', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze("my name's pourya and you can call me pouya");
+    const personValues = result.entities
+      .filter((entity) => entity.type === 'person')
+      .map((entity) => entity.value);
+
+    expect(result.memoryTypes).toContain('identity');
+    expect(personValues).toContain('pourya');
+    expect(personValues).toContain('pouya');
+  });
+
+  it('does not treat profession phrases as names in intro forms', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('Im a senior software engineer');
+    const personValues = result.entities
+      .filter((entity) => entity.type === 'person')
+      .map((entity) => entity.value);
+
+    expect(personValues).not.toContain('senior software engineer');
+    expect(result.memoryTypes).toContain('profession');
+  });
+
+  it('extracts employer from direct work statements', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I work at OpenAI');
+    const orgValues = result.entities
+      .filter((entity) => entity.type === 'organization')
+      .map((entity) => entity.value);
+
+    expect(result.memoryTypes).toContain('profession');
+    expect(orgValues).toContain('openai');
+  });
+
+  it('captures self-employment patterns as profession', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I am self-employed and run my own agency');
+
+    expect(result.memoryTypes).toContain('profession');
+    expect(result.score).toBeGreaterThanOrEqual(0.25);
+  });
+
+  it('captures strict identity markers for age and pronouns', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze(
+      "I'm 29 years old and my pronouns are they/them",
+    );
+
+    expect(result.memoryTypes).toContain('identity');
+    expect(result.score).toBeGreaterThanOrEqual(0.2);
+  });
+
+  it('rejects idiomatic relationship phrases from identity markers', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I am married to my work');
+
+    expect(result.memoryTypes).not.toContain('relational');
+  });
 });

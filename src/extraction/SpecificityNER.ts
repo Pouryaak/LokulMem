@@ -1,4 +1,14 @@
 import type { Entity, MemoryType } from '../types/memory.js';
+import {
+  IDENTITY_PATTERNS,
+  type IdentityPatternKind,
+  LANGUAGE_ALLOWLIST,
+} from './patterns/identityPatterns.js';
+import {
+  PROFESSION_KEYWORDS,
+  PROFESSION_PATTERNS,
+  type ProfessionPatternKind,
+} from './patterns/professionPatterns.js';
 
 export interface SpecificityResult {
   /** Specificity score (0-1) */
@@ -9,6 +19,12 @@ export interface SpecificityResult {
 
   /** Detected memory types */
   memoryTypes: MemoryType[];
+}
+
+interface IdentitySignal {
+  kind: IdentityPatternKind;
+  value: string;
+  confidence: number;
 }
 
 /**
@@ -39,6 +55,21 @@ export class SpecificityNER {
     const names = this.extractNames(content);
     entities.push(...names);
     if (names.length > 0) memoryTypes.push('identity');
+
+    // Identity marker patterns (weight: 0.2)
+    const identitySignals = this.extractIdentitySignals(content);
+    if (identitySignals.length > 0 && !memoryTypes.includes('identity')) {
+      memoryTypes.push('identity');
+    }
+    if (
+      identitySignals.some((signal) =>
+        ['relationshipStatus', 'childrenCount', 'parentalStatus'].includes(
+          signal.kind,
+        ),
+      )
+    ) {
+      memoryTypes.push('relational');
+    }
 
     // Place patterns (weight: 0.25)
     const places = this.extractPlaces(content);
@@ -121,6 +152,7 @@ export class SpecificityNER {
       emails: 0.4,
       namedEntities: 0.25,
       possessions: 0.1,
+      identitySignals: 0.2,
     };
 
     const rawScore =
@@ -136,7 +168,8 @@ export class SpecificityNER {
       (temporalChanges.length > 0 ? weights.temporalChanges : 0) +
       (emails.length > 0 ? weights.emails : 0) +
       (namedEntities.length > 0 ? weights.namedEntities : 0) +
-      (possessions.length > 0 ? weights.possessions : 0);
+      (possessions.length > 0 ? weights.possessions : 0) +
+      (identitySignals.length > 0 ? weights.identitySignals : 0);
 
     return {
       score: Math.min(1.0, rawScore),
@@ -154,23 +187,64 @@ export class SpecificityNER {
    */
   private extractNames(content: string): Entity[] {
     const entities: Entity[] = [];
+    const nameToken = `[A-Za-z][A-Za-z'’-]{1,30}`;
+    const nameSequence = `(${nameToken}(?:\\s+${nameToken}){0,2})`;
 
-    // Pattern: "My name is [Name]" / "I'm [Name]" / "I am [Name]"
-    const nameIntroPatterns = [
-      /(?:my name is|i'm|i am)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/g,
+    const nameIntroPatterns: Array<{ pattern: RegExp; confidence: number }> = [
+      {
+        pattern: new RegExp(
+          `(?:my\\s+name\\s+is|my\\s+name['’]?s|my\\s+full\\s+name\\s+is)\\s+${nameSequence}`,
+          'gi',
+        ),
+        confidence: 0.95,
+      },
+      {
+        pattern: new RegExp(
+          `(?:^|\\s)(?:i['’]?m|im|i\\s+am)\\s+${nameSequence}(?=$|[,.!?])`,
+          'gi',
+        ),
+        confidence: 0.9,
+      },
+      {
+        pattern: new RegExp(
+          `(?:call\\s+me|you\\s+can\\s+call\\s+me|just\\s+call\\s+me|i\\s+go\\s+by|i\\s+am\\s+called|i\\s+am\\s+known\\s+as)\\s+${nameSequence}`,
+          'gi',
+        ),
+        confidence: 0.88,
+      },
+      {
+        pattern: new RegExp(
+          `(?:my\\s+nickname\\s+is|aka|a\\.k\\.a\\.)\\s+${nameSequence}`,
+          'gi',
+        ),
+        confidence: 0.82,
+      },
     ];
-    for (const pattern of nameIntroPatterns) {
+
+    const seen = new Set<string>();
+    for (const { pattern, confidence } of nameIntroPatterns) {
       const matches = content.matchAll(pattern);
       for (const match of matches) {
-        if (match[1]) {
-          entities.push({
-            type: 'person',
-            value: match[1].toLowerCase(),
-            raw: match[1],
-            count: 1,
-            confidence: 0.9,
-          });
+        const candidate = match[1]
+          ?.replace(/\s+(?:and|or|but)\b.*$/i, '')
+          .trim();
+        if (!candidate || !this.isLikelyNameCandidate(candidate)) {
+          continue;
         }
+
+        const key = candidate.toLowerCase();
+        if (seen.has(key)) {
+          continue;
+        }
+
+        seen.add(key);
+        entities.push({
+          type: 'person',
+          value: key,
+          raw: candidate,
+          count: 1,
+          confidence,
+        });
       }
     }
 
@@ -234,37 +308,37 @@ export class SpecificityNER {
   private extractJobs(content: string): Entity[] {
     const entities: Entity[] = [];
 
-    // Pattern: "I work at/as [Company/Role]" / "I'm a [Role]" / "I am a [Role]"
-    const workPatterns = [
-      /i\s+(?:really\s+)?work\s+(?:at|as|for)\s+([^.!?]+)/gi,
-      /i\s+(?:usually\s+)?work\s+from\s+([^.!?]+)/gi,
-      /i['m]\s+(?:a\s+)?an?\s+([^.!?]+)/gi,
-      /i\s+am\s+(?:a\s+)?an?\s+([^.!?]+)/gi,
-    ];
-
-    for (const pattern of workPatterns) {
+    const seen = new Set<string>();
+    for (const { pattern, group, kind, confidence } of PROFESSION_PATTERNS) {
       const matches = content.matchAll(pattern);
       for (const match of matches) {
-        if (match[1]) {
-          const value = match[1].trim();
-          if (value.length > 0 && value.length < 100) {
-            // Extract capitalized words as entities (company names, job titles)
-            const capitalizedWords = value.match(/\b[A-Z][a-z]+\b/g);
-            if (capitalizedWords) {
-              for (const word of capitalizedWords) {
-                if (!this.isCommonWord(word)) {
-                  entities.push({
-                    type: 'organization',
-                    value: word.toLowerCase(),
-                    raw: word,
-                    count: 1,
-                    confidence: 0.85,
-                  });
-                }
-              }
-            }
-          }
+        const captured = (match[group] ?? '').trim();
+        if (!captured) {
+          continue;
         }
+
+        const normalized = captured
+          .replace(/\s+/g, ' ')
+          .replace(/^(?:a|an|the)\s+/i, '')
+          .trim()
+          .toLowerCase();
+
+        if (!this.isLikelyWorkValue(normalized, kind)) {
+          continue;
+        }
+
+        if (seen.has(normalized)) {
+          continue;
+        }
+
+        seen.add(normalized);
+        entities.push({
+          type: 'organization',
+          value: normalized,
+          raw: captured,
+          count: 1,
+          confidence,
+        });
       }
     }
 
@@ -706,8 +780,8 @@ export class SpecificityNER {
 
     // Profession patterns
     const professionPatterns = [
-      /\b(work|job|career|manager|developer|engineer|designer|CEO|CTO|founder|company)\b/gi,
-      /\bi\s+am\s+(?:a\s+)?(?:an?|the)?\s*([a-z]+(?:\s+[a-z]+)?)\b/gi,
+      new RegExp(`\\b(${PROFESSION_KEYWORDS.join('|')})\\b`, 'gi'),
+      /\b(?:i\s+work\s+as|i\s+work\s+at|i\s+am\s+a|i\s+am\s+an|i\s+am\s+the|i['’]?m\s+a|i['’]?m\s+an)\b/gi,
     ];
     for (const pattern of professionPatterns) {
       if (pattern.test(lower) && !types.includes('profession')) {
@@ -730,14 +804,22 @@ export class SpecificityNER {
     }
 
     // Relational patterns
-    const relationalPatterns = [
-      /\b(mother|father|sister|brother|parent|child|son|daughter|friend|wife|husband|partner|family)\b/gi,
-    ];
-    for (const pattern of relationalPatterns) {
-      if (pattern.test(lower) && !types.includes('relational')) {
-        types.push('relational');
-        break;
-      }
+    const relationalFamilyPattern =
+      /\b(mother|father|sister|brother|parent|child|son|daughter|friend|wife|husband|partner|family)\b/gi;
+    if (relationalFamilyPattern.test(lower) && !types.includes('relational')) {
+      types.push('relational');
+    }
+
+    const relationalStatusPattern = /\b(married|engaged|divorced|single)\b/gi;
+    const isRelationshipIdiom =
+      /\bmarried\s+to\s+(?:my\s+)?work\b/.test(lower) ||
+      /\bsingle[-\s]handedly\b/.test(lower);
+    if (
+      !isRelationshipIdiom &&
+      relationalStatusPattern.test(lower) &&
+      !types.includes('relational')
+    ) {
+      types.push('relational');
     }
 
     // Emotional patterns
@@ -951,5 +1033,199 @@ export class SpecificityNER {
       'evening',
       'night',
     ].includes(token);
+  }
+
+  private isProfessionPhrase(value: string): boolean {
+    return new RegExp(`\\b(${PROFESSION_KEYWORDS.join('|')})\\b`).test(value);
+  }
+
+  private isLikelyWorkValue(
+    value: string,
+    kind: ProfessionPatternKind,
+  ): boolean {
+    if (value.length < 2 || value.length > 60) {
+      return false;
+    }
+
+    if (this.looksLikePersonalIdentityPhrase(value)) {
+      return false;
+    }
+
+    if (
+      /\b(wife|husband|partner|mother|father|friend|family|pizza|steak|gym)\b/.test(
+        value,
+      )
+    ) {
+      return false;
+    }
+
+    if (kind === 'role') {
+      return (
+        this.isProfessionPhrase(value) ||
+        /^(?:senior|junior|lead|principal|staff)\s+[a-z][a-z\s-]+$/.test(value)
+      );
+    }
+
+    if (kind === 'industry') {
+      return /[a-z]{3,}/.test(value);
+    }
+
+    if (kind === 'workMode') {
+      return /\b(remote|remotely|home|office|anywhere)\b/.test(value);
+    }
+
+    if (kind === 'company' || kind === 'selfEmployment') {
+      return !/^(?:my|our|the)\s+/.test(value);
+    }
+
+    return false;
+  }
+
+  private looksLikePersonalIdentityPhrase(value: string): boolean {
+    return /^(?:married|single|engaged|divorced)$/.test(value.trim());
+  }
+
+  private isLikelyNameCandidate(value: string): boolean {
+    const normalized = value.toLowerCase().trim();
+    if (!normalized) {
+      return false;
+    }
+
+    if (!/^[a-z][a-z'’-]*(?:\s+[a-z][a-z'’-]*){0,2}$/.test(normalized)) {
+      return false;
+    }
+
+    const blockedPhrases = new Set([
+      'married',
+      'single',
+      'engaged',
+      'divorced',
+      'happy',
+      'sad',
+      'tired',
+      'hungry',
+      'ready',
+      'from denmark',
+      'software engineer',
+      'senior software engineer',
+      'new job',
+      'my wife',
+      'my husband',
+    ]);
+
+    if (blockedPhrases.has(normalized)) {
+      return false;
+    }
+
+    if (
+      this.isProfessionPhrase(normalized) ||
+      /\b(wife|husband|partner|friend|family|job|career|project|plan)\b/.test(
+        normalized,
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      /^(?:planning\s+to|going\s+to|gonna\s+|need\s+to|want\s+to|working\s+on|work\s+as|work\s+at)/.test(
+        normalized,
+      )
+    ) {
+      return false;
+    }
+
+    const tokens = normalized.split(/\s+/).filter(Boolean);
+    if (tokens.length < 1 || tokens.length > 3) {
+      return false;
+    }
+
+    const blockedTokens = new Set([
+      'and',
+      'or',
+      'but',
+      'you',
+      'your',
+      'my',
+      'the',
+      'is',
+      'am',
+    ]);
+
+    return tokens.every((token) => !blockedTokens.has(token));
+  }
+
+  private extractIdentitySignals(content: string): IdentitySignal[] {
+    const signals: IdentitySignal[] = [];
+    const seen = new Set<string>();
+
+    for (const { pattern, group, kind, confidence } of IDENTITY_PATTERNS) {
+      const matches = content.matchAll(pattern);
+      for (const match of matches) {
+        const captured = (match[group] ?? '').trim();
+        if (!captured) {
+          continue;
+        }
+
+        const normalized = captured.toLowerCase().replace(/\s+/g, ' ').trim();
+        if (!this.isValidIdentitySignal(kind, normalized, match[0] ?? '')) {
+          continue;
+        }
+
+        const key = `${kind}:${normalized}`;
+        if (seen.has(key)) {
+          continue;
+        }
+
+        seen.add(key);
+        signals.push({
+          kind,
+          value: normalized,
+          confidence,
+        });
+      }
+    }
+
+    return signals;
+  }
+
+  private isValidIdentitySignal(
+    kind: IdentityPatternKind,
+    value: string,
+    fullMatch: string,
+  ): boolean {
+    if (!value) {
+      return false;
+    }
+
+    if (kind === 'age') {
+      const age = Number(value);
+      return Number.isInteger(age) && age >= 5 && age <= 120;
+    }
+
+    if (kind === 'childrenCount') {
+      const count = Number(value);
+      return Number.isInteger(count) && count >= 0 && count <= 20;
+    }
+
+    if (kind === 'relationshipStatus') {
+      if (/married\s+to\s+(?:my\s+)?work/.test(fullMatch.toLowerCase())) {
+        return false;
+      }
+      return true;
+    }
+
+    if (kind === 'parentalStatus') {
+      return !/\b(?:figure|hen)\b/.test(value);
+    }
+
+    if (kind === 'nativeLanguage') {
+      return LANGUAGE_ALLOWLIST.has(value);
+    }
+
+    if (kind === 'pronouns' || kind === 'ageRange') {
+      return true;
+    }
+
+    return false;
   }
 }

@@ -474,4 +474,55 @@ describe('Learner normalization and policy integration', () => {
       result.diagnostics?.some((item) => item.extractionMode === 'fallback'),
     ).toBe(true);
   });
+
+  it('accepts fallback relational fact near threshold when confidence is high', async () => {
+    const fallbackExtractor: FallbackExtractor = {
+      extract: vi.fn(async () => ({
+        facts: [{ text: "My wife's name is Parastoo", confidence: 0.74 }],
+        provider: 'webllm' as const,
+        model: 'Llama-3.2-3B-Instruct-q4f32_1-MLC',
+      })),
+    };
+
+    const { learner } = createLearnerHarness({
+      fallbackExtractor,
+      scoreImpl: (content) => {
+        if (content.toLowerCase().includes("wife's name is parastoo")) {
+          return {
+            score: 0.32,
+            novelty: 0.78,
+            specificity: 0.1,
+            recurrence: 0,
+            meetsThreshold: false,
+            threshold: 0.36,
+          };
+        }
+
+        return {
+          score: 0.29,
+          novelty: 0.7,
+          specificity: 0,
+          recurrence: 0,
+          meetsThreshold: false,
+          threshold: 0.36,
+        };
+      },
+    });
+
+    const result = await learner.learn(
+      { role: 'user', content: "Im married and my wife's name is Parastoo" },
+      { role: 'assistant', content: 'ok' },
+      { conversationId: 'conv-relational-fallback', verbose: true },
+    );
+
+    expect(result.extracted.map((item) => item.content)).toContain(
+      "My wife's name is Parastoo",
+    );
+    const fallbackDiagnostic = result.diagnostics?.find(
+      (item) =>
+        item.extractionMode === 'fallback' &&
+        item.source.includes("wife's name"),
+    );
+    expect(fallbackDiagnostic?.accepted).toBe(true);
+  });
 });

@@ -1225,7 +1225,8 @@ async function initializeAPIComponents(): Promise<void> {
       thresholdsByType: {
         identity: 0.36,
         preference: 0.38,
-        relational: 0.38,
+        relational: 0.36,
+        profession: 0.36,
         temporal: 0.33,
       },
     },

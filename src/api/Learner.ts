@@ -559,11 +559,17 @@ export class Learner {
       learnThreshold !== undefined
         ? scoreResult.score >= learnThreshold
         : scoreResult.meetsThreshold;
+    const hasHighValueMemoryType = specificityResult.memoryTypes.some((type) =>
+      ['identity', 'relational', 'profession'].includes(type),
+    );
     const fallbackBoostAccepted =
       origin === 'fallback' &&
       fallbackConfidence !== undefined &&
-      fallbackConfidence >= 0.8 &&
-      specificityResult.memoryTypes.length > 0;
+      ((fallbackConfidence >= 0.8 &&
+        specificityResult.memoryTypes.length > 0) ||
+        (fallbackConfidence >= 0.72 &&
+          hasHighValueMemoryType &&
+          scoreResult.score >= threshold - 0.08));
     const riskValidation = this.riskValidator.validate({
       content: extractionContent,
       score: scoreResult.score,

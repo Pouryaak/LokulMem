@@ -4,6 +4,9 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    preserveSymlinks: true,
+  },
   server: {
     port: 3001,
     open: true,
@@ -21,6 +24,6 @@ export default defineConfig({
     outDir: 'dist'
   },
   optimizeDeps: {
-    exclude: ['lokulmem'] // Don't bundle the library, use workspace link
+    exclude: ['lokulmem'],
   }
 });
