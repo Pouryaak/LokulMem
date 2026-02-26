@@ -681,14 +681,14 @@ async function handleMemoryUpdate(
   port: PortLike,
   request: RequestMessage,
 ): Promise<void> {
-  if (!queryEngine || !repository) {
+  if (!repository) {
     const response: ResponseMessage = {
       id: request.id,
       type: MessageTypeConst.ERROR,
       payload: null,
       error: {
         code: 'NOT_INITIALIZED',
-        message: 'Query engine not initialized',
+        message: 'Repository not initialized',
       },
     };
     port.postMessage(response);
@@ -697,7 +697,7 @@ async function handleMemoryUpdate(
 
   try {
     const payload = request.payload as { id: string; updates: unknown };
-    await queryEngine.update(
+    await repository.update(
       payload.id,
       payload.updates as import('../api/types.js').MemoryUpdate,
     );
@@ -730,14 +730,14 @@ async function handleMemoryPin(
   port: PortLike,
   request: RequestMessage,
 ): Promise<void> {
-  if (!queryEngine || !repository) {
+  if (!repository) {
     const response: ResponseMessage = {
       id: request.id,
       type: MessageTypeConst.ERROR,
       payload: null,
       error: {
         code: 'NOT_INITIALIZED',
-        message: 'Query engine not initialized',
+        message: 'Repository not initialized',
       },
     };
     port.postMessage(response);
@@ -746,7 +746,7 @@ async function handleMemoryPin(
 
   try {
     const payload = request.payload as { id: string };
-    await queryEngine.pin(payload.id);
+    await repository.pin(payload.id);
 
     const response: ResponseMessage = {
       id: request.id,
@@ -776,14 +776,14 @@ async function handleMemoryUnpin(
   port: PortLike,
   request: RequestMessage,
 ): Promise<void> {
-  if (!queryEngine || !repository) {
+  if (!repository) {
     const response: ResponseMessage = {
       id: request.id,
       type: MessageTypeConst.ERROR,
       payload: null,
       error: {
         code: 'NOT_INITIALIZED',
-        message: 'Query engine not initialized',
+        message: 'Repository not initialized',
       },
     };
     port.postMessage(response);
@@ -792,7 +792,7 @@ async function handleMemoryUnpin(
 
   try {
     const payload = request.payload as { id: string };
-    await queryEngine.unpin(payload.id);
+    await repository.unpin(payload.id);
 
     const response: ResponseMessage = {
       id: request.id,
@@ -822,14 +822,14 @@ async function handleMemoryDelete(
   port: PortLike,
   request: RequestMessage,
 ): Promise<void> {
-  if (!queryEngine || !repository) {
+  if (!repository) {
     const response: ResponseMessage = {
       id: request.id,
       type: MessageTypeConst.ERROR,
       payload: null,
       error: {
         code: 'NOT_INITIALIZED',
-        message: 'Query engine not initialized',
+        message: 'Repository not initialized',
       },
     };
     port.postMessage(response);
@@ -838,7 +838,7 @@ async function handleMemoryDelete(
 
   try {
     const payload = request.payload as { id: string };
-    await queryEngine.delete(payload.id);
+    await repository.delete(payload.id);
 
     const response: ResponseMessage = {
       id: request.id,
@@ -1073,23 +1073,29 @@ async function initializeAPIComponents(): Promise<void> {
   } = await import('../extraction/_index.js');
 
   // Create temporary instances for extraction pipeline
-  const qualityScorer = new QualityScorer(embeddingEngine);
+  const noveltyCalculator = new NoveltyCalculator(vectorSearch);
   const specificityNER = new SpecificityNER();
-  const noveltyCalculator = new NoveltyCalculator();
   const recurrenceTracker = new RecurrenceTracker();
+  const qualityScorer = new QualityScorer(
+    embeddingEngine,
+    noveltyCalculator,
+    specificityNER,
+    recurrenceTracker,
+  );
   const contradictionDetector = new ContradictionDetector(
     repository,
     vectorSearch,
     specificityNER,
+    {}, // config - use defaults
   );
   const supersessionManager = new SupersessionManager(repository);
 
   // Initialize Augmenter
-  augmenter = new Augmenter(queryEngine, eventManager, {
-    tokenCounter: undefined, // Use default
-    contextWindowTokens: undefined, // From request
-    reservedForResponseTokens: undefined, // From request
-  });
+  augmenter = new Augmenter(
+    queryEngine,
+    eventManager,
+    {}, // empty config - use defaults
+  );
 
   // Initialize Learner (with all dependencies)
   if (lifecycleManager) {

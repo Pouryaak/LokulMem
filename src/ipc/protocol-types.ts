@@ -9,13 +9,13 @@
  * maintain the DTO pattern across the IPC boundary.
  */
 
+import type { ChatMessage, LokulMemDebug } from '../api/types.js';
 import type {
   FullTextSearchOptions,
   PaginatedResult,
   QueryOptions,
   SemanticSearchOptions,
 } from '../search/types.js';
-import type { ChatMessage, LokulMemDebug } from '../types/api.js';
 import type { ContradictionEvent } from '../types/events.js';
 import type { MemoryDTO } from '../types/memory.js';
 
