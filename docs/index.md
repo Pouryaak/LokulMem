@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: LokulMem
-  text: Browser-native memory for AI apps
-  tagline: Local-first, explainable, and CI-guarded memory management for modern assistants.
+  text: Memory that stays sharp in production
+  tagline: Local-first, policy-driven memory for AI products that care about correctness, privacy, and repeatability.
   actions:
     - theme: brand
       text: Read the Docs
@@ -15,26 +15,29 @@ hero:
 
 features:
   - title: Local by default
-    details: Keeps memory on-device with IndexedDB and worker-based architecture. No mandatory backend.
+    details: Memory persists on-device with IndexedDB and workers. No mandatory external memory service.
   - title: Reliable memory decisions
-    details: Deterministic extraction, canonicalization, policy actions, and risk validation before persistence.
+    details: Deterministic extraction, canonicalization, and policy actions with risk validation before writes.
   - title: Quality-gated in CI
-    details: Staged eval gates (A/B/C), regression budgets, and package integrity checks stop quality drift.
+    details: Staged eval gates (A/B/C), regression budgets, and package integrity checks stop drift early.
   - title: LLM agnostic
-    details: Works with providers that accept messages arrays, including hosted and local model setups.
+    details: Works with any provider that accepts message arrays, including hosted and local models.
 ---
 
-## Why teams pick LokulMem
+## Build memory systems users can trust
 
-LokulMem is designed for product teams that need memory quality and developer control, without shipping user data to a separate memory backend.
+LokulMem is built for teams that want memory quality without black-box behavior.
 
-- **Predictable behavior:** deterministic-first pipeline with explicit action reasons.
-- **Operational safety:** default user-only extraction and contamination guard rails.
-- **Inspectable outputs:** debugging metadata for why something was saved, updated, superseded, or ignored.
-- **Open-source friendly:** testable architecture, clear CI gates, and practical migration paths.
+- **Predictable:** deterministic-first flow with explicit action reasons.
+- **Safe by default:** user-origin extraction and contamination guard rails.
+- **Debuggable:** rich diagnostics for add/update/supersede/ignore decisions.
+- **Maintainable:** modular extraction packs and hard CI quality gates.
 
-## Ready to start?
+## What to read next
 
-Jump into the docs section for installation, API usage, architecture, and quality operations.
+Use this path for the fastest onboarding:
 
-- [Open documentation](/guide/)
+1. [Getting Started](/guide/getting-started)
+2. [Core API](/guide/core-api)
+3. [Configuration](/guide/configuration)
+4. [Eval Gates & CI](/guide/evals-and-ci)
