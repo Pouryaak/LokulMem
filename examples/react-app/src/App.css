@@ -178,3 +178,20 @@ nav button.active {
   text-align: center;
   padding: 40px;
 }
+
+.fallback-status {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid #d8e0ea;
+  border-radius: 6px;
+  background: #f8fbff;
+  font-size: 13px;
+}
+
+.fallback-status h4 {
+  margin: 0 0 8px;
+}
+
+.fallback-status p {
+  margin: 4px 0;
+}

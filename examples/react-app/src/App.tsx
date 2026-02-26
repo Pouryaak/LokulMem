@@ -8,7 +8,7 @@ import type { LokulMemDebug } from 'lokulmem';
 type Tab = 'chat' | 'memories';
 
 function App() {
-  const { lokul, isReady, error } = useLokulMem();
+  const { lokul, isReady, error, fallbackModel } = useLokulMem();
   const [activeTab, setActiveTab] = useState<Tab>('chat');
   const [debug, setDebug] = useState<LokulMemDebug | null>(null);
 
@@ -54,7 +54,11 @@ function App() {
         {activeTab === 'chat' && lokul && (
           <div className="split-view">
             <div className="chat-pane">
-              <ChatView lokul={lokul} onDebug={setDebug} />
+              <ChatView
+                lokul={lokul}
+                onDebug={setDebug}
+                fallbackModel={fallbackModel}
+              />
             </div>
             <div className="debug-pane">
               <DebugPanel debug={debug} />

@@ -135,6 +135,7 @@ type CreateEngine = (
 
 export class WebLLMFallbackExtractor implements FallbackExtractor {
   private enginePromise: Promise<WebLLMEngineLike | null> | null = null;
+  private engineInitError: string | undefined;
 
   constructor(
     private readonly config: FallbackLLMConfig,
@@ -163,7 +164,7 @@ export class WebLLMFallbackExtractor implements FallbackExtractor {
         facts: [],
         provider: 'webllm',
         model: this.config.model,
-        error: 'engine_unavailable',
+        error: this.engineInitError ?? 'engine_unavailable',
       };
     }
 
@@ -228,8 +229,19 @@ export class WebLLMFallbackExtractor implements FallbackExtractor {
     if (!this.enginePromise) {
       this.enginePromise = this.createEngine(this.config);
     }
-
-    return this.enginePromise;
+    try {
+      const engine = await this.enginePromise;
+      if (!engine && !this.engineInitError) {
+        this.engineInitError = 'engine_unavailable';
+      }
+      return engine;
+    } catch (error) {
+      this.engineInitError =
+        error instanceof Error
+          ? `engine_unavailable:${error.message}`
+          : 'engine_unavailable';
+      return null;
+    }
   }
 }
 
@@ -309,7 +321,10 @@ function safeParseFacts(raw: string): string[] | null {
       .filter((item): item is string => typeof item === 'string')
       .map((item) => item.trim())
       .filter((item) => item.length > 0);
-  } catch {
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`webllm_init_failed:${error.message}`);
+    }
     return null;
   }
 }
