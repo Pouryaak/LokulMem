@@ -464,4 +464,55 @@ describe('SpecificityNER heuristics', () => {
 
     expect(dateValues).toHaveLength(0);
   });
+
+  it('captures medical condition and medication as identity health facts', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze('I have diabetes and I take metformin daily');
+    const preferenceValues = result.entities
+      .filter((entity) => entity.type === 'preference')
+      .map((entity) => entity.value);
+
+    expect(result.memoryTypes).toContain('identity');
+    expect(preferenceValues).toContain('diabetes');
+    expect(preferenceValues).toContain('metformin');
+  });
+
+  it('captures critical allergy statements', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const result = ner.analyze("I'm allergic to penicillin");
+    const preferenceValues = result.entities
+      .filter((entity) => entity.type === 'preference')
+      .map((entity) => entity.value);
+
+    expect(result.memoryTypes).toContain('identity');
+    expect(preferenceValues).toContain('penicillin');
+  });
+
+  it('rejects non-medical health false positives', async () => {
+    const { SpecificityNER } = await import(
+      '../../src/extraction/SpecificityNER.js'
+    );
+    const ner = new SpecificityNER();
+
+    const conditionResult = ner.analyze('I have a car');
+    const medicationResult = ner.analyze("I'm taking a break");
+
+    const conditionPrefs = conditionResult.entities
+      .filter((entity) => entity.type === 'preference')
+      .map((entity) => entity.value);
+    const medicationPrefs = medicationResult.entities
+      .filter((entity) => entity.type === 'preference')
+      .map((entity) => entity.value);
+
+    expect(conditionPrefs).not.toContain('car');
+    expect(medicationPrefs).not.toContain('break');
+  });
 });

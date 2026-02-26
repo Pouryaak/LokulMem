@@ -13,6 +13,10 @@ import {
   extractEducationSignals,
 } from './specificity/educationExtractor.js';
 import {
+  type HealthSignal,
+  extractHealthSignals,
+} from './specificity/healthExtractor.js';
+import {
   type IdentitySignal,
   extractIdentitySignals,
 } from './specificity/identityExtractor.js';
@@ -61,6 +65,7 @@ const WEIGHTS = {
   emails: 0.4,
   namedEntities: 0.25,
   possessions: 0.1,
+  healthSignals: 0.22,
   educationSignals: 0.24,
   identitySignals: 0.2,
   relationalSignals: 0.22,
@@ -81,6 +86,24 @@ export class SpecificityNER {
     const educationExtraction = extractEducationSignals(content);
     entities.push(...educationExtraction.entities);
     if (educationExtraction.signals.length > 0) memoryTypes.push('identity');
+
+    const healthExtraction = extractHealthSignals(content);
+    entities.push(...healthExtraction.entities);
+    if (healthExtraction.signals.length > 0) memoryTypes.push('identity');
+    if (
+      healthExtraction.signals.some((signal) =>
+        ['mentalHealthCondition', 'mentalHealthProvider', 'therapy'].includes(
+          signal.kind,
+        ),
+      )
+    ) {
+      memoryTypes.push('emotional');
+    }
+    if (
+      healthExtraction.signals.some((signal) => signal.kind === 'familyHistory')
+    ) {
+      memoryTypes.push('relational');
+    }
 
     const relationalExtraction = extractRelationalSignals(
       content,
@@ -159,6 +182,7 @@ export class SpecificityNER {
         emails,
         namedEntities,
         possessions,
+        healthSignals: healthExtraction.signals,
         educationSignals: educationExtraction.signals,
         identitySignals,
         relationalSignals: relationalExtraction.signals,
@@ -219,6 +243,7 @@ export class SpecificityNER {
     emails: Entity[];
     namedEntities: Entity[];
     possessions: Entity[];
+    healthSignals: HealthSignal[];
     educationSignals: EducationSignal[];
     identitySignals: IdentitySignal[];
     relationalSignals: RelationalSignal[];
@@ -241,6 +266,7 @@ export class SpecificityNER {
       (input.emails.length > 0 ? WEIGHTS.emails : 0) +
       (input.namedEntities.length > 0 ? WEIGHTS.namedEntities : 0) +
       (input.possessions.length > 0 ? WEIGHTS.possessions : 0) +
+      (input.healthSignals.length > 0 ? WEIGHTS.healthSignals : 0) +
       (input.educationSignals.length > 0 ? WEIGHTS.educationSignals : 0) +
       (input.identitySignals.length > 0 ? WEIGHTS.identitySignals : 0) +
       (input.relationalSignals.length > 0 ? WEIGHTS.relationalSignals : 0);
