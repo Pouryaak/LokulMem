@@ -183,8 +183,8 @@ Plans:
 - [x] 08-02-PLAN.md — learn() API with extraction pipeline and synchronous cache updates
 - [x] 08-03-PLAN.md — manage() namespace with 16+ inspection and manipulation methods
 - [x] 08-04-PLAN.md — Event system with IDs-only payloads and optional verbose mode
-- [x] 08-05-PLAN.md — Worker RPC integration for augment/learn/manage APIs
-- [x] 08-06-PLAN.md — React demo app with isolated workspace
+- [x] 08-05-PLAN.md — ✅ Worker RPC integration for augment/learn/manage APIs (COMPLETE - 6m 13s, 8 commits)
+- [ ] 08-06-PLAN.md — React demo app with isolated workspace
 
 ---
 
@@ -199,7 +199,7 @@ Plans:
 | 5. Memory Store & Retrieval | 3/3 | Complete    | 2026-02-24 |
 | 6. Lifecycle & Decay | 4/4 | Complete    | 2026-02-25 |
 | 7. Extraction & Contradiction | 4/4 | Complete   | 2026-02-25 |
-| 8. Public API & Demo | 0/3 | Not started | - |
+| 8. Public API & Demo | 5/6 | In progress | 2026-02-26 |
 
 ---
 

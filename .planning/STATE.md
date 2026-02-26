@@ -2,7 +2,7 @@
 
 **Project:** LokulMem - Browser-Native LLM Memory Management Library
 **Current Phase:** 08
-**Current Plan:** 08-04
+**Current Plan:** 08-05
 **Status:** In progress
 **Updated:** 2026-02-26
 
@@ -38,10 +38,38 @@ Developers can add persistent, privacy-preserving memory to any LLM application 
 [██████████] 100% - Phase 5: Memory Store & Retrieval (Complete - 3 of 3 plans)
 [██████████] 100% - Phase 6: Lifecycle & Decay (Complete - 4 of 4 plans)
 [██████████] 100% - Phase 7: Extraction & Contradiction (Complete - 4 of 4 plans)
-[████████░░] 66% - Phase 8: Public API & Demo (4 of 6 plans complete)
+[██████████░] 83% - Phase 8: Public API & Demo (5 of 6 plans complete)
 ```
 
 ### Active Work
+
+**Plan 08-05 Complete!** Worker RPC integration implemented in 6 minutes 13 seconds:
+
+**Implemented:**
+- AUGMENT and LEARN message types in Protocol.ts
+- RPC payload types: AugmentPayload, AugmentResponsePayload, LearnPayload, LearnResponsePayload
+- Worker API component initialization (Augmenter, Learner, EventManager)
+- AUGMENT message handler with 30-second timeout
+- LEARN message handler with 60-second timeout
+- Manager mutation handlers: MEMORY_UPDATE, MEMORY_PIN, MEMORY_UNPIN, MEMORY_DELETE
+- LokulMem augment() and learn() integrated with worker RPC
+- Fixed compilation errors (import paths, repository API, extraction constructors)
+
+**Committed:**
+- f2778fd: feat(08-05): add AUGMENT message type to Protocol
+- ece5a96: feat(08-05): add RPC payload types for AUGMENT and LEARN
+- 566b995: feat(08-05): initialize API components in worker
+- 51578d3: feat(08-05): implement AUGMENT and LEARN message handlers
+- 5cffbe6: feat(08-05): add Manager mutation RPC handlers
+- 795707a: feat(08-05): integrate LokulMem augment/learn with worker RPC
+- 89a3883: fix(08-05): resolve compilation errors
+- 8ef3d8e: fix(08-05): implement proper mutation handlers
+
+**Deviations:** 3 compilation errors fixed (import path, repository API, extraction constructors)
+
+**Next Action:** Execute Plan 08-06: Build interactive demo
+
+---
 
 **Plan 08-04 Complete!** Event system implemented in 4 minutes:
 
