@@ -351,6 +351,7 @@ All 3 plans executed successfully:
 | Phase 07 P02 | 147 | 4 tasks | 4 files |
 | Phase 07 P03b | 3 minutes | 6 tasks | 7 files |
 | Phase 08 P03 | 178 | 9 tasks | 4 files |
+| Phase 08-public-api-demo P02 | 516 | 7 tasks | 5 files |
 
 ### Benchmarks
 

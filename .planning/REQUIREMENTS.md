@@ -86,11 +86,11 @@
 
 ### Public API - learn()
 
-- [ ] **LEARN-01**: Accepts userMessage, assistantResponse, options
-- [ ] **LEARN-02**: Returns extracted memories array
-- [ ] **LEARN-03**: Returns contradictions detected
-- [ ] **LEARN-04**: Returns faded memories from maintenance
-- [ ] **LEARN-05**: Updates in-memory vector cache after extraction
+- [x] **LEARN-01**: Accepts userMessage, assistantResponse, options
+- [x] **LEARN-02**: Returns extracted memories array
+- [x] **LEARN-03**: Returns contradictions detected
+- [x] **LEARN-04**: Returns faded memories from maintenance
+- [x] **LEARN-05**: Updates in-memory vector cache after extraction
 
 ### Public API - manage()
 
