@@ -14,7 +14,6 @@ import type { MemoryInternal } from '../internal/types.js';
 import type { MemoryRepository } from '../storage/MemoryRepository.js';
 import type { MemoryDTO, MemoryType } from '../types/memory.js';
 import type { EmbeddingEngine } from '../worker/EmbeddingEngine.js';
-import type { VectorSearch } from './VectorSearch.js';
 import type {
   ChatMessage,
   FullTextSearchOptions,
@@ -26,6 +25,7 @@ import type {
   TokenBudgetConfig,
   TypeGroup,
 } from './types.js';
+import type { VectorSearch } from './VectorSearch.js';
 
 /**
  * QueryEngine class for high-level memory queries

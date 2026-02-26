@@ -16,12 +16,12 @@ import {
   extractEducationSignals,
 } from './specificity/educationExtractor.js';
 import {
-  type HealthSignal,
   extractHealthSignals,
+  type HealthSignal,
 } from './specificity/healthExtractor.js';
 import {
-  type IdentitySignal,
   extractIdentitySignals,
+  type IdentitySignal,
 } from './specificity/identityExtractor.js';
 import { extractPlaces } from './specificity/locationExtractor.js';
 import {
@@ -29,24 +29,24 @@ import {
   isLikelyNameCandidate,
 } from './specificity/nameExtractor.js';
 import {
-  type NegationSignal,
   extractNegationSignals,
+  type NegationSignal,
 } from './specificity/negationExtractor.js';
 import {
-  type PreferenceSignal,
   extractPreferenceSignals,
+  type PreferenceSignal,
 } from './specificity/preferenceExtractor.js';
 import {
   extractJobs,
   isProfessionPhrase,
 } from './specificity/professionExtractor.js';
 import {
-  type RelationalSignal,
   extractRelationalSignals,
+  type RelationalSignal,
 } from './specificity/relationalExtractor.js';
 import {
-  type RoutineSignal,
   extractRoutineSignals,
+  type RoutineSignal,
 } from './specificity/routineExtractor.js';
 import { extractTemporalSignals } from './specificity/temporalExtractor.js';
 

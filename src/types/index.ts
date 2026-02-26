@@ -3,33 +3,29 @@
  * All public API types are re-exported from this module
  */
 
-// Memory types (DTO pattern - embeddings excluded)
-export type { MemoryDTO, MemoryType, MemoryStatus } from './memory.js';
-
 // API types
+// Storage types (for error handling and monitoring)
 export type {
+  AugmentOptions,
   ChatMessage,
   FallbackLLMConfig,
-  LokulMemConfig,
   InitStage,
-  AugmentOptions,
   LearnOptions,
+  LokulMemConfig,
   LokulMemDebug,
+  StorageError,
+  StorageErrorType,
+  StorageStatus,
 } from './api.js';
 
 // Event types
 export type {
-  MemoryStats,
+  ContradictionCallback,
   MemoryCallback,
   MemoryIdCallback,
+  MemoryStats,
   StatsCallback,
-  ContradictionCallback,
   Unsubscribe,
 } from './events.js';
-
-// Storage types (for error handling and monitoring)
-export type {
-  StorageStatus,
-  StorageError,
-  StorageErrorType,
-} from './api.js';
+// Memory types (DTO pattern - embeddings excluded)
+export type { MemoryDTO, MemoryStatus, MemoryType } from './memory.js';

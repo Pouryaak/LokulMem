@@ -200,8 +200,7 @@ export class VectorSearch {
 
       // Apply composite scoring if enabled
       let score = similarity;
-      let breakdown: ReturnType<typeof this.scoring.computeScore> | undefined =
-        undefined;
+      let breakdown: ReturnType<typeof this.scoring.computeScore> | undefined;
 
       if (useCompositeScoring) {
         breakdown = this.scoring.computeScore(

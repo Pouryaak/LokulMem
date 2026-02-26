@@ -4,23 +4,22 @@
  * Provides clean imports for internal use and keeps the search module organized.
  */
 
-// Core search classes
-export { VectorSearch } from './VectorSearch.js';
-export { Scoring, DEFAULT_SCORING_CONFIG } from './Scoring.js';
 export { QueryEngine } from './QueryEngine.js';
-
+export { DEFAULT_SCORING_CONFIG, Scoring } from './Scoring.js';
 // Search types
 export type {
-  SearchResult,
-  SearchOptions,
-  ScoringConfig,
-  ScoringWeights,
-  ScoreBreakdown,
+  FullTextSearchOptions,
+  PaginatedResult,
   QueryFilter,
   QueryOptions,
-  PaginatedResult,
-  FullTextSearchOptions,
+  ScoreBreakdown,
+  ScoringConfig,
+  ScoringWeights,
+  SearchOptions,
+  SearchResult,
   SemanticSearchOptions,
   TimelineGroup,
   TypeGroup,
 } from './types.js';
+// Core search classes
+export { VectorSearch } from './VectorSearch.js';

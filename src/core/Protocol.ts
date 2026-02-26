@@ -4,8 +4,7 @@
  */
 
 import type { LifecycleConfig } from '../lifecycle/types.js';
-import type { InitStage } from '../types/api.js';
-import type { FallbackLLMConfig } from '../types/api.js';
+import type { FallbackLLMConfig, InitStage } from '../types/api.js';
 
 /**
  * Request message sent from main thread to worker

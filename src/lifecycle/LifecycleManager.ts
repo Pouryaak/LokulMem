@@ -43,9 +43,6 @@ import type {
  */
 export class LifecycleManager {
   private readonly repository: MemoryRepository;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  // @ts-expect-error - Stored for future use (K-means clustering enhancements)
-  private readonly _vectorSearch: VectorSearch; // Stored for future use
 
   // Lifecycle components
   private readonly decayCalculator: DecayCalculator;
@@ -75,7 +72,6 @@ export class LifecycleManager {
     config: LifecycleConfig,
   ) {
     this.repository = repository;
-    this._vectorSearch = vectorSearch;
 
     // Extract decay config
     const decayConfig: DecayConfig = {
@@ -286,20 +282,6 @@ export class LifecycleManager {
     await this.maintenanceSweep.shutdown();
     this.isInitialized = false;
     console.log('LifecycleManager: Shutdown complete');
-  }
-
-  /**
-   * Calculate optimal K for K-means clustering
-   * @returns Promise<number> with recommended K value
-   *
-   * Uses heuristic: max(2, floor(sqrt(n/2)))
-   * @deprecated Reserved for future use
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  // @ts-expect-error - Reserved for future use (auto K calculation)
-  private async _calculateOptimalK(): Promise<number> {
-    const count = await this.repository.count();
-    return Math.max(2, Math.floor(Math.sqrt(count / 2)));
   }
 }
 

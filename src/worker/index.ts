@@ -41,8 +41,7 @@ import { QueryEngine } from '../search/QueryEngine.js';
 import { VectorSearch } from '../search/VectorSearch.js';
 import { LokulDatabase } from '../storage/Database.js';
 import { MemoryRepository } from '../storage/MemoryRepository.js';
-import type { InitStage } from '../types/api.js';
-import type { FallbackLLMConfig } from '../types/api.js';
+import type { FallbackLLMConfig, InitStage } from '../types/api.js';
 import { EmbeddingEngine } from './EmbeddingEngine.js';
 
 /**

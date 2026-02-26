@@ -20,32 +20,32 @@ export const VERSION = '0.1.0';
 export { WorkerUrl };
 
 // Main API exports
-export { LokulMem, createLokulMem } from './core/LokulMem.js';
+export { createLokulMem, LokulMem } from './core/LokulMem.js';
 
 // Public type re-exports from src/types/
 // Internal types (src/core/, src/internal/) are NOT exported - they stay internal
 export type {
-  // Memory types
-  MemoryDTO,
-  MemoryType,
-  MemoryStatus,
+  AugmentOptions,
   // API types
   ChatMessage,
+  ContradictionCallback,
   FallbackLLMConfig,
-  LokulMemConfig,
   InitStage,
-  AugmentOptions,
   LearnOptions,
+  LokulMemConfig,
   LokulMemDebug,
+  MemoryCallback,
+  // Memory types
+  MemoryDTO,
+  MemoryIdCallback,
   // Event types
   MemoryStats,
-  MemoryCallback,
-  MemoryIdCallback,
+  MemoryStatus,
+  MemoryType,
   StatsCallback,
-  ContradictionCallback,
-  Unsubscribe,
-  // Storage types (for error handling and monitoring)
-  StorageStatus,
   StorageError,
   StorageErrorType,
+  // Storage types (for error handling and monitoring)
+  StorageStatus,
+  Unsubscribe,
 } from './types/index.js';

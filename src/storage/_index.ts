@@ -3,29 +3,24 @@
  * These are for internal use only - NOT exported publicly
  */
 
+// Export types from Database
+export type { DbClusterRow, DbMemoryRow } from './Database.js';
 // Database
 export { LokulDatabase } from './Database.js';
-
-// Storage Manager
-export { StorageManager } from './StorageManager.js';
-
-// Repository
-export { MemoryRepository } from './MemoryRepository.js';
-
 // Embedding utilities
 export {
-  toDbFormat,
-  fromDbFormat,
-  memoryToDb,
-  memoryFromDb,
-  clusterToDb,
-  clusterFromDb,
-  EXPECTED_EMBEDDING_DIM,
   type ClusterInternal,
+  clusterFromDb,
+  clusterToDb,
+  EXPECTED_EMBEDDING_DIM,
+  fromDbFormat,
+  memoryFromDb,
+  memoryToDb,
+  toDbFormat,
 } from './embeddingStorage.js';
-
-// Export types from Database
-export type { DbMemoryRow, DbClusterRow } from './Database.js';
-
 // Export types from MemoryRepository
 export type { MemoryFilter } from './MemoryRepository.js';
+// Repository
+export { MemoryRepository } from './MemoryRepository.js';
+// Storage Manager
+export { StorageManager } from './StorageManager.js';

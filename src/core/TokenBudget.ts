@@ -5,8 +5,11 @@
  * Used by both getInjectionPreview() and augment() for consistent behavior.
  */
 
-import type { ChatMessage } from '../search/types.js';
-import type { TokenBudgetConfig, TokenBudgetResult } from '../search/types.js';
+import type {
+  ChatMessage,
+  TokenBudgetConfig,
+  TokenBudgetResult,
+} from '../search/types.js';
 
 /**
  * Compute token budget for memory injection based on full message list

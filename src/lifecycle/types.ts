@@ -8,8 +8,7 @@
  * - Maintenance sweep and event emission
  */
 
-import type { MemoryType } from '../types/memory.js';
-import type { MemoryDTO } from '../types/memory.js';
+import type { MemoryDTO, MemoryType } from '../types/memory.js';
 
 // ============================================================================
 // Decay Configuration

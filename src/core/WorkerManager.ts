@@ -9,17 +9,17 @@
  */
 
 import type { ContradictionEvent, SupersessionEvent } from '../types/events.js';
-import { WorkerClient, createMainThreadPort } from './MessagePort.js';
+import { createMainThreadPort, WorkerClient } from './MessagePort.js';
 import { requestPersistence } from './Persistence.js';
 import type { InitPayload, ProgressMessage } from './Protocol.js';
 import type {
   InitStage,
+  PersistenceStatus,
   PortLike,
   ProgressCallback,
   WorkerConfig,
   WorkerType,
 } from './types.js';
-import type { PersistenceStatus } from './types.js';
 
 /**
  * Queued message for buffering during initialization

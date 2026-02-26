@@ -1,10 +1,8 @@
-export { SpecificityNER, type SpecificityResult } from './SpecificityNER.js';
-export { Normalizer, type NormalizationMetadata } from './Normalizer.js';
 export {
-  AmbiguityTrigger,
   type AmbiguityDecision,
   type AmbiguityInput,
   type AmbiguityReason,
+  AmbiguityTrigger,
 } from './AmbiguityTrigger.js';
 export {
   CandidateFusion,
@@ -13,51 +11,53 @@ export {
   type CandidateSource,
 } from './CandidateFusion.js';
 export {
-  ChainedFallbackExtractor,
-  WebLLMFallbackExtractor,
-  PatternFallbackExtractor,
-  NoopFallbackExtractor,
-  type FallbackExtractor,
-  type FallbackExtractionInput,
-  type FallbackExtractionFact,
-  type FallbackExtractionResult,
-} from './FallbackExtractor.js';
-export {
-  Canonicalizer,
   type CanonicalEntity,
   type CanonicalizationEntity,
-  type CanonicalScope,
   type CanonicalizationInput,
   type CanonicalizationResult,
+  Canonicalizer,
+  type CanonicalScope,
 } from './Canonicalizer.js';
 export {
+  type ContradictionCandidate,
+  type ContradictionConfig,
+  ContradictionDetector,
+  type ContradictionEvent,
+} from './ContradictionDetector.js';
+export {
+  type EntityLinkContext,
   EntityLinker,
   type LinkedEntity,
-  type EntityLinkContext,
 } from './EntityLinker.js';
 export {
-  RiskValidator,
+  ChainedFallbackExtractor,
+  type FallbackExtractionFact,
+  type FallbackExtractionInput,
+  type FallbackExtractionResult,
+  type FallbackExtractor,
+  NoopFallbackExtractor,
+  PatternFallbackExtractor,
+  WebLLMFallbackExtractor,
+} from './FallbackExtractor.js';
+export { type NormalizationMetadata, Normalizer } from './Normalizer.js';
+export { NoveltyCalculator } from './NoveltyCalculator.js';
+export { type QualityInput, QualityScorer } from './QualityScorer.js';
+export { RecurrenceTracker } from './RecurrenceTracker.js';
+export {
   type RiskSignal,
   type RiskValidationInput,
   type RiskValidationResult,
+  RiskValidator,
 } from './RiskValidator.js';
-export { NoveltyCalculator } from './NoveltyCalculator.js';
-export { RecurrenceTracker } from './RecurrenceTracker.js';
-export { QualityScorer, type QualityInput } from './QualityScorer.js';
+export { SpecificityNER, type SpecificityResult } from './SpecificityNER.js';
 export {
-  TemporalMarkerDetector,
+  type SupersessionEvent,
+  SupersessionManager,
+  type SupersessionManagerConfig,
+  type SupersessionResult,
+} from './SupersessionManager.js';
+export {
   type TemporalMarker,
+  TemporalMarkerDetector,
   type TemporalUpdate,
 } from './TemporalMarkerDetector.js';
-export {
-  ContradictionDetector,
-  type ContradictionEvent,
-  type ContradictionCandidate,
-  type ContradictionConfig,
-} from './ContradictionDetector.js';
-export {
-  SupersessionManager,
-  type SupersessionResult,
-  type SupersessionEvent,
-  type SupersessionManagerConfig,
-} from './SupersessionManager.js';

@@ -1,5 +1,5 @@
-import { createLokulMem } from 'lokulmem';
 import type { LokulMem, LokulMemConfig } from 'lokulmem';
+import { createLokulMem } from 'lokulmem';
 import { useEffect, useRef, useState } from 'react';
 
 interface UseLokulMemResult {

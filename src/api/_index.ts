@@ -6,41 +6,36 @@
 
 // Augment API
 export { Augmenter } from './Augmenter.js';
-export type {
-  AugmentOptions,
-  AugmentResult,
-  ChatMessage,
-  LokulMemDebug,
-} from './types.js';
+// Event API
+export { EventManager } from './EventManager.js';
 
 // Learn API
 export { Learner } from './Learner.js';
-export type { LearnOptions, LearnResult } from './types.js';
-
 // Manage API
 export { Manager } from './Manager.js';
 export type {
+  AugmentOptions,
+  AugmentResult,
   BulkOperationResult,
+  ChatMessage,
   ClearResult,
+  EventConfig,
+  EventType,
   ExportFormat,
+  GroupedResult,
   ImportMode,
   ImportResult,
   InjectionPreviewResult,
+  LearnOptions,
+  LearnResult,
   ListOptions,
+  LokulMemDebug,
   LokulMemExport,
+  MemoryEventPayload,
   MemoryUpdate,
   PaginatedResult,
   SemanticSearchOptions,
   SingleOperationResult,
-  TimelineResult,
-  GroupedResult,
-} from './types.js';
-
-// Event API
-export { EventManager } from './EventManager.js';
-export type {
-  EventConfig,
-  MemoryEventPayload,
   StatsChangedPayload,
-  EventType,
+  TimelineResult,
 } from './types.js';

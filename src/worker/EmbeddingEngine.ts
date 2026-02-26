@@ -8,8 +8,8 @@
  * - Promise queue for concurrency control
  */
 
-import { env, pipeline } from '@huggingface/transformers';
 import type { FeatureExtractionPipeline } from '@huggingface/transformers';
+import { env, pipeline } from '@huggingface/transformers';
 import type { ModelConfig } from '../core/Protocol.js';
 import { type CacheStats, LRUCache, PromiseQueue } from './LRUCache.js';
 

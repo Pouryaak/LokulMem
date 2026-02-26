@@ -1,10 +1,10 @@
 import type { Entity } from '../../types/memory.js';
 import {
   KNOWN_COMPANY_TOKENS,
+  RELATION_TERMS,
   RELATIONAL_IDIOM_BLOCKLIST,
   RELATIONAL_NAME_BLOCKLIST,
   RELATIONAL_PATTERNS,
-  RELATION_TERMS,
   type RelationalPatternKind,
 } from '../patterns/relationalPatterns.js';
 

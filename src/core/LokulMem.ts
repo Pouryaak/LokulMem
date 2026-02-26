@@ -31,9 +31,8 @@ import type { MemoryDTO, MemoryType } from '../types/memory.js';
 import type { WorkerClient } from './MessagePort.js';
 import type { ModelConfig } from './Protocol.js';
 import { MessageType as MessageTypeConst } from './Protocol.js';
+import type { PersistenceStatus, WorkerType } from './types.js';
 import { WorkerManager } from './WorkerManager.js';
-import type { PersistenceStatus } from './types.js';
-import type { WorkerType } from './types.js';
 
 /**
  * Default configuration values

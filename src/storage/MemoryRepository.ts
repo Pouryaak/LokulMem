@@ -13,8 +13,7 @@
 
 import type { MemoryInternal } from '../internal/types.js';
 import type { MemoryStatus, MemoryType } from '../types/memory.js';
-import type { LokulDatabase } from './Database.js';
-import type { DbMemoryRow } from './Database.js';
+import type { DbMemoryRow, LokulDatabase } from './Database.js';
 import { memoryFromDb, memoryToDb } from './embeddingStorage.js';
 
 /**

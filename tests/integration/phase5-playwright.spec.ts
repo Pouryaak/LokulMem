@@ -62,7 +62,7 @@ test.describe('Phase 5: Memory Store & Retrieval', () => {
     });
 
     // Verify we have test results
-    expect(Number.parseInt(totalTests || '0')).toBeGreaterThan(0);
+    expect(Number.parseInt(totalTests || '0', 10)).toBeGreaterThan(0);
 
     // Log detailed results
     const testCases = await page.locator('.test-case').allTextContents();
