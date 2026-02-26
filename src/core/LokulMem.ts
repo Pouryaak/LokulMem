@@ -400,6 +400,69 @@ export class LokulMem {
   }
 
   /**
+   * Learn from conversation by extracting memories
+   *
+   * NOTE: This method requires worker integration. The Learner class
+   * must be instantiated in the worker context where EmbeddingEngine
+   * and other dependencies are available.
+   *
+   * For now, this is a placeholder that will be implemented in a
+   * future phase when worker-side learn() handling is added.
+   *
+   * @param _userMessage - User's message
+   * @param _assistantResponse - Assistant's response
+   * @param _options - Learn options
+   * @returns Learn result with extracted memories and contradictions
+   * @throws Error - Not yet implemented
+   *
+   * @example
+   * ```typescript
+   * const lokul = await createLokulMem();
+   * const result = await lokul.learn(
+   *   { role: 'user', content: 'My name is Alice' },
+   *   { role: 'assistant', content: 'Hi Alice!' }
+   * );
+   * console.log(`Extracted ${result.extracted.length} memories`);
+   * ```
+   */
+  async learn(
+    _userMessage: {
+      role: 'user' | 'assistant' | 'system';
+      content: string;
+      timestamp?: number;
+    },
+    _assistantResponse: {
+      role: 'user' | 'assistant' | 'system';
+      content: string;
+      timestamp?: number;
+    },
+    _options?: {
+      conversationId?: string;
+      extractFrom?: 'user' | 'assistant' | 'both';
+      runMaintenance?: boolean;
+      learnThreshold?: number;
+      autoAssociate?: boolean;
+      storeResponse?: boolean;
+      verbose?: boolean;
+    },
+  ): Promise<{
+    extracted: import('../types/memory.js').MemoryDTO[];
+    contradictions: import('../types/events.js').ContradictionEvent[];
+    maintenance: { faded: number; deleted: number };
+    conversationId: string;
+  }> {
+    // TODO: Implement worker-side learn() handling
+    // This requires:
+    // 1. Instantiate Learner in worker with all dependencies
+    // 2. Add LEARN message handler in worker/index.ts
+    // 3. Send LEARN message from main thread via workerManager
+    // 4. Return LearnResult via IPC
+    throw new Error(
+      'learn() requires worker integration. Will be implemented in a future phase.',
+    );
+  }
+
+  /**
    * Get the current worker type
    * @returns 'shared' | 'dedicated' | 'main-thread'
    */

@@ -82,6 +82,8 @@ export const MessageType = {
   CONTRADICTION_DETECTED: 'CONTRADICTION_DETECTED',
   /** Memory superseded event */
   MEMORY_SUPERSEDED: 'MEMORY_SUPERSEDED',
+  /** Learn from conversation */
+  LEARN: 'learn',
 } as const;
 
 /**
@@ -205,4 +207,49 @@ export interface MemorySupersededPayload {
 
   /** Timestamp */
   timestamp: number;
+}
+
+/**
+ * LearnPayload - Extract memories from conversation
+ */
+export interface LearnPayload {
+  /** User message */
+  userMessage: {
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+    timestamp?: number;
+  };
+  /** Assistant response */
+  assistantResponse: {
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+    timestamp?: number;
+  };
+  /** Learn options */
+  options?: {
+    conversationId?: string;
+    extractFrom?: 'user' | 'assistant' | 'both';
+    runMaintenance?: boolean;
+    learnThreshold?: number;
+    autoAssociate?: boolean;
+    storeResponse?: boolean;
+    verbose?: boolean;
+  };
+}
+
+/**
+ * LearnResultPayload - Result from learn operation
+ */
+export interface LearnResultPayload {
+  /** Extracted memories */
+  extracted: import('../types/memory.js').MemoryDTO[];
+  /** Contradictions detected */
+  contradictions: import('../types/events.js').ContradictionEvent[];
+  /** Maintenance results */
+  maintenance: {
+    faded: number;
+    deleted: number;
+  };
+  /** Conversation ID */
+  conversationId: string;
 }
