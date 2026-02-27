@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+### Patch Changes
+
+- Reduce published package footprint by removing sourcemaps/public artifacts from npm tarballs and aligning worker URL export with runtime worker resolution.
+
 All notable changes to this project are documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
