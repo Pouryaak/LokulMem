@@ -41,9 +41,10 @@ jobs:
         uses: changesets/action@v1
         with:
           version: npm run version-packages
-          publish: npm_config_provenance=true npm run release
+          publish: npm run release
           title: 'chore: release package(s)'
           commit: 'chore: release package(s)'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
