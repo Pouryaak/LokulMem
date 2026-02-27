@@ -5,9 +5,7 @@
  * with three core APIs: augment(), learn(), and manage()
  */
 
-// Worker URL import for bundler compatibility
-// @ts-expect-error - Vite-specific import syntax
-import WorkerUrl from './worker/index.ts?worker&url';
+const WorkerUrl = new URL('./worker.mjs', import.meta.url).href;
 
 /**
  * Library version
