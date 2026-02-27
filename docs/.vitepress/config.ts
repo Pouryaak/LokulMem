@@ -36,6 +36,7 @@ export default defineConfig({
         text: 'Quality & Operations',
         items: [
           { text: 'Eval Gates & CI', link: '/guide/evals-and-ci' },
+          { text: 'Releasing to npm', link: '/guide/releasing' },
           { text: 'Changelog', link: '/guide/changelog' },
           { text: 'Troubleshooting', link: '/guide/troubleshooting' },
         ],

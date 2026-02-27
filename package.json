@@ -1,11 +1,24 @@
 {
-  "name": "lokulmem",
+  "name": "@lokul/lokulmem",
   "version": "0.1.0",
   "description": "Browser-native LLM memory management library",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pouryaak/LokulMem.git"
+  },
+  "homepage": "https://github.com/Pouryaak/LokulMem#readme",
+  "bugs": {
+    "url": "https://github.com/Pouryaak/LokulMem/issues"
+  },
+  "license": "MIT",
   "type": "module",
   "main": "./dist/main.cjs",
   "module": "./dist/main.mjs",
   "types": "./dist/main.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "exports": {
     ".": {
       "import": {
@@ -39,6 +52,9 @@
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration:smoke": "playwright test tests/integration/ci-smoke.spec.ts",
@@ -52,11 +68,13 @@
     "format": "biome format --write .",
     "verify:dist": "node tests/scripts/verify-dist.mjs",
     "verify:package": "npm run build && npm run verify:dist && npm pack --dry-run",
+    "prepublishOnly": "npm run verify:package",
     "clean": "rm -rf dist",
     "ci": "biome ci . && npm run typecheck && npm run test && npm run build"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
+    "@changesets/cli": "^2.29.8",
     "@playwright/test": "^1.58.2",
     "@types/node": "^25.3.2",
     "happy-dom": "^20.7.0",

@@ -1,7 +1,7 @@
 # LokulMem 🧠⚡
 
 <p align="center">
-  <img alt="LokulMem banner" src="./public/lokulMem.jpg" width="100%" />
+  <img alt="LokulMem banner" src="https://raw.githubusercontent.com/Pouryaak/LokulMem/main/public/lokulMem.jpg" width="100%" />
 </p>
 
 <p align="center">
@@ -74,15 +74,15 @@ No backend. No vendor lock-in. Works with any LLM that accepts a `messages[]` ar
 ### Install
 
 ```bash
-npm i lokulmem
+npm i @lokul/lokulmem
 # or
-pnpm add lokulmem
+pnpm add @lokul/lokulmem
 ```
 
 ### Drop it into your chat loop
 
 ```ts
-import { createLokulMem } from 'lokulmem';
+import { createLokulMem } from '@lokul/lokulmem';
 
 // 1) Init once
 const lokul = await createLokulMem({

@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import type { LokulMem } from 'lokulmem';
-import type { ChatMessage } from 'lokulmem';
-import type { LokulMemDebug } from 'lokulmem';
+import type { ChatMessage, LokulMem, LokulMemDebug } from '@lokul/lokulmem';
 
 interface ChatViewProps {
   lokul: LokulMem;

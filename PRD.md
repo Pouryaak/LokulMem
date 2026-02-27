@@ -476,13 +476,13 @@ customTypes: [
 ### Installation
 
 ```bash
-npm install lokulmem
+npm install @lokul/lokulmem
 ```
 
 ### Initialisation
 
 ```typescript
-import { LokulMem } from 'lokulmem'
+import { LokulMem } from '@lokul/lokulmem'
 
 const memory = new LokulMem({
   // Storage
@@ -865,7 +865,7 @@ unsub6();
 The library ships a minimal `useMem()` hook. Applications build their own panel hooks on top.
 
 ```typescript
-import { useMem } from "lokulmem/react";
+import { useMem } from "@lokul/lokulmem/react";
 
 // Library-level hook — raw data and core actions
 function useMem(options: LokulMemOptions): {
@@ -895,7 +895,7 @@ function useMem(options: LokulMemOptions): {
 ```typescript
 // ── WebLLM — browser, local WebGPU ──────────────────────────────────────
 import { CreateMLCEngine } from "@mlc-ai/web-llm";
-import { LokulMem } from "lokulmem";
+import { LokulMem } from "@lokul/lokulmem";
 
 const engine = await CreateMLCEngine("Qwen2.5-1.5B-Instruct-q4f32_1-MLC");
 const memory = new LokulMem({
@@ -1288,7 +1288,7 @@ AES-GCM, PBKDF2, `keyStorage` option. Full spec in Section 9.
 - [ ] Svelte store adapter
 - [ ] Full benchmark suite
 - [ ] Documentation site
-- [ ] npm publish as `lokulmem` — MIT licence
+- [ ] npm publish as `@lokul/lokulmem` — MIT licence
 
 ### v1.0 — Public Release
 

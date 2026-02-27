@@ -3,13 +3,13 @@
 ## Install
 
 ```bash
-npm i lokulmem
+npm i @lokul/lokulmem
 ```
 
 ## Minimal integration
 
 ```ts
-import { createLokulMem } from 'lokulmem';
+import { createLokulMem } from '@lokul/lokulmem';
 
 const lokul = await createLokulMem({
   dbName: 'my-ai-app',

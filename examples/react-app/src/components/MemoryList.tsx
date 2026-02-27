@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { LokulMem } from 'lokulmem';
-import type { MemoryDTO } from 'lokulmem';
+import type { LokulMem, MemoryDTO } from '@lokul/lokulmem';
 
 interface MemoryListProps {
   lokul: LokulMem;

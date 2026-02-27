@@ -3,7 +3,7 @@ import { useLokulMem } from './hooks/useLokulMem';
 import { ChatView } from './components/ChatView';
 import { MemoryList } from './components/MemoryList';
 import { DebugPanel } from './components/DebugPanel';
-import type { LokulMemDebug } from 'lokulmem';
+import type { LokulMemDebug } from '@lokul/lokulmem';
 
 type Tab = 'chat' | 'memories';
 

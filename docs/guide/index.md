@@ -16,4 +16,5 @@ Welcome to the LokulMem docs. This section is structured so you can go from inst
 3. [Configuration](/guide/configuration)
 4. [Memory Lifecycle](/guide/memory-lifecycle)
 5. [Eval Gates & CI](/guide/evals-and-ci)
-6. [Troubleshooting](/guide/troubleshooting)
+6. [Releasing to npm](/guide/releasing)
+7. [Troubleshooting](/guide/troubleshooting)

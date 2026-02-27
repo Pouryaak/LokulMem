@@ -1,4 +1,4 @@
-import type { LokulMemDebug } from 'lokulmem';
+import type { LokulMemDebug } from '@lokul/lokulmem';
 
 interface DebugPanelProps {
   debug: LokulMemDebug | null;

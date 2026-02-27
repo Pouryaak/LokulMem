@@ -24,6 +24,6 @@ export default defineConfig({
     outDir: 'dist'
   },
   optimizeDeps: {
-    exclude: ['lokulmem'],
+    exclude: ['@lokul/lokulmem'],
   }
 });
