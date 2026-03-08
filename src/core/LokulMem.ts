@@ -659,18 +659,38 @@ export class LokulMem {
 
   /**
    * Register callback for when memories are added
+   * Listens on both main-thread EventManager (for Manager ops)
+   * and workerManager (for Learner ops in worker thread)
    * @returns Unsubscribe function
    */
   onMemoryAdded(handler: (event: MemoryEventPayload) => void): () => void {
-    return this.eventManager.on('MEMORY_ADDED', handler);
+    const unsubMain = this.eventManager.on('MEMORY_ADDED', handler);
+    const unsubWorker = this.workerManager.on(
+      MessageTypeConst.MEMORY_ADDED,
+      (payload) => handler(payload as MemoryEventPayload),
+    );
+    return () => {
+      unsubMain();
+      unsubWorker();
+    };
   }
 
   /**
    * Register callback for when memories are updated
+   * Listens on both main-thread EventManager (for Manager ops)
+   * and workerManager (for Learner ops in worker thread)
    * @returns Unsubscribe function
    */
   onMemoryUpdated(handler: (event: MemoryEventPayload) => void): () => void {
-    return this.eventManager.on('MEMORY_UPDATED', handler);
+    const unsubMain = this.eventManager.on('MEMORY_UPDATED', handler);
+    const unsubWorker = this.workerManager.on(
+      MessageTypeConst.MEMORY_UPDATED,
+      (payload) => handler(payload as MemoryEventPayload),
+    );
+    return () => {
+      unsubMain();
+      unsubWorker();
+    };
   }
 
   /**

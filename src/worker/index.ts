@@ -11,6 +11,7 @@
 import { Augmenter } from '../api/Augmenter.js';
 import { EventManager } from '../api/EventManager.js';
 import { Learner } from '../api/Learner.js';
+import type { EventType } from '../api/types.js';
 import type {
   EmbedBatchPayload,
   EmbedBatchResponsePayload,
@@ -122,6 +123,11 @@ let augmenter: Augmenter | null = null;
 let learner: Learner | null = null;
 
 /**
+ * Connected ports for broadcasting events from worker to main thread
+ */
+const connectedPorts = new Set<PortLike>();
+
+/**
  * Calculate overall progress based on current stage and stage progress
  */
 function calculateOverallProgress(
@@ -159,6 +165,7 @@ function reportProgress(
  * Set up message handling on a port
  */
 function setupPort(port: PortLike): void {
+  connectedPorts.add(port);
   port.onmessage = async (event: MessageEvent<RequestMessage>) => {
     const request = event.data;
 
@@ -1276,6 +1283,24 @@ async function initializeAPIComponents(): Promise<void> {
       fallbackExtractor,
     },
   );
+
+  // Bridge EventManager events to main thread via postMessage
+  // Events emitted by Learner (MEMORY_ADDED, MEMORY_SUPERSEDED, etc.)
+  // need to be forwarded to all connected ports so the main thread can react.
+  const bridgedEvents: Array<[EventType, string]> = [
+    ['MEMORY_ADDED', MessageTypeConst.MEMORY_ADDED],
+    ['MEMORY_UPDATED', MessageTypeConst.MEMORY_UPDATED],
+    ['MEMORY_SUPERSEDED', MessageTypeConst.MEMORY_SUPERSEDED],
+    ['CONTRADICTION_DETECTED', MessageTypeConst.CONTRADICTION_DETECTED],
+  ];
+
+  for (const [eventName, messageType] of bridgedEvents) {
+    eventManager.on(eventName, (payload: unknown) => {
+      for (const p of connectedPorts) {
+        p.postMessage({ type: messageType, payload });
+      }
+    });
+  }
 
   // Note: Manager is not instantiated in worker
   // Manager lives on main thread and communicates via WorkerClient
