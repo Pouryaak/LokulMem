@@ -35,6 +35,15 @@ export const IDENTITY_PATTERNS: IdentityPattern[] = [
     confidence: 0.93,
   },
   {
+    // Bare "I'm 29" / "I am 29" without "years old" suffix
+    // Lower confidence since the number could theoretically be something else
+    pattern:
+      /(?:i['']?m|i\s+am)\s+(\d{1,3})(?=$|[,.!?\s])(?!\s+(?:years?\s+old|yrs?\s+old|yo\b))/gi,
+    group: 1,
+    kind: 'age',
+    confidence: 0.8,
+  },
+  {
     pattern:
       /(?:i['’]?m|i\s+am)\s+in\s+my\s+(early|mid|late)\s+(twenties|thirties|forties|fifties|sixties|seventies|eighties)(?=$|[,.!?\s])/gi,
     group: 0,
