@@ -92,7 +92,10 @@ export interface LearnDiagnostic {
   entityCount: number;
   linkedEntityCount?: number;
   riskSignals?: Array<
-    'REPETITIVE_NOISE' | 'LOW_STRUCTURE_HIGH_SCORE' | 'AMBIGUOUS_TEMPORAL'
+    | 'REPETITIVE_NOISE'
+    | 'LOW_STRUCTURE_HIGH_SCORE'
+    | 'AMBIGUOUS_TEMPORAL'
+    | 'INTERROGATIVE_ONLY'
   >;
   policyAction?: 'ADD' | 'UPDATE' | 'SUPERSEDE' | 'IGNORE';
   policyReasonCodes?: Array<

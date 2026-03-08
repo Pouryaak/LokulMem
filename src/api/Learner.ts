@@ -66,7 +66,10 @@ interface EvaluatedCandidate {
   acceptedByScore: boolean;
   fallbackConfidence?: number;
   riskSignals: Array<
-    'REPETITIVE_NOISE' | 'LOW_STRUCTURE_HIGH_SCORE' | 'AMBIGUOUS_TEMPORAL'
+    | 'REPETITIVE_NOISE'
+    | 'LOW_STRUCTURE_HIGH_SCORE'
+    | 'AMBIGUOUS_TEMPORAL'
+    | 'INTERROGATIVE_ONLY'
   >;
   accepted: boolean;
   candidate?: MemoryInternal;
