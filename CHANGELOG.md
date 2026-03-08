@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+### Patch Changes
+
+- 046cc56: Fix worker-side memory events not reaching main thread and add bare age identity pattern
+
 ## 0.1.1
 
 ### Patch Changes

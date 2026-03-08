@@ -1,6 +1,6 @@
 {
   "name": "@lokul/lokulmem",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Browser-native LLM memory management library",
   "repository": {
     "type": "git",
